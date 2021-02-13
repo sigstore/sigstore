@@ -15,7 +15,7 @@ limitations under the License.
 */
 package main
 
-import "letssign/cmd"
+import "signer/cmd"
 
 func main() {
 	cmd.Execute()
