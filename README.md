@@ -45,7 +45,23 @@ cfssl gencert -initca ca.json | cfssljson -bare ca
 cfssl serve --ca ca.pem --ca-key ca-key.pem
 ```
 
-## sign something
+## Set up your signing cert parameters
+
+```
+cat > ~/.signer/profiles.toml <<EOF
+rsa_bits = 2048
+email = "johndoe@example.com"
+common_name = "example.com"
+country = "UK"
+province = "Wiltshire"
+locality = "Chippeham"
+organization = "Acme Inc"
+organizational_unit = "Widgets"
+EOF
+```
+
+## sign
 ```
 go run cmd/cli/main.go sign
 ```
+
