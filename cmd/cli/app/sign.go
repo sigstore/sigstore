@@ -23,7 +23,10 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 
+	homedir "github.com/mitchellh/go-homedir"
+	"github.com/projectrekor/signer/config"
 	"github.com/projectrekor/signer/pkg/x509pkg"
 	"github.com/spf13/cobra"
 )
@@ -54,13 +57,17 @@ type CSRRequest struct {
 	Messages []responseMessage      `json:"messages"`
 }
 
-func checkError(err error) {
+func userCFG() (string, error) {
+	home, err := homedir.Dir()
 	if err != nil {
-		fmt.Println("Fatal error ", err.Error())
-		os.Exit(1)
+		return "", err
 	}
+	userProfile := filepath.Join(home, ".signer")
+	if _, err := os.Stat(userProfile); os.IsNotExist(err) {
+		return userProfile, err
+	}
+	return userProfile, nil
 }
-
 
 var signCmd = &cobra.Command{
 	Use:   "sign",
@@ -70,6 +77,16 @@ var signCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		log.Println("Generating key pair and cert signing request.")
 
+		cfgDir, err := userCFG()
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		config, err := config.LoadConfig(cfgDir)
+		if err != nil {
+			log.Fatal(err)
+		}
+
 		// Generate the private key
 		privateKey, err := x509pkg.GenPrivKeyPEM()
 		if err != nil {
@@ -77,7 +94,7 @@ var signCmd = &cobra.Command{
 		}
 
 		// Generate a CSR from our new key
-		certPEM, err := x509pkg.GenerateCsr(privateKey)
+		certPEM, err := x509pkg.GenerateCsr(config, privateKey)
 		if err != nil {
 			log.Fatal(err)
 		}
