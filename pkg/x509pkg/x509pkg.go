@@ -25,24 +25,14 @@ func GenPrivKeyPEM() (*rsa.PrivateKey, error) {
 
 // TODO: The followinfg subj values should be gathered from
 // a developers profile (likely something in ~/.config)
-func GenerateCsr(config config.Config, keyBytes interface{}) ([]byte, error) {
-	emailAddress := config.Email
+func GenerateCsr(email string, config config.Config, keyBytes interface{}) ([]byte, error) {
     subj := pkix.Name{
-        CommonName:          config.CommonName,
+        CommonName:          email,
         Country:            []string{config.Country},
         Province:           []string{config.Province},
         Locality:           []string{config.Locality},
         Organization:       []string{config.Organization},
         OrganizationalUnit: []string{config.OrganizationalUnit},
-        ExtraNames: []pkix.AttributeTypeAndValue{
-            {
-                Type:  oidEmailAddress,
-                Value: asn1.RawValue{
-                    Tag:   asn1.TagIA5String,
-                    Bytes: []byte(emailAddress),
-                },
-            },
-        },
     }
 
     template := x509.CertificateRequest{
@@ -54,3 +44,4 @@ func GenerateCsr(config config.Config, keyBytes interface{}) ([]byte, error) {
 	return pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE REQUEST", Bytes: csrBytes}), nil
 
 }
+

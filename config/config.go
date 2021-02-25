@@ -4,8 +4,6 @@ import "github.com/spf13/viper"
 
 type Config struct {
     RSABits            int `mapstructure:"rsa_bits"`
-    Email              string `mapstructure:"email"`
-    CommonName         string `mapstructure:"common_name"`
 	Country            string `mapstructure:"country"`
 	Province           string `mapstructure:"province"`
 	Locality           string `mapstructure:"locality"`
