@@ -8,7 +8,7 @@ import (
 	"encoding/asn1"
 	"encoding/pem"
 
-	"github.com/projectrekor/signer/config"
+	"github.com/sigstore/sigstore/config"
 )
 
 var oidEmailAddress = asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 9, 1}

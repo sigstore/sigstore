@@ -1,4 +1,4 @@
-module github.com/projectrekor/signer
+module github.com/sigstore/sigstore
 
 go 1.15
 
