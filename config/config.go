@@ -3,12 +3,7 @@ package config
 import "github.com/spf13/viper"
 
 type Config struct {
-    RSABits            int `mapstructure:"rsa_bits"`
-	Country            string `mapstructure:"country"`
-	Province           string `mapstructure:"province"`
-	Locality           string `mapstructure:"locality"`
-	Organization       string `mapstructure:"organization"`
-	OrganizationalUnit string `mapstructure:"organizationalunit"`
+	Email            string `mapstructure:"email"`
 }
 
 
