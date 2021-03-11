@@ -15,7 +15,7 @@ limitations under the License.
 */
 package main
 
-import "signer/cmd"
+import "sigstore/cmd"
 
 func main() {
 	cmd.Execute()

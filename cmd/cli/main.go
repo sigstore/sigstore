@@ -12,7 +12,7 @@ limitations under the License.
 */
 package main
 
-import "github.com/projectrekor/signer/cmd/cli/app"
+import "github.com/sigstore/sigstore/cmd/cli/app"
 
 func main() {
 	app.Execute()

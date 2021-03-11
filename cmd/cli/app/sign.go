@@ -27,8 +27,8 @@ import (
 
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/pkg/browser"
-	"github.com/projectrekor/signer/config"
-	"github.com/projectrekor/signer/pkg/x509pkg"
+	"github.com/sigstore/sigstore/config"
+	"github.com/sigstore/sigstore/pkg/x509pkg"
 	"github.com/spf13/cobra"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
@@ -78,7 +78,7 @@ func userCFG() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	userProfile := filepath.Join(home, ".signer")
+	userProfile := filepath.Join(home, ".sigstore")
 	if _, err := os.Stat(userProfile); os.IsNotExist(err) {
 		return userProfile, err
 	}
