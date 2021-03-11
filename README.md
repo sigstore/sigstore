@@ -1,3 +1,3 @@
-# Signing Prototype
+# Signstore Prototype
 
-This is experiment and a prototype and not intended for use.
+This is experimental and a prototype and not intended for use yet.
