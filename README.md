@@ -1,3 +1,8 @@
-# Signstore Prototype
+# sigstore signing CLI tool
 
-This is experimental and a prototype and not intended for use yet.
+> :warning: Not ready for use yet!
+
+sigstore CLI is a generic tool to sign blobs, tarballs etc and establish
+a trust root using the sigstore signing infrastructure
+
+For container signing, you want [cosign](https://github.com/sigstore/cosign)
