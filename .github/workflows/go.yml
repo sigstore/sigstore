@@ -27,7 +27,7 @@ jobs:
           go-version: ${{ env.GOVERSION }}
       # Make it
       - name: Build
-        run: make -C $GITHUB_WORKSPACE all
+        run: go build cmd/cli/main.go
       # Lint it
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v2.5.1
