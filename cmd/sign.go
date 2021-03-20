@@ -13,20 +13,17 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package app
+package cmd
 
 import (
-	"log"
+	"fmt"
+	"github.com/sigstore/sigstore/pkg/keymgmt"
 	"os"
 	"path/filepath"
 
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 )
-
-type Userinfo struct {
-    Email  string `json:"email"`
-}
 
 func userCFG() (string, error) {
 	home, err := homedir.Dir()
@@ -40,15 +37,21 @@ func userCFG() (string, error) {
 	return userProfile, nil
 }
 
-var fileCmd = &cobra.Command{
-	Use:   "file",
-	Short: "Submit file to sigstore",
+var signCmd = &cobra.Command{
+	Use:   "sign",
+	Short: "Sign and submit file to sigstore",
 	Long: `Submit file to sigstore.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		log.Println("file command.")
+		pub, key, err := keymgmt.GeneratePrivateKey("ecdsaP256")
+		if err != nil {
+			fmt.Println(err)
+		}
+		// Just place holders, these will be removed once next PR is worked on
+		fmt.Println(key)
+		fmt.Println(pub)
 		},
 }
 
 func init() {
-	rootCmd.AddCommand(fileCmd)
+	rootCmd.AddCommand(signCmd)
 }
