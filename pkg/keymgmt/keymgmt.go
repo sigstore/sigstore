@@ -24,7 +24,7 @@ import (
 )
 
 func GeneratePrivateKey(algorithm string) (interface{}, interface{}, error) {
-	var err error = nil
+	var err error
 	var key interface{}
 	// Allow algorithm agility if different projects have certain FIPS like compliance requirements
 	switch algorithm {
@@ -43,12 +43,20 @@ func GeneratePrivateKey(algorithm string) (interface{}, interface{}, error) {
 	default:
 		err = errors.New("Unsupported algorithm: " + algorithm)
 	}
+	
+	if err != nil {
+		return nil, nil, err
+	}
+
 	pub, err := getPublicKey(key)
+	if err != nil {
+		return nil, nil, err
+	}
 	return key, pub, err
 }
 
 func getPublicKey(priv interface{}) (interface{}, error) {
-	var err error = nil
+	var err error
 	var pub interface{}
 
 	switch k := priv.(type) {
