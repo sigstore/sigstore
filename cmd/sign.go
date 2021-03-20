@@ -18,24 +18,8 @@ package cmd
 import (
 	"fmt"
 	"github.com/sigstore/sigstore/pkg/keymgmt"
-	"os"
-	"path/filepath"
-
-	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 )
-
-func userCFG() (string, error) {
-	home, err := homedir.Dir()
-	if err != nil {
-		return "", err
-	}
-	userProfile := filepath.Join(home, ".sigstore")
-	if _, err := os.Stat(userProfile); os.IsNotExist(err) {
-		return userProfile, err
-	}
-	return userProfile, nil
-}
 
 var signCmd = &cobra.Command{
 	Use:   "sign",
