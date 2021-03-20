@@ -17,7 +17,7 @@ package app
 
 import (
 	"fmt"
-	"github.com/sigstore/sigstore/cmd/pkg/keymgmt"
+	"github.com/sigstore/sigstore/pkg/keymgmt"
 	"os"
 	"path/filepath"
 
