@@ -24,6 +24,8 @@ jobs:
       uses: golangci/golangci-lint-action@v2.5.1
       with:
         version: v1.37.1
+        skip-go-installation: true
+        skip-pkg-cache: true
     - name: Run Gosec Security Scanner
       uses: securego/gosec@v2.7.0
       env:
