@@ -5,7 +5,7 @@ import (
 )
 
 func TestGenerateKeys(t *testing.T) {
-	algs := []string{"1024", "2048", "3072", "P224", "P256", "P384", "P521"}
+	algs := []string{"rsa2048", "rsa3072", "ecdsaP224", "ecdsaP256", "ecdsaP384", "ecdsaP521"}
 
 	for _, alg := range algs {
 		_, _, err := GeneratePrivateKey(alg)

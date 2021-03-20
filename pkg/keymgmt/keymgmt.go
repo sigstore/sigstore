@@ -28,19 +28,17 @@ func GeneratePrivateKey(algorithm string) (interface{}, interface{}, error) {
 	var key interface{}
 	// Allow algorithm agility if different projects have certain FIPS like compliance requirements
 	switch algorithm {
-	case "1024":
-		key, err = rsa.GenerateKey(rand.Reader, 1024)
-	case "2048":
+	case "rsa2048":
 		key, err = rsa.GenerateKey(rand.Reader, 2048)
-	case "3072":
+	case "rsa3072":
 		key, err = rsa.GenerateKey(rand.Reader, 3072)
-	case "P224":
+	case "ecdsaP224":
 		key, err = ecdsa.GenerateKey(elliptic.P224(), rand.Reader)
-	case "P256":
+	case "ecdsaP256":
 		key, err = ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	case "P384":
+	case "ecdsaP384":
 		key, err = ecdsa.GenerateKey(elliptic.P384(), rand.Reader)
-	case "P521":
+	case "ecdsaP521":
 		key, err = ecdsa.GenerateKey(elliptic.P521(), rand.Reader)
 	default:
 		err = errors.New("Unsupported algorithm: " + algorithm)

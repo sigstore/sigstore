@@ -42,7 +42,7 @@ var signCmd = &cobra.Command{
 	Short: "Sign and submit file to sigstore",
 	Long: `Submit file to sigstore.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		pub, key, err := keymgmt.GeneratePrivateKey("P384")
+		pub, key, err := keymgmt.GeneratePrivateKey("ecdsaP256")
 		if err != nil {
 			fmt.Println(err)
 		}
