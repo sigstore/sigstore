@@ -16,9 +16,19 @@ limitations under the License.
 package cmd
 
 import (
+	"context"
+	"crypto/ecdsa"
+	"crypto/rand"
+	"crypto/sha256"
 	"fmt"
+	"github.com/coreos/go-oidc/v3/oidc"
+	"github.com/sigstore/fulcio/pkg/oauthflow"
+	"github.com/sigstore/sigstore/pkg/httpclient"
 	"github.com/sigstore/sigstore/pkg/keymgmt"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+	"golang.org/x/oauth2"
+	"log"
 )
 
 var signCmd = &cobra.Command{
@@ -26,16 +36,60 @@ var signCmd = &cobra.Command{
 	Short: "Sign and submit file to sigstore",
 	Long: `Submit file to sigstore.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		pub, key, err := keymgmt.GeneratePrivateKey("ecdsaP256")
+		// Generate keys
+		provider, err := oidc.NewProvider(context.Background(), viper.GetString("oidc-issuer"))
 		if err != nil {
 			fmt.Println(err)
 		}
-		// Just place holders, these will be removed once next PR is worked on
-		fmt.Println(key)
-		fmt.Println(pub)
+		config := oauth2.Config{
+			ClientID:     viper.GetString("oidc-client-id"),
+			ClientSecret: viper.GetString("oidc-client-secret"),
+			Endpoint:     provider.Endpoint(),
+			RedirectURL:  "http://localhost:5556/auth/callback",
+			Scopes:       []string{oidc.ScopeOpenID, "email"},
+		}
+		idToken, err := oauthflow.GetIDToken(provider, config)
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		var claims struct {
+			Email    string `json:"email"`
+			Verified bool   `json:"email_verified"`
+		}
+		if err := idToken.ParsedToken.Claims(&claims); err != nil {
+			fmt.Println(err)
+		}
+		if !claims.Verified {
+			fmt.Println("not verified by identity provider")
+		}
+		fmt.Println("Scope retrieved for account: ", claims.Email)
+		// create client keys
+		key, pub, err := keymgmt.GeneratePrivateKey("ecdsaP256")
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		// Sign the email address as part of the request
+		h := sha256.Sum256([]byte(claims.Email))
+		proof, err := ecdsa.SignASN1(rand.Reader, key.(*ecdsa.PrivateKey), h[:])
+		if err != nil {
+			fmt.Println(err)
+		}
+		block, pem, err := httpclient.GetCert(idToken, proof, pub)
+		fmt.Println(block)
+		fmt.Println(pem)
 		},
 }
 
 func init() {
 	rootCmd.AddCommand(signCmd)
+	signCmd.PersistentFlags().String("oidc-issuer", "https://accounts.google.com", "OIDC provider to be used to issue ID token")
+	signCmd.PersistentFlags().String("oidc-client-id", "237800849078-rmntmr1b2tcu20kpid66q5dbh1vdt7aj.apps.googleusercontent.com", "client ID for application")
+	// THIS IS NOT A SECRET - IT IS USED IN THE NATIVE/DESKTOP FLOW.
+	signCmd.PersistentFlags().String("oidc-client-secret", "CkkuDoCgE2D_CCRRMyF_UIhS", "client secret for application")
+	signCmd.PersistentFlags().StringP("output", "o", "-", "output file to write certificate chain to")
+	if err := viper.BindPFlags(signCmd.PersistentFlags()); err != nil {
+		log.Println(err)
+	}
 }

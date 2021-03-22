@@ -17,6 +17,7 @@ package cmd
 
 import (
 	"fmt"
+	"log"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -64,9 +65,9 @@ func init() {
 
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.sigstore.yaml)")
 	rootCmd.PersistentFlags().StringVar(&fulcioAddr, "fulcio_address", "https://fulcio.sigstore.dev", "address of sigstore PKI server")
-	// Cobra also supports local flags, which will only run
-	// when this action is called directly.
-	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	if err := viper.BindPFlags(rootCmd.PersistentFlags()); err != nil {
+		log.Println(err)
+	}
 }
 
 // initConfig reads in config file and ENV variables if set.

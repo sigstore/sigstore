@@ -73,3 +73,4 @@ func getPublicKeyBytes(priv interface{}) ([]uint8, error) {
 	}
 	return pubBytes, err
 }
+
