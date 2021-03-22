@@ -20,18 +20,15 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/x509"
 	"errors"
 )
 
-func GeneratePrivateKey(algorithm string) (interface{}, interface{}, error) {
+func GeneratePrivateKey(algorithm string) (interface{}, []uint8, error) {
 	var err error
 	var key interface{}
 	// Allow algorithm agility if different projects have certain FIPS like compliance requirements
 	switch algorithm {
-	case "rsa2048":
-		key, err = rsa.GenerateKey(rand.Reader, 2048)
-	case "rsa3072":
-		key, err = rsa.GenerateKey(rand.Reader, 3072)
 	case "ecdsaP224":
 		key, err = ecdsa.GenerateKey(elliptic.P224(), rand.Reader)
 	case "ecdsaP256":
@@ -43,31 +40,36 @@ func GeneratePrivateKey(algorithm string) (interface{}, interface{}, error) {
 	default:
 		err = errors.New("Unsupported algorithm: " + algorithm)
 	}
-	
 	if err != nil {
 		return nil, nil, err
 	}
 
-	pub, err := getPublicKey(key)
+	pub, err := getPublicKeyBytes(key)
 	if err != nil {
 		return nil, nil, err
 	}
+
 	return key, pub, err
 }
 
-func getPublicKey(priv interface{}) (interface{}, error) {
+func getPublicKeyBytes(priv interface{}) ([]uint8, error) {
 	var err error
 	var pub interface{}
-
 	switch k := priv.(type) {
 	case *rsa.PrivateKey:
 		pub = &k.PublicKey
 	case *ecdsa.PrivateKey:
 		pub = &k.PublicKey
-	// The below would never happen (unless upstream crypto is broken, but lets log it anyway)
 	default:
 		err = errors.New("error generating public key" )
 	}
+	if err != nil {
+		panic("error creating pubkey")
+	}
 
-	return pub, err
+    pubBytes, err := x509.MarshalPKIXPublicKey(pub)
+	if err != nil {
+		return nil, err
+	}
+	return pubBytes, err
 }
