@@ -36,6 +36,9 @@ var signCmd = &cobra.Command{
 			viper.GetString("oidc-issuer"),
 			viper.GetString("oidc-client-id"),
 			viper.GetString("oidc-client-secret"))
+		if err != nil {
+			fmt.Println(err)
+		}
 		// create client keys
 		key, pub, err := keymgmt.GeneratePrivateKey("ecdsaP256")
 		if err != nil {
