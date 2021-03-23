@@ -64,7 +64,7 @@ func init() {
 	// will be global for your application.
 
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.sigstore.yaml)")
-	rootCmd.PersistentFlags().StringVar(&fulcioAddr, "fulcio_address", "https://fulcio.sigstore.dev", "address of sigstore PKI server")
+	rootCmd.PersistentFlags().StringVar(&fulcioAddr, "fulcio-server", "https://fulcio.sigstore.dev", "address of sigstore PKI server")
 	if err := viper.BindPFlags(rootCmd.PersistentFlags()); err != nil {
 		log.Println(err)
 	}

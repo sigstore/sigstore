@@ -2,30 +2,26 @@ package httpclient
 
 import (
 	"encoding/pem"
-	"fmt"
+	httptransport "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
-	"github.com/spf13/viper"
-	"github.com/sigstore/fulcio/pkg/generated/models"
-	httptransport "github.com/go-openapi/runtime/client"
 	"github.com/sigstore/fulcio/cmd/client/app"
-	"github.com/sigstore/fulcio/pkg/oauthflow"
 	"github.com/sigstore/fulcio/pkg/generated/client/operations"
+	"github.com/sigstore/fulcio/pkg/generated/models"
+	"github.com/sigstore/fulcio/pkg/oauthflow"
 )
 
 const defaultFulcioAddress = "https://fulcio.sigstore.dev"
 
-func fulcioServer() string {
-	addr := viper.GetString("fulcio_address")
-	fmt.Println("adddr:", addr)
+func fulcioServer(addr string) string {
 	if addr != "" {
 		return addr
 	}
 	return defaultFulcioAddress
 }
 
-func GetCert(idToken *oauthflow.OIDCIDToken, proof []byte, pubBytes []uint8) (string, string, error)  {
-	fcli, err := app.GetFulcioClient(fulcioServer())
+func GetCert(idToken *oauthflow.OIDCIDToken, proof []byte, pubBytes []uint8, addr string) (string, string, error)  {
+	fcli, err := app.GetFulcioClient(fulcioServer(addr))
 	if err != nil {
 		return "", "", err
 	}
