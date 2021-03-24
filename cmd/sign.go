@@ -25,6 +25,7 @@ import (
 	"github.com/sigstore/sigstore/pkg/keymgmt"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"log"
 )
 
 var signCmd = &cobra.Command{
@@ -32,6 +33,8 @@ var signCmd = &cobra.Command{
 	Short: "Sign and submit file to sigstore",
 	Long: `Submit file to sigstore.`,
 	Run: func(cmd *cobra.Command, args []string) {
+		// Retrieve idToken from oidc provider
+		fmt.Println("issuer:", viper.GetString("oidc-issuer"))
 		idToken, email, err := oauthflow.OIDConnect(
 			viper.GetString("oidc-issuer"),
 			viper.GetString("oidc-client-id"),
@@ -39,7 +42,9 @@ var signCmd = &cobra.Command{
 		if err != nil {
 			fmt.Println(err)
 		}
-		// create client keys
+		// create 'keyless'
+		// The following algorithms are available:
+		// ecdsaP224, ecdsaP256, ecdsaP384, ecdsaP521
 		key, pub, err := keymgmt.GeneratePrivateKey("ecdsaP256")
 		if err != nil {
 			fmt.Println(err)
@@ -51,7 +56,8 @@ var signCmd = &cobra.Command{
 		if err != nil {
 			fmt.Println(err)
 		}
-		block, pem, err := httpclient.GetCert(idToken, proof, pub, viper.GetString("fulcio-server"))
+		// Send the token, signed proof and public key to fulcio for signing
+		block, pem, err := httpclient.GetCert((*oauthflow.OIDCIDToken)(idToken), proof, pub, viper.GetString("fulcio-server"))
 		if err != nil {
 			fmt.Println(err)
 		}
@@ -67,4 +73,7 @@ func init() {
 	// THIS IS NOT A SECRET - IT IS USED IN THE NATIVE/DESKTOP FLOW.
 	signCmd.PersistentFlags().String("oidc-client-secret", "CkkuDoCgE2D_CCRRMyF_UIhS", "client secret for application")
 	signCmd.PersistentFlags().StringP("output", "o", "-", "output file to write certificate chain to")
+	if err := viper.BindPFlags(signCmd.PersistentFlags()); err != nil {
+		log.Println(err)
+	}
 }

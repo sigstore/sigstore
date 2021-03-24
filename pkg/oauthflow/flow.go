@@ -20,7 +20,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/sigstore/fulcio/pkg/oauthflow"
 	"net/http"
 	"net/url"
 	"os"
@@ -63,7 +62,7 @@ var DefaultIDTokenGetter = IDTokenGetter{
 // GetIDToken is the default implementation
 var GetIDToken = DefaultIDTokenGetter.getIDToken
 
-func OIDConnect(issuer string, id string, secret string) (*oauthflow.OIDCIDToken, string, error)  {
+func OIDConnect(issuer string, id string, secret string) (*OIDCIDToken, string, error)  {
 	provider, err := oidc.NewProvider(context.Background(), issuer)
 	if err != nil {
 		return nil, "", err
@@ -75,7 +74,7 @@ func OIDConnect(issuer string, id string, secret string) (*oauthflow.OIDCIDToken
 		RedirectURL:  "http://localhost:5556/auth/callback",
 		Scopes:       []string{oidc.ScopeOpenID, "email"},
 	}
-	idToken, err := oauthflow.GetIDToken(provider, config)
+	idToken, err := GetIDToken(provider, config)
 	if err != nil {
 		return nil, "", err
 	}
