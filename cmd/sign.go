@@ -34,7 +34,6 @@ var signCmd = &cobra.Command{
 	Long: `Submit file to sigstore.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		// Retrieve idToken from oidc provider
-		fmt.Println("issuer:", viper.GetString("oidc-issuer"))
 		idToken, email, err := oauthflow.OIDConnect(
 			viper.GetString("oidc-issuer"),
 			viper.GetString("oidc-client-id"),
@@ -61,6 +60,7 @@ var signCmd = &cobra.Command{
 		if err != nil {
 			fmt.Println(err)
 		}
+		// TODO: implement output for certs
 		fmt.Println(block)
 		fmt.Println(pem)
 		},
