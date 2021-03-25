@@ -19,10 +19,12 @@ import (
 	"crypto/ecdsa"
 	"crypto/rand"
 	"crypto/sha256"
+	"crypto/x509"
+	"encoding/pem"
 	"fmt"
-	"github.com/sigstore/sigstore/pkg/oauthflow"
 	"github.com/sigstore/sigstore/pkg/httpclient"
 	"github.com/sigstore/sigstore/pkg/keymgmt"
+	"github.com/sigstore/sigstore/pkg/oauthflow"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"log"
@@ -41,28 +43,38 @@ var signCmd = &cobra.Command{
 		if err != nil {
 			fmt.Println(err)
 		}
-		// create 'keyless'
-		// The following algorithms are available:
-		// ecdsaP224, ecdsaP256, ecdsaP384, ecdsaP521
+		fmt.Println("\nReceived OpenID Scope retrieved for account:", email)
 		key, pub, err := keymgmt.GeneratePrivateKey("ecdsaP256")
 		if err != nil {
 			fmt.Println(err)
 		}
 
-		// Sign the email address as part of the request
 		h := sha256.Sum256([]byte(email))
 		proof, err := ecdsa.SignASN1(rand.Reader, key.(*ecdsa.PrivateKey), h[:])
 		if err != nil {
 			fmt.Println(err)
 		}
 		// Send the token, signed proof and public key to fulcio for signing
-		block, pem, err := httpclient.GetCert((*oauthflow.OIDCIDToken)(idToken), proof, pub, viper.GetString("fulcio-server"))
+		certPEM, rootPEM, err := httpclient.GetCert(idToken, proof, pub, viper.GetString("fulcio-server"))
 		if err != nil {
 			fmt.Println(err)
 		}
-		// TODO: implement output for certs
-		fmt.Println(block)
-		fmt.Println(pem)
+
+		rootBlock, _ := pem.Decode([]byte(rootPEM))
+		if rootBlock == nil {
+			panic("failed to parse certificate PEM")
+		}
+
+		certBlock, _ := pem.Decode([]byte(certPEM))
+		if certBlock == nil {
+			panic("failed to parse certificate PEM")
+		}
+
+		cert, err := x509.ParseCertificate(certBlock.Bytes)
+		if err != nil {
+			panic("failed to parse certificate: " + err.Error())
+		}
+		fmt.Printf("Received signing Cetificate: %+v\n", cert.Subject)
 		},
 }
 

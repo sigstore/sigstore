@@ -22,10 +22,10 @@ func fulcioServer(addr string) string {
 	return defaultFulcioAddress
 }
 
-func GetCert(idToken *oauthflow.OIDCIDToken, proof []byte, pubBytes []uint8, addr string) (string, string, error)  {
+func GetCert(idToken *oauthflow.OIDCIDToken, proof []byte, pubBytes []uint8, addr string) ([]byte, []byte, error)  {
 	fcli, err := getFulcioClient(fulcioServer(addr))
 	if err != nil {
-		return "", "", err
+		return nil, nil, err
 	}
 	bearerAuth := httptransport.BearerToken(idToken.RawString)
 	content := strfmt.Base64(pubBytes)
@@ -42,13 +42,13 @@ func GetCert(idToken *oauthflow.OIDCIDToken, proof []byte, pubBytes []uint8, add
 		)
 	resp, err := fcli.Operations.SigningCert(params, bearerAuth)
 	if err != nil {
-		return "", "", err
+		return nil, nil, err
 	}
 
 	// split the cert and the chain
 	certBlock, chainPem := pem.Decode([]byte(resp.Payload))
 	certPem := pem.EncodeToMemory(certBlock)
-	return string(certPem), string(chainPem), nil
+	return certPem, chainPem, nil
 
 }
 

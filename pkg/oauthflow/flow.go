@@ -89,7 +89,6 @@ func OIDConnect(issuer string, id string, secret string) (*OIDCIDToken, string, 
 	if !claims.Verified {
 		fmt.Println("not verified by identity provider")
 	}
-	fmt.Println("Scope retrieved for account: ", claims.Email)
 	return idToken, claims.Email, nil
 }
 
