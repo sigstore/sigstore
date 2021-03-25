@@ -22,8 +22,6 @@ import (
 
 	"github.com/coreos/go-oidc/v3/oidc"
 	"golang.org/x/oauth2"
-
-	"github.com/sigstore/sigstore/pkg/log"
 )
 
 const (
@@ -53,7 +51,7 @@ func NewPKCE(provider *oidc.Provider) (*PKCE, error) {
 			chosenMethod = PKCES256
 			break
 		} else if method != "plain" {
-			log.Logger.Infof("Unsupported code challenge method in list: '%v'", method)
+			fmt.Println("Unsupported code challenge method in list: '%v'", method)
 		}
 	}
 	if chosenMethod == "" {

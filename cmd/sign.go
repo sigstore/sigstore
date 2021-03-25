@@ -74,7 +74,7 @@ var signCmd = &cobra.Command{
 		if err != nil {
 			panic("failed to parse certificate: " + err.Error())
 		}
-		fmt.Printf("Received signing Cetificate: %+v\n", cert.Subject)
+		fmt.Printf("Received signing Cerificate: %+v\n", cert.Subject)
 		},
 }
 
