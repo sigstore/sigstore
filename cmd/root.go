@@ -17,9 +17,8 @@ package cmd
 
 import (
 	"fmt"
-	"log"
-	"os"
 	"github.com/spf13/cobra"
+	"os"
 
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/viper"
@@ -52,7 +51,7 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.sigstore.yaml)")
 	rootCmd.PersistentFlags().StringVar(&fulcioAddr, "fulcio-server", "https://fulcio.sigstore.dev", "address of sigstore PKI server")
 	if err := viper.BindPFlags(rootCmd.PersistentFlags()); err != nil {
-		log.Println(err)
+		fmt.Println(err)
 	}
 }
 
