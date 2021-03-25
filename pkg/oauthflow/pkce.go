@@ -51,7 +51,7 @@ func NewPKCE(provider *oidc.Provider) (*PKCE, error) {
 			chosenMethod = PKCES256
 			break
 		} else if method != "plain" {
-			fmt.Println("Unsupported code challenge method in list: '%v'", method)
+			fmt.Printf("Unsupported code challenge method in list: '%v'", method)
 		}
 	}
 	if chosenMethod == "" {
