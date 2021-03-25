@@ -27,7 +27,6 @@ import (
 	"github.com/sigstore/sigstore/pkg/oauthflow"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"log"
 )
 
 var signCmd = &cobra.Command{
@@ -86,6 +85,6 @@ func init() {
 	signCmd.PersistentFlags().String("oidc-client-secret", "CkkuDoCgE2D_CCRRMyF_UIhS", "client secret for application")
 	signCmd.PersistentFlags().StringP("output", "o", "-", "output file to write certificate chain to")
 	if err := viper.BindPFlags(signCmd.PersistentFlags()); err != nil {
-		log.Println(err)
+		fmt.Println(err)
 	}
 }
