@@ -16,9 +16,17 @@ limitations under the License.
 package cmd
 
 import (
+	"crypto/ecdsa"
+	"crypto/rand"
+	"crypto/sha256"
+	"crypto/x509"
+	"encoding/pem"
 	"fmt"
+	"github.com/sigstore/sigstore/pkg/httpclient"
 	"github.com/sigstore/sigstore/pkg/keymgmt"
+	"github.com/sigstore/sigstore/pkg/oauthflow"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var signCmd = &cobra.Command{
@@ -26,16 +34,57 @@ var signCmd = &cobra.Command{
 	Short: "Sign and submit file to sigstore",
 	Long: `Submit file to sigstore.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		pub, key, err := keymgmt.GeneratePrivateKey("ecdsaP256")
+		// Retrieve idToken from oidc provider
+		idToken, email, err := oauthflow.OIDConnect(
+			viper.GetString("oidc-issuer"),
+			viper.GetString("oidc-client-id"),
+			viper.GetString("oidc-client-secret"))
 		if err != nil {
 			fmt.Println(err)
 		}
-		// Just place holders, these will be removed once next PR is worked on
-		fmt.Println(key)
-		fmt.Println(pub)
+		fmt.Println("\nReceived OpenID Scope retrieved for account:", email)
+		key, pub, err := keymgmt.GeneratePrivateKey("ecdsaP256")
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		h := sha256.Sum256([]byte(email))
+		proof, err := ecdsa.SignASN1(rand.Reader, key.(*ecdsa.PrivateKey), h[:])
+		if err != nil {
+			fmt.Println(err)
+		}
+		// Send the token, signed proof and public key to fulcio for signing
+		certPEM, rootPEM, err := httpclient.GetCert(idToken, proof, pub, viper.GetString("fulcio-server"))
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		rootBlock, _ := pem.Decode([]byte(rootPEM))
+		if rootBlock == nil {
+			panic("failed to parse certificate PEM")
+		}
+
+		certBlock, _ := pem.Decode([]byte(certPEM))
+		if certBlock == nil {
+			panic("failed to parse certificate PEM")
+		}
+
+		cert, err := x509.ParseCertificate(certBlock.Bytes)
+		if err != nil {
+			panic("failed to parse certificate: " + err.Error())
+		}
+		fmt.Printf("Received signing Cerificate: %+v\n", cert.Subject)
 		},
 }
 
 func init() {
 	rootCmd.AddCommand(signCmd)
+	signCmd.PersistentFlags().String("oidc-issuer", "https://accounts.google.com", "OIDC provider to be used to issue ID token")
+	signCmd.PersistentFlags().String("oidc-client-id", "237800849078-rmntmr1b2tcu20kpid66q5dbh1vdt7aj.apps.googleusercontent.com", "client ID for application")
+	// THIS IS NOT A SECRET - IT IS USED IN THE NATIVE/DESKTOP FLOW.
+	signCmd.PersistentFlags().String("oidc-client-secret", "CkkuDoCgE2D_CCRRMyF_UIhS", "client secret for application")
+	signCmd.PersistentFlags().StringP("output", "o", "-", "output file to write certificate chain to")
+	if err := viper.BindPFlags(signCmd.PersistentFlags()); err != nil {
+		fmt.Println(err)
+	}
 }
