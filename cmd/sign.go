@@ -23,7 +23,7 @@ import (
 	"encoding/pem"
 	"fmt"
 	"github.com/sigstore/sigstore/pkg/generated/client/operations"
-	"github.com/sigstore/sigstore/pkg/httpclient"
+	"github.com/sigstore/sigstore/pkg/httpclients"
 	"github.com/sigstore/sigstore/pkg/keymgmt"
 	"github.com/sigstore/sigstore/pkg/oauthflow"
 	"github.com/spf13/cobra"
@@ -57,7 +57,7 @@ var signCmd = &cobra.Command{
 			fmt.Println(err)
 		}
 		// Send the token, signed proof and public key to fulcio for signing
-		certResp, err := httpclient.GetCert(idToken, proof, pub, viper.GetString("fulcio-server"))
+		certResp, err := httpclients.GetCert(idToken, proof, pub, viper.GetString("fulcio-server"))
 		if err != nil {
 			switch t := err.(type) {
 			case *operations.SigningCertDefault:
