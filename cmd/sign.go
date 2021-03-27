@@ -23,9 +23,10 @@ import (
 	"encoding/pem"
 	"fmt"
 	"github.com/sigstore/sigstore/pkg/generated/client/operations"
-	"github.com/sigstore/sigstore/pkg/httpclient"
+	"github.com/sigstore/sigstore/pkg/httpclients"
 	"github.com/sigstore/sigstore/pkg/keymgmt"
 	"github.com/sigstore/sigstore/pkg/oauthflow"
+	"github.com/sigstore/sigstore/pkg/utils"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"net/http"
@@ -36,6 +37,12 @@ var signCmd = &cobra.Command{
 	Use:   "sign",
 	Short: "Sign and submit file to sigstore",
 	Long: `Submit file to sigstore.`,
+	PreRun: func(cmd *cobra.Command, args []string) {
+		// these are bound here so that they are not overwritten by other commands
+		if err := viper.BindPFlags(cmd.Flags()); err != nil {
+			fmt.Println("Error initializing cmd line args: ", err)
+		}
+	},
 	Run: func(cmd *cobra.Command, args []string) {
 		// Retrieve idToken from oidc provider
 		idToken, email, err := oauthflow.OIDConnect(
@@ -57,7 +64,7 @@ var signCmd = &cobra.Command{
 			fmt.Println(err)
 		}
 		// Send the token, signed proof and public key to fulcio for signing
-		certResp, err := httpclient.GetCert(idToken, proof, pub, viper.GetString("fulcio-server"))
+		certResp, err := httpclients.GetCert(idToken, proof, pub, viper.GetString("fulcio-server"))
 		if err != nil {
 			switch t := err.(type) {
 			case *operations.SigningCertDefault:
@@ -88,17 +95,29 @@ var signCmd = &cobra.Command{
 			panic("failed to parse certificate: " + err.Error())
 		}
 		fmt.Printf("Received signing Cerificate: %+v\n", cert.Subject)
-		},
+
+		mimetype, err := utils.GetFileType(viper.GetString("artifact"))
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		result := utils.FindString(mimetype)
+		if !result {
+			fmt.Printf("File type %s currently not supported\n", mimetype)
+		}
+	},
 }
 
 func init() {
 	rootCmd.AddCommand(signCmd)
-	signCmd.PersistentFlags().String("oidc-issuer", "https://accounts.google.com", "OIDC provider to be used to issue ID token")
-	signCmd.PersistentFlags().String("oidc-client-id", "237800849078-rmntmr1b2tcu20kpid66q5dbh1vdt7aj.apps.googleusercontent.com", "client ID for application")
+	signCmd.PersistentFlags().String("oidc-issuer", "https://oauth2.sigstore.dev/auth", "OIDC provider to be used to issue ID token")
+	signCmd.PersistentFlags().String("oidc-client-id", "sigstore", "client ID for application")
 	// THIS IS NOT A SECRET - IT IS USED IN THE NATIVE/DESKTOP FLOW.
-	signCmd.PersistentFlags().String("oidc-client-secret", "CkkuDoCgE2D_CCRRMyF_UIhS", "client secret for application")
+	signCmd.PersistentFlags().String("oidc-client-secret", "", "client secret for application")
 	signCmd.PersistentFlags().StringP("output", "o", "-", "output file to write certificate chain to")
+	signCmd.PersistentFlags().StringP("artifact", "a", "", "artifact to sign")
 	if err := viper.BindPFlags(signCmd.PersistentFlags()); err != nil {
 		fmt.Println(err)
+		os.Exit(1)
 	}
 }

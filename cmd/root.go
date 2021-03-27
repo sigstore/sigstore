@@ -52,6 +52,7 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&fulcioAddr, "fulcio-server", "https://fulcio.sigstore.dev", "address of sigstore PKI server")
 	if err := viper.BindPFlags(rootCmd.PersistentFlags()); err != nil {
 		fmt.Println(err)
+		os.Exit(1)
 	}
 }
 
