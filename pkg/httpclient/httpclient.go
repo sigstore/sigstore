@@ -1,7 +1,6 @@
 package httpclient
 
 import (
-	"encoding/pem"
 	"github.com/go-openapi/runtime"
 	httptransport "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"
@@ -22,10 +21,10 @@ func fulcioServer(addr string) string {
 	return defaultFulcioAddress
 }
 
-func GetCert(idToken *oauthflow.OIDCIDToken, proof []byte, pubBytes []uint8, addr string) ([]byte, []byte, error)  {
+func GetCert(idToken *oauthflow.OIDCIDToken, proof []byte, pubBytes []uint8, addr string) (*operations.SigningCertCreated, error)  {
 	fcli, err := getFulcioClient(fulcioServer(addr))
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	bearerAuth := httptransport.BearerToken(idToken.RawString)
 	content := strfmt.Base64(pubBytes)
@@ -42,14 +41,9 @@ func GetCert(idToken *oauthflow.OIDCIDToken, proof []byte, pubBytes []uint8, add
 		)
 	resp, err := fcli.Operations.SigningCert(params, bearerAuth)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-
-	// split the cert and the chain
-	certBlock, chainPem := pem.Decode([]byte(resp.Payload))
-	certPem := pem.EncodeToMemory(certBlock)
-	return certPem, chainPem, nil
-
+	return resp, nil
 }
 
 func getFulcioClient(addr string) (*client.Fulcio, error) {

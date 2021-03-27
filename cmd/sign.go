@@ -22,11 +22,14 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"github.com/sigstore/sigstore/pkg/generated/client/operations"
 	"github.com/sigstore/sigstore/pkg/httpclient"
 	"github.com/sigstore/sigstore/pkg/keymgmt"
 	"github.com/sigstore/sigstore/pkg/oauthflow"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"net/http"
+	"os"
 )
 
 var signCmd = &cobra.Command{
@@ -54,19 +57,30 @@ var signCmd = &cobra.Command{
 			fmt.Println(err)
 		}
 		// Send the token, signed proof and public key to fulcio for signing
-		certPEM, rootPEM, err := httpclient.GetCert(idToken, proof, pub, viper.GetString("fulcio-server"))
+		certResp, err := httpclient.GetCert(idToken, proof, pub, viper.GetString("fulcio-server"))
 		if err != nil {
-			fmt.Println(err)
+			switch t := err.(type) {
+			case *operations.SigningCertDefault:
+				if t.Code() == http.StatusInternalServerError {
+					fmt.Println("Internal Server Error: ", err.Error())
+				}
+			default:
+				fmt.Println("Something went wrong: ", err.Error())
+			}
+			os.Exit(1)
 		}
+
+		clientPEM, rootPEM := pem.Decode([]byte(certResp.Payload))
+		certPEM := pem.EncodeToMemory(clientPEM)
 
 		rootBlock, _ := pem.Decode([]byte(rootPEM))
 		if rootBlock == nil {
-			panic("failed to parse certificate PEM")
+			panic("failed to decode RootCA PEM")
 		}
 
 		certBlock, _ := pem.Decode([]byte(certPEM))
 		if certBlock == nil {
-			panic("failed to parse certificate PEM")
+			panic("failed to decode Client Certificate PEM")
 		}
 
 		cert, err := x509.ParseCertificate(certBlock.Bytes)
