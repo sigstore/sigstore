@@ -36,6 +36,12 @@ var signCmd = &cobra.Command{
 	Use:   "sign",
 	Short: "Sign and submit file to sigstore",
 	Long: `Submit file to sigstore.`,
+	PreRun: func(cmd *cobra.Command, args []string) {
+		// these are bound here so that they are not overwritten by other commands
+		if err := viper.BindPFlags(cmd.Flags()); err != nil {
+			fmt.Println("Error initializing cmd line args: ", err)
+		}
+	},
 	Run: func(cmd *cobra.Command, args []string) {
 		// Retrieve idToken from oidc provider
 		idToken, email, err := oauthflow.OIDConnect(
@@ -93,12 +99,9 @@ var signCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(signCmd)
-	signCmd.PersistentFlags().String("oidc-issuer", "https://accounts.google.com", "OIDC provider to be used to issue ID token")
-	signCmd.PersistentFlags().String("oidc-client-id", "237800849078-rmntmr1b2tcu20kpid66q5dbh1vdt7aj.apps.googleusercontent.com", "client ID for application")
+	signCmd.PersistentFlags().String("oidc-issuer", "https://oauth2.sigstore.dev/auth", "OIDC provider to be used to issue ID token")
+	signCmd.PersistentFlags().String("oidc-client-id", "sigstore", "client ID for application")
 	// THIS IS NOT A SECRET - IT IS USED IN THE NATIVE/DESKTOP FLOW.
-	signCmd.PersistentFlags().String("oidc-client-secret", "CkkuDoCgE2D_CCRRMyF_UIhS", "client secret for application")
+	signCmd.PersistentFlags().String("oidc-client-secret", "", "client secret for application")
 	signCmd.PersistentFlags().StringP("output", "o", "-", "output file to write certificate chain to")
-	if err := viper.BindPFlags(signCmd.PersistentFlags()); err != nil {
-		fmt.Println(err)
-	}
 }
