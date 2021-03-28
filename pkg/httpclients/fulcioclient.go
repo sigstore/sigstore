@@ -1,4 +1,4 @@
-package httpclient
+package httpclients
 
 import (
 	"github.com/go-openapi/runtime"
