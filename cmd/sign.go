@@ -26,9 +26,11 @@ import (
 	"github.com/sigstore/sigstore/pkg/httpclients"
 	"github.com/sigstore/sigstore/pkg/keymgmt"
 	"github.com/sigstore/sigstore/pkg/oauthflow"
+	"github.com/sigstore/sigstore/pkg/signfile"
 	"github.com/sigstore/sigstore/pkg/utils"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"io/ioutil"
 	"net/http"
 	"os"
 )
@@ -43,36 +45,62 @@ var signCmd = &cobra.Command{
 			fmt.Println("Error initializing cmd line args: ", err)
 		}
 	},
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
+		// Hash the artifact
+		payload, err := ioutil.ReadFile(viper.GetString("artifact"))
+		if err != nil {
+			return err
+		}
+
+		mimetype, err := utils.GetFileType(viper.GetString("artifact"))
+		if err != nil {
+			return err
+		}
+
+		result := utils.FindString(mimetype)
+		if !result {
+			fmt.Println("File type currently not supported: ", mimetype)
+			os.Exit(1)
+		}
+
+		digest := sha256.Sum256(payload)
 		// Retrieve idToken from oidc provider
 		idToken, email, err := oauthflow.OIDConnect(
 			viper.GetString("oidc-issuer"),
 			viper.GetString("oidc-client-id"),
 			viper.GetString("oidc-client-secret"))
 		if err != nil {
-			fmt.Println(err)
+			return err
 		}
 		fmt.Println("\nReceived OpenID Scope retrieved for account:", email)
+
 		key, pub, err := keymgmt.GeneratePrivateKey("ecdsaP256")
 		if err != nil {
-			fmt.Println(err)
+			return err
 		}
 
-		h := sha256.Sum256([]byte(email))
-		proof, err := ecdsa.SignASN1(rand.Reader, key.(*ecdsa.PrivateKey), h[:])
+		privKey := key.(*ecdsa.PrivateKey)
+		pubKey := pub.(*ecdsa.PublicKey)
+		pubBytes, err := x509.MarshalPKIXPublicKey(pubKey)
 		if err != nil {
-			fmt.Println(err)
+			return err
 		}
-		// Send the token, signed proof and public key to fulcio for signing
-		certResp, err := httpclients.GetCert(idToken, proof, pub, viper.GetString("fulcio-server"))
+
+		emailHash := sha256.Sum256([]byte(email))
+		proof, err := ecdsa.SignASN1(rand.Reader, privKey, emailHash[:])
+		if err != nil {
+			return err
+		}
+
+		certResp, err := httpclients.GetCert(idToken, proof, pubBytes, viper.GetString("fulcio-server"))
 		if err != nil {
 			switch t := err.(type) {
 			case *operations.SigningCertDefault:
 				if t.Code() == http.StatusInternalServerError {
-					fmt.Println("Internal Server Error: ", err.Error())
+					return err
 				}
 			default:
-				fmt.Println("Something went wrong: ", err.Error())
+				return err
 			}
 			os.Exit(1)
 		}
@@ -82,29 +110,40 @@ var signCmd = &cobra.Command{
 
 		rootBlock, _ := pem.Decode([]byte(rootPEM))
 		if rootBlock == nil {
-			panic("failed to decode RootCA PEM")
+			return err
 		}
 
 		certBlock, _ := pem.Decode([]byte(certPEM))
 		if certBlock == nil {
-			panic("failed to decode Client Certificate PEM")
+			return err
 		}
 
 		cert, err := x509.ParseCertificate(certBlock.Bytes)
 		if err != nil {
-			panic("failed to parse certificate: " + err.Error())
+			return err
 		}
 		fmt.Printf("Received signing Cerificate: %+v\n", cert.Subject)
 
-		mimetype, err := utils.GetFileType(viper.GetString("artifact"))
+		signedMsg, err := ecdsa.SignASN1(rand.Reader, privKey, digest[:])
 		if err != nil {
-			fmt.Println(err)
+			panic(fmt.Sprintf("Error occurred while during artifact signing: %s", err))
 		}
 
-		result := utils.FindString(mimetype)
-		if !result {
-			fmt.Printf("File type %s currently not supported\n", mimetype)
+		// Send to rekor
+		fmt.Println("Sending entry to transparency log")
+		tlogEntry, err := signfile.UploadToRekor(
+			pubKey,
+			digest[:],
+			signedMsg,
+			viper.GetString("rekor-server"),
+			certPEM,
+			payload,
+			)
+		if err != nil {
+			return err
 		}
+		fmt.Println("Rekor entry successful. Index number: :", tlogEntry)
+		return nil
 	},
 }
 
@@ -112,7 +151,6 @@ func init() {
 	rootCmd.AddCommand(signCmd)
 	signCmd.PersistentFlags().String("oidc-issuer", "https://oauth2.sigstore.dev/auth", "OIDC provider to be used to issue ID token")
 	signCmd.PersistentFlags().String("oidc-client-id", "sigstore", "client ID for application")
-	// THIS IS NOT A SECRET - IT IS USED IN THE NATIVE/DESKTOP FLOW.
 	signCmd.PersistentFlags().String("oidc-client-secret", "", "client secret for application")
 	signCmd.PersistentFlags().StringP("output", "o", "-", "output file to write certificate chain to")
 	signCmd.PersistentFlags().StringP("artifact", "a", "", "artifact to sign")

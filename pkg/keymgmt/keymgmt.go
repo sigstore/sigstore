@@ -20,11 +20,10 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/rsa"
-	"crypto/x509"
 	"errors"
 )
 
-func GeneratePrivateKey(algorithm string) (interface{}, []uint8, error) {
+func GeneratePrivateKey(algorithm string) (interface{}, interface{}, error) {
 	var err error
 	var key interface{}
 	// Allow algorithm agility if different projects have certain FIPS like compliance requirements
@@ -52,7 +51,7 @@ func GeneratePrivateKey(algorithm string) (interface{}, []uint8, error) {
 	return key, pub, err
 }
 
-func getPublicKeyBytes(priv interface{}) ([]uint8, error) {
+func getPublicKeyBytes(priv interface{}) (interface{}, error) {
 	var err error
 	var pub interface{}
 	switch k := priv.(type) {
@@ -67,10 +66,6 @@ func getPublicKeyBytes(priv interface{}) ([]uint8, error) {
 		panic("error creating pubkey")
 	}
 
-    pubBytes, err := x509.MarshalPKIXPublicKey(pub)
-	if err != nil {
-		return nil, err
-	}
-	return pubBytes, err
+	return pub, err
 }
 
