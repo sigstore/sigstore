@@ -22,6 +22,11 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"net/http"
+	"os"
+
+	"io/ioutil"
+
 	"github.com/sigstore/sigstore/pkg/generated/client/operations"
 	"github.com/sigstore/sigstore/pkg/httpclients"
 	"github.com/sigstore/sigstore/pkg/keymgmt"
@@ -30,15 +35,12 @@ import (
 	"github.com/sigstore/sigstore/pkg/utils"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"io/ioutil"
-	"net/http"
-	"os"
 )
 
 var signCmd = &cobra.Command{
 	Use:   "sign",
 	Short: "Sign and submit file to sigstore",
-	Long: `Submit file to sigstore.`,
+	Long:  `Submit file to sigstore.`,
 	PreRun: func(cmd *cobra.Command, args []string) {
 		// these are bound here so that they are not overwritten by other commands
 		if err := viper.BindPFlags(cmd.Flags()); err != nil {
@@ -68,7 +70,9 @@ var signCmd = &cobra.Command{
 		idToken, email, err := oauthflow.OIDConnect(
 			viper.GetString("oidc-issuer"),
 			viper.GetString("oidc-client-id"),
-			viper.GetString("oidc-client-secret"))
+			viper.GetString("oidc-client-secret"),
+			oauthflow.DefaultIDTokenGetter,
+		)
 		if err != nil {
 			return err
 		}
@@ -138,7 +142,7 @@ var signCmd = &cobra.Command{
 			viper.GetString("rekor-server"),
 			certPEM,
 			payload,
-			)
+		)
 		if err != nil {
 			return err
 		}
