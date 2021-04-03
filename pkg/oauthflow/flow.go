@@ -20,15 +20,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net/http"
-	"net/url"
 	"os"
-	"time"
 
 	"github.com/coreos/go-oidc/v3/oidc"
-	"github.com/segmentio/ksuid"
-	"github.com/skratchdot/open-golang/open"
-	"github.com/spf13/viper"
 	"golang.org/x/oauth2"
 )
 
@@ -41,10 +35,8 @@ const htmlPage = `<html>
 </html>
 `
 
-// IDTokenGetter is a type to get ID tokens for oauth flows
-type IDTokenGetter struct {
-	MessagePrinter func(url string)
-	HTMLPage       string
+type TokenGetter interface {
+	GetIDToken(provider *oidc.Provider, config oauth2.Config) (*OIDCIDToken, error)
 }
 
 type OIDCIDToken struct {
@@ -54,15 +46,12 @@ type OIDCIDToken struct {
 
 // DefaultIDTokenGetter is the default implementation.
 // The HTML page and message printed to the terminal can be customized.
-var DefaultIDTokenGetter = IDTokenGetter{
+var DefaultIDTokenGetter = &InteractiveIDTokenGetter{
 	MessagePrinter: func(url string) { fmt.Fprintf(os.Stderr, "Your browser will now be opened to:\n%s\n", url) },
 	HTMLPage:       htmlPage,
 }
 
-// GetIDToken is the default implementation
-var GetIDToken = DefaultIDTokenGetter.getIDToken
-
-func OIDConnect(issuer string, id string, secret string) (*OIDCIDToken, string, error)  {
+func OIDConnect(issuer string, id string, secret string, tg TokenGetter) (*OIDCIDToken, string, error) {
 	provider, err := oidc.NewProvider(context.Background(), issuer)
 	if err != nil {
 		return nil, "", err
@@ -74,128 +63,29 @@ func OIDConnect(issuer string, id string, secret string) (*OIDCIDToken, string, 
 		RedirectURL:  "http://localhost:5556/auth/callback",
 		Scopes:       []string{oidc.ScopeOpenID, "email"},
 	}
-	idToken, err := GetIDToken(provider, config)
+
+	idToken, err := tg.GetIDToken(provider, config)
 	if err != nil {
 		return nil, "", err
 	}
 
+	email, err := emailFromIdToken(idToken.ParsedToken)
+	if err != nil {
+		return nil, "", err
+	}
+	return idToken, email, nil
+}
+
+func emailFromIdToken(tok *oidc.IDToken) (string, error) {
 	var claims struct {
 		Email    string `json:"email"`
 		Verified bool   `json:"email_verified"`
 	}
-	if err := idToken.ParsedToken.Claims(&claims); err != nil {
-		return nil, "", err
+	if err := tok.Claims(&claims); err != nil {
+		return "", err
 	}
 	if !claims.Verified {
-		fmt.Println("not verified by identity provider")
+		return "", errors.New("not verified by identity provider")
 	}
-	return idToken, claims.Email, nil
-}
-
-func (i *IDTokenGetter) getIDToken(p *oidc.Provider, cfg oauth2.Config) (*OIDCIDToken, error) {
-	redirectURL, err := url.Parse(cfg.RedirectURL)
-	if err != nil {
-		return nil, err
-	}
-
-	// generate random fields and save them for comparison after OAuth2 dance
-	stateToken := randStr()
-	nonce := randStr()
-
-	// require that OIDC provider support PKCE to provide sufficient security for the CLI
-	pkce, err := NewPKCE(p)
-	if err != nil {
-		return nil, err
-	}
-
-	authCodeURL := cfg.AuthCodeURL(stateToken, append(pkce.AuthURLOpts(), oauth2.AccessTypeOnline, oidc.Nonce(nonce))...)
-	fmt.Fprintf(os.Stderr, "Your browser will now be opened to:\n%s\n", authCodeURL)
-	if err := open.Run(authCodeURL); err != nil {
-		return nil, err
-	}
-
-	code, err := getCodeFromLocalServer(stateToken, redirectURL)
-	if err != nil {
-		return nil, err
-	}
-	token, err := cfg.Exchange(context.Background(), code, append(pkce.TokenURLOpts(), oidc.Nonce(nonce))...)
-	if err != nil {
-		return nil, err
-	}
-
-	// requesting 'openid' scope should ensure an id_token is given when exchanging the code for an access token
-	idToken, ok := token.Extra("id_token").(string)
-	if !ok {
-		return nil, errors.New("id_token not present")
-	}
-
-	// verify nonce, client ID, access token hash before using it
-	verifier := p.Verifier(&oidc.Config{ClientID: viper.GetString("oidc-client-id")})
-	parsedIDToken, err := verifier.Verify(context.Background(), idToken)
-	if err != nil {
-		return nil, err
-	}
-	if parsedIDToken.Nonce != nonce {
-		return nil, errors.New("nonce does not match value sent")
-	}
-	if parsedIDToken.AccessTokenHash != "" {
-		if err := parsedIDToken.VerifyAccessToken(token.AccessToken); err != nil {
-			return nil, err
-		}
-	}
-
-	returnToken := OIDCIDToken{
-		RawString:   idToken,
-		ParsedToken: parsedIDToken,
-	}
-	return &returnToken, nil
-}
-
-func getCodeFromLocalServer(state string, redirectURL *url.URL) (string, error) {
-	doneCh := make(chan string)
-	errCh := make(chan error)
-	m := http.NewServeMux()
-	s := http.Server{
-		Addr:    redirectURL.Host,
-		Handler: m,
-	}
-	defer func() {
-		go func() {
-			_ = s.Shutdown(context.Background())
-		}()
-	}()
-
-	go func() {
-		m.HandleFunc(redirectURL.Path, func(w http.ResponseWriter, r *http.Request) {
-			// even though these are fetched from the FormValue method,
-			// these are supplied as query parameters
-			if r.FormValue("state") != state {
-				errCh <- errors.New("invalid state token")
-				return
-			}
-			fmt.Fprint(w, htmlPage)
-			doneCh <- r.FormValue("code")
-		})
-		if err := s.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			errCh <- err
-		}
-	}()
-
-	timeoutCh := time.NewTimer(120 * time.Second)
-	select {
-	case code := <-doneCh:
-		return code, nil
-	case err := <-errCh:
-		return "", err
-	case <-timeoutCh.C:
-		return "", errors.New("timeout")
-	}
-}
-
-func randStr() string {
-	// we use ksuid here to ensure we get globally unique values to mitigate
-	// risk of replay attacks
-
-	// output is a 27 character base62 string which is by default URL-safe
-	return ksuid.New().String()
+	return claims.Email, nil
 }
