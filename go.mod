@@ -11,7 +11,9 @@ require (
 	github.com/go-openapi/strfmt v0.20.1
 	github.com/go-openapi/swag v0.19.14
 	github.com/go-openapi/validate v0.20.2
+	github.com/go-test/deep v1.0.7 // indirect
 	github.com/golang/protobuf v1.5.1 // indirect
+	github.com/google/go-containerregistry v0.4.1 // indirect
 	github.com/google/trillian v1.3.13
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/pkg/errors v0.9.1
