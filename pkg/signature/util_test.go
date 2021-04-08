@@ -42,10 +42,6 @@ func TestProviderRoundtrip(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Could not generate ecdsa SignerVerifier for test: %v", err)
 	}
-	ed25519SV, err := signature.NewDefaultEd25519SignerVerifier()
-	if err != nil {
-		t.Fatalf("Could not generate ed25519 SignerVerifier for test: %v", err)
-	}
 	rsaSV, err := signature.NewDefaultRSASignerVerifier()
 	if err != nil {
 		t.Fatalf("Could not generate rsa SignerVerifier for test: %v", err)
@@ -64,18 +60,6 @@ func TestProviderRoundtrip(t *testing.T) {
 			claims: map[string]interface{}{
 				"creator":  "ECDSA",
 				"optional": "extras",
-			},
-		},
-		{
-			desc:   "Ed25519",
-			sv:     ed25519SV,
-			digest: mustParseDigest(t, "example.com/ed25519@"+validDigest),
-			claims: map[string]interface{}{
-				"creator": "Ed25519",
-				"some_struct": map[string]interface{}{
-					"foo":  "bar",
-					"true": false,
-				},
 			},
 		},
 		{
