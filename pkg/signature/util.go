@@ -25,11 +25,10 @@ import (
 	sigpayload "github.com/sigstore/sigstore/pkg/signature/payload"
 )
 
-func SignImage(ctx context.Context, signer Signer, image name.Digest, optionalClaims map[string]interface{}) (payload, signature []byte, err error) {
-	imgPayload := sigpayload.ImagePayload{
-		Image:  image,
-		Type:   "cosign container image signature",
-		Claims: optionalClaims,
+func SignImage(ctx context.Context, signer Signer, image name.Digest, optionalAnnotations map[string]interface{}) (payload, signature []byte, err error) {
+	imgPayload := sigpayload.Cosign{
+		Image:       image,
+		Annotations: optionalAnnotations,
 	}
 	payload, err = json.Marshal(imgPayload)
 	if err != nil {
@@ -42,13 +41,13 @@ func SignImage(ctx context.Context, signer Signer, image name.Digest, optionalCl
 	return payload, signature, nil
 }
 
-func VerifyImageSignature(ctx context.Context, verifier Verifier, payload, signature []byte) (image name.Digest, optionalClaims map[string]interface{}, err error) {
+func VerifyImageSignature(ctx context.Context, verifier Verifier, payload, signature []byte) (image name.Digest, annotations map[string]interface{}, err error) {
 	if err := verifier.Verify(ctx, payload, signature); err != nil {
 		return name.Digest{}, nil, fmt.Errorf("signature verification failed: %v", err)
 	}
-	var imgPayload sigpayload.ImagePayload
+	var imgPayload sigpayload.Cosign
 	if err := json.Unmarshal(payload, &imgPayload); err != nil {
 		return name.Digest{}, nil, fmt.Errorf("could not deserialize image payload: %v", err)
 	}
-	return imgPayload.Image, imgPayload.Claims, nil
+	return imgPayload.Image, imgPayload.Annotations, nil
 }

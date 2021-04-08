@@ -35,39 +35,36 @@ func mustParseDigest(t *testing.T, digestStr string) name.Digest {
 	return digest
 }
 
-func TestMarshalImagePayload(t *testing.T) {
+func TestMarshalCosign(t *testing.T) {
 	t.Parallel()
 	testCases := []struct {
 		desc       string
-		imgPayload ImagePayload
+		imgPayload Cosign
 		expected   string
 	}{
 		{
 			desc: "no claims",
-			imgPayload: ImagePayload{
-				Type:  "unclaimed payload",
+			imgPayload: Cosign{
 				Image: mustParseDigest(t, "example.com/test/image@"+validDigest),
 			},
-			expected: `{"critical":{"identity":{"docker-reference":"example.com/test/image"},"image":{"docker-manifest-digest":"sha256:d34db33fd34db33fd34db33fd34db33fd34db33fd34db33fd34db33fd34db33f"},"type":"unclaimed payload"},"optional":null}`,
+			expected: `{"critical":{"identity":{"docker-reference":"example.com/test/image"},"image":{"docker-manifest-digest":"sha256:d34db33fd34db33fd34db33fd34db33fd34db33fd34db33fd34db33fd34db33f"},"type":"cosign container image signature"},"optional":null}`,
 		},
 		{
 			desc: "standard atomic signature",
-			imgPayload: ImagePayload{
-				Type:  "atomic container signature",
+			imgPayload: Cosign{
 				Image: mustParseDigest(t, "example.com/atomic/test/image@"+validDigest),
-				Claims: map[string]interface{}{
+				Annotations: map[string]interface{}{
 					"creator":   "atomic",
 					"timestamp": 1458239713,
 				},
 			},
-			expected: `{"critical":{"identity":{"docker-reference":"example.com/atomic/test/image"},"image":{"docker-manifest-digest":"sha256:d34db33fd34db33fd34db33fd34db33fd34db33fd34db33fd34db33fd34db33f"},"type":"atomic container signature"},"optional":{"creator":"atomic","timestamp":1458239713}}`,
+			expected: `{"critical":{"identity":{"docker-reference":"example.com/atomic/test/image"},"image":{"docker-manifest-digest":"sha256:d34db33fd34db33fd34db33fd34db33fd34db33fd34db33fd34db33fd34db33f"},"type":"cosign container image signature"},"optional":{"creator":"atomic","timestamp":1458239713}}`,
 		},
 		{
 			desc: "arbitrary claims",
-			imgPayload: ImagePayload{
-				Type:  "cosign container image signature",
+			imgPayload: Cosign{
 				Image: mustParseDigest(t, "example.com/cosign/test/image@"+validDigest),
-				Claims: map[string]interface{}{
+				Annotations: map[string]interface{}{
 					"creator": "anyone",
 					"some_struct": map[string]interface{}{
 						"foo":     "bar",
@@ -95,28 +92,28 @@ func TestMarshalImagePayload(t *testing.T) {
 	}
 }
 
-func TestUnmarshalImagePayload(t *testing.T) {
+func TestUnmarshalCosign(t *testing.T) {
 	t.Parallel()
 	testCases := []struct {
-		desc     string
-		payload  string
-		expected ImagePayload
+		desc    string
+		payload string
+
+		expected  Cosign
+		expectErr bool
 	}{
 		{
 			desc:    "no claims",
-			payload: `{"critical":{"identity":{"docker-reference":"example.com/test/image"},"image":{"docker-manifest-digest":"sha256:d34db33fd34db33fd34db33fd34db33fd34db33fd34db33fd34db33fd34db33f"},"type":"unclaimed payload"},"optional":null}`,
-			expected: ImagePayload{
-				Type:  "unclaimed payload",
+			payload: `{"critical":{"identity":{"docker-reference":"example.com/test/image"},"image":{"docker-manifest-digest":"sha256:d34db33fd34db33fd34db33fd34db33fd34db33fd34db33fd34db33fd34db33f"},"type":"cosign container image signature"},"optional":null}`,
+			expected: Cosign{
 				Image: mustParseDigest(t, "example.com/test/image@"+validDigest),
 			},
 		},
 		{
 			desc:    "arbitrary claims",
 			payload: `{"critical":{"identity":{"docker-reference":"example.com/cosign/test/image"},"image":{"docker-manifest-digest":"sha256:d34db33fd34db33fd34db33fd34db33fd34db33fd34db33fd34db33fd34db33f"},"type":"cosign container image signature"},"optional":{"CamelCase WithSpace":8.314,"creator":"anyone","some_struct":{"false":true,"foo":"bar","nothing":null}}}`,
-			expected: ImagePayload{
-				Type:  "cosign container image signature",
+			expected: Cosign{
 				Image: mustParseDigest(t, "example.com/cosign/test/image@"+validDigest),
-				Claims: map[string]interface{}{
+				Annotations: map[string]interface{}{
 					"creator": "anyone",
 					"some_struct": map[string]interface{}{
 						"foo":     "bar",
@@ -127,16 +124,28 @@ func TestUnmarshalImagePayload(t *testing.T) {
 				},
 			},
 		},
+		{
+			desc:      "unknown type",
+			payload:   `{"critical":{"identity":{"docker-reference":"example.com/atomic/test/image"},"image":{"docker-manifest-digest":"sha256:d34db33fd34db33fd34db33fd34db33fd34db33fd34db33fd34db33fd34db33f"},"type":"atomic container signature"},"optional":{}}`,
+			expectErr: true,
+		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.desc, func(t *testing.T) {
-			var imgPayload ImagePayload
-			if err := json.Unmarshal([]byte(tc.payload), &imgPayload); err != nil {
-				t.Fatalf("json.Unmarshal returned error: %v", err)
+			var imgPayload Cosign
+			err := json.Unmarshal([]byte(tc.payload), &imgPayload)
+			if err != nil {
+				if !tc.expectErr {
+					t.Fatalf("json.Unmarshal unexpectedly returned an error: %v", err)
+				}
+				return // operation failed successfully
+			}
+			if tc.expectErr {
+				t.Fatalf("json.Unmarshal returned %v, expected an error", imgPayload)
 			}
 			if diff := deep.Equal(tc.expected, imgPayload); diff != nil {
-				t.Errorf("ImagePayload unmarshalled incorrectly: %v", diff)
+				t.Errorf("Cosign unmarshalled incorrectly: %v", diff)
 			}
 		})
 	}

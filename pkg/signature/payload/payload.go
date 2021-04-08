@@ -23,10 +23,12 @@ import (
 	"github.com/google/go-containerregistry/pkg/name"
 )
 
-// Simple describes the structure of a basic container image signature payload,
-// as defined at:
-// https://www.redhat.com/en/blog/container-image-signing
-type Simple struct {
+// CosignSignatureType is the value of `critical.type` in a SimpleContainerImage payload.
+const CosignSignatureType = "cosign container image signature"
+
+// Simple describes the structure of a basic container image signature payload, as defined at:
+// https://github.com/containers/image/blob/master/docs/containers-signature.5.md#json-data-format
+type SimpleContainerImage struct {
 	Critical Critical               `json:"critical"`
 	Optional map[string]interface{} `json:"optional"`
 }
@@ -45,14 +47,13 @@ type Image struct {
 	DockerManifestDigest string `json:"docker-manifest-digest"`
 }
 
-type ImagePayload struct {
-	Type   string
-	Image  name.Digest
-	Claims map[string]interface{}
+type Cosign struct {
+	Image       name.Digest
+	Annotations map[string]interface{}
 }
 
-func (p ImagePayload) MarshalJSON() ([]byte, error) {
-	simple := Simple{
+func (p Cosign) MarshalJSON() ([]byte, error) {
+	simple := SimpleContainerImage{
 		Critical: Critical{
 			Identity: Identity{
 				DockerReference: p.Image.Repository.Name(),
@@ -60,23 +61,26 @@ func (p ImagePayload) MarshalJSON() ([]byte, error) {
 			Image: Image{
 				DockerManifestDigest: p.Image.DigestStr(),
 			},
-			Type: p.Type,
+			Type: CosignSignatureType,
 		},
-		Optional: p.Claims,
+		Optional: p.Annotations,
 	}
 	return json.Marshal(simple)
 }
 
-var _ json.Marshaler = ImagePayload{}
+var _ json.Marshaler = Cosign{}
 
-func (p *ImagePayload) UnmarshalJSON(data []byte) error {
+func (p *Cosign) UnmarshalJSON(data []byte) error {
 	if string(data) == "null" {
 		// JSON "null" is a no-op by convention
 		return nil
 	}
-	var simple Simple
+	var simple SimpleContainerImage
 	if err := json.Unmarshal(data, &simple); err != nil {
 		return err
+	}
+	if simple.Critical.Type != CosignSignatureType {
+		return fmt.Errorf("Cosign signature payload was of an unknown type: %q", simple.Critical.Type)
 	}
 	digestStr := simple.Critical.Identity.DockerReference + "@" + simple.Critical.Image.DockerManifestDigest
 	digest, err := name.NewDigest(digestStr)
@@ -84,9 +88,8 @@ func (p *ImagePayload) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("could not parse image digest string %q: %v", digestStr, err)
 	}
 	p.Image = digest
-	p.Claims = simple.Optional
-	p.Type = simple.Critical.Type
+	p.Annotations = simple.Optional
 	return nil
 }
 
-var _ json.Unmarshaler = (*ImagePayload)(nil)
+var _ json.Unmarshaler = (*Cosign)(nil)
