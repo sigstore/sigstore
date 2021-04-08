@@ -1,14 +1,15 @@
 package signfile
 
 import (
-	"crypto/ecdsa"
+	"crypto"
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/pem"
 	"fmt"
+	"strconv"
+
 	"github.com/go-openapi/swag"
 	"github.com/pkg/errors"
-	"strconv"
 
 	"github.com/sigstore/rekor/cmd/cli/app"
 	"github.com/sigstore/rekor/pkg/generated/client/entries"
@@ -23,7 +24,7 @@ type SignedPayload struct {
 	Chain           []*x509.Certificate
 }
 
-func UploadToRekor(publicKey *ecdsa.PublicKey, digest []byte, signedMsg []byte, rekorUrl string, certPEM []byte, payload []byte) (string, error) {
+func UploadToRekor(publicKey crypto.PublicKey, digest []byte, signedMsg []byte, rekorUrl string, certPEM []byte, payload []byte) (string, error) {
 	rekorClient, err := app.GetRekorClient(rekorUrl)
 	if err != nil {
 		return "", err
@@ -64,7 +65,7 @@ func UploadToRekor(publicKey *ecdsa.PublicKey, digest []byte, signedMsg []byte, 
 	return "", errors.New("bad response from server")
 }
 
-func MarshalPublicKey(pub *ecdsa.PublicKey) ([]byte, error) {
+func MarshalPublicKey(pub crypto.PublicKey) ([]byte, error) {
 	if pub == nil {
 		return nil, errors.New("empty key")
 	}

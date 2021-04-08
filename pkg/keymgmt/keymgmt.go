@@ -16,6 +16,7 @@ limitations under the License.
 package keymgmt
 
 import (
+	"crypto"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
@@ -23,7 +24,7 @@ import (
 	"errors"
 )
 
-func GeneratePrivateKey(algorithm string) (interface{}, interface{}, error) {
+func GeneratePrivateKey(algorithm string) (interface{}, crypto.PublicKey, error) {
 	var err error
 	var key interface{}
 	// Allow algorithm agility if different projects have certain FIPS like compliance requirements
@@ -43,7 +44,7 @@ func GeneratePrivateKey(algorithm string) (interface{}, interface{}, error) {
 		return nil, nil, err
 	}
 
-	pub, err := getPublicKeyBytes(key)
+	pub, err := getPublicKey(key)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -51,7 +52,7 @@ func GeneratePrivateKey(algorithm string) (interface{}, interface{}, error) {
 	return key, pub, err
 }
 
-func getPublicKeyBytes(priv interface{}) (interface{}, error) {
+func getPublicKey(priv interface{}) (crypto.PublicKey, error) {
 	var err error
 	var pub interface{}
 	switch k := priv.(type) {
@@ -60,7 +61,7 @@ func getPublicKeyBytes(priv interface{}) (interface{}, error) {
 	case *ecdsa.PrivateKey:
 		pub = &k.PublicKey
 	default:
-		err = errors.New("error generating public key" )
+		err = errors.New("error generating public key")
 	}
 	if err != nil {
 		panic("error creating pubkey")
@@ -68,4 +69,3 @@ func getPublicKeyBytes(priv interface{}) (interface{}, error) {
 
 	return pub, err
 }
-
