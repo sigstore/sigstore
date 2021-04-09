@@ -28,18 +28,23 @@ type GenericSigner struct {
 	SignerOpts crypto.SignerOpts
 }
 
-func (s GenericSigner) Sign(_ context.Context, payload []byte) (signature []byte, err error) {
+func (s GenericSigner) Sign(_ context.Context, rawPayload []byte) (signature, signed []byte, err error) {
+	signed = rawPayload
 	if s.SignerOpts != nil {
-		hashFunc := s.SignerOpts.HashFunc()
-		if hashFunc != crypto.Hash(0) {
-			h := hashFunc.New()
-			if _, err := h.Write(payload); err != nil {
-				return nil, fmt.Errorf("failed to create hash: %v", err)
+		preHash := s.SignerOpts.HashFunc()
+		if preHash != crypto.Hash(0) {
+			h := preHash.New()
+			if _, err := h.Write(rawPayload); err != nil {
+				return nil, nil, fmt.Errorf("failed to create hash: %v", err)
 			}
-			payload = h.Sum(nil)
+			signed = h.Sum(nil)
 		}
 	}
-	return s.Signer.Sign(rand.Reader, payload, s.SignerOpts)
+	signature, err = s.Signer.Sign(rand.Reader, signed, s.SignerOpts)
+	if err != nil {
+		return nil, nil, err
+	}
+	return signature, signed, nil
 }
 
 func (s GenericSigner) PublicKey(_ context.Context) (crypto.PublicKey, error) {

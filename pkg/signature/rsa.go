@@ -35,17 +35,22 @@ type RSASignerVerifier struct {
 	Key *rsa.PrivateKey
 }
 
-func (s RSASignerVerifier) Sign(_ context.Context, payload []byte) (signature []byte, err error) {
+func (s RSASignerVerifier) Sign(_ context.Context, rawPayload []byte) (signature, signed []byte, err error) {
 	h := s.HashAlg.New()
-	if _, err := h.Write(payload); err != nil {
-		return nil, fmt.Errorf("failed to create hash: %v", err)
+	if _, err := h.Write(rawPayload); err != nil {
+		return nil, nil, fmt.Errorf("failed to create hash: %v", err)
 	}
-	return rsa.SignPKCS1v15(rand.Reader, s.Key, s.HashAlg, h.Sum(nil))
+	signed = h.Sum(nil)
+	signature, err = rsa.SignPKCS1v15(rand.Reader, s.Key, s.HashAlg, signed)
+	if err != nil {
+		return nil, nil, err
+	}
+	return signature, signed, nil
 }
 
-func (v RSAVerifier) Verify(_ context.Context, payload, signature []byte) error {
+func (v RSAVerifier) Verify(_ context.Context, rawPayload, signature []byte) error {
 	h := v.HashAlg.New()
-	if _, err := h.Write(payload); err != nil {
+	if _, err := h.Write(rawPayload); err != nil {
 		return fmt.Errorf("failed to create hash: %v", err)
 	}
 	if err := rsa.VerifyPKCS1v15(v.Key, v.HashAlg, h.Sum(nil), signature); err != nil {

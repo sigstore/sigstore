@@ -26,12 +26,14 @@ type PublicKeyProvider interface {
 }
 
 type Verifier interface {
-	Verify(ctx context.Context, payload, signature []byte) error
+	Verify(ctx context.Context, rawPayload, signature []byte) error
 }
 
 type Signer interface {
 	PublicKeyProvider
-	Sign(ctx context.Context, payload []byte) (signature []byte, err error)
+
+	// Sign takes a raw payload, potentially creating a derivative (e.g. hashed) payload, and returns the signature as well as the actual payload that was signed.
+	Sign(ctx context.Context, rawPayload []byte) (signature, signed []byte, err error)
 }
 
 type SignerVerifier interface {

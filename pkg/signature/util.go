@@ -25,20 +25,20 @@ import (
 	sigpayload "github.com/sigstore/sigstore/pkg/signature/payload"
 )
 
-func SignImage(ctx context.Context, signer Signer, image name.Digest, optionalAnnotations map[string]interface{}) (payload, signature []byte, err error) {
+func SignImage(ctx context.Context, signer Signer, image name.Digest, optionalAnnotations map[string]interface{}) (payload, signature, prehashed []byte, err error) {
 	imgPayload := sigpayload.Cosign{
 		Image:       image,
 		Annotations: optionalAnnotations,
 	}
 	payload, err = json.Marshal(imgPayload)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to marshal payload to JSON: %v", err)
+		return nil, nil, nil, fmt.Errorf("failed to marshal payload to JSON: %v", err)
 	}
-	signature, err = signer.Sign(ctx, payload)
+	signature, prehashed, err = signer.Sign(ctx, payload)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to sign payload: %v", err)
+		return nil, nil, nil, fmt.Errorf("failed to sign payload: %v", err)
 	}
-	return payload, signature, nil
+	return payload, signature, prehashed, nil
 }
 
 func VerifyImageSignature(ctx context.Context, verifier Verifier, payload, signature []byte) (image name.Digest, annotations map[string]interface{}, err error) {

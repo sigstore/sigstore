@@ -75,7 +75,7 @@ func TestProviderRoundtrip(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.desc, func(t *testing.T) {
-			payload, sig, err := signature.SignImage(ctx, tc.sv, tc.digest, tc.claims)
+			payload, sig, _, err := signature.SignImage(ctx, tc.sv, tc.digest, tc.claims)
 			if err != nil {
 				t.Fatalf("SignImage returned error: %v", err)
 			}
