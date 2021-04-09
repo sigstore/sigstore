@@ -34,7 +34,7 @@ func smokeTestSignerVerifier(t *testing.T, sv SignerVerifier) {
 		t.Fatal("PublicKey() returned nil")
 	}
 	payload := []byte("test payload " + fmt.Sprint(rand.Int()))
-	sig, err := sv.Sign(ctx, payload)
+	sig, _, err := sv.Sign(ctx, payload)
 	if err != nil {
 		t.Fatalf("Sign() failed with error: %v", err)
 	}
