@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: Go
+name: Verify
 
 on:
   push:
@@ -22,30 +22,18 @@ on:
     branches: [ main ]
 
 jobs:
-
-  build:
+  license-check:
+    name: license boilerplate check
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-    - name: Set up Go
-      uses: actions/setup-go@v2
-      with:
-        go-version: 1.15
-    - name: Build
-      run: go build -v
-    - name: Test
-      run: go test -v ./...
-    - name: golangci-lint
-      uses: golangci/golangci-lint-action@v2.5.1
-      with:
-        version: v1.37.1
-        skip-go-installation: true
-        skip-pkg-cache: true
-    - name: Run Gosec Security Scanner
-      uses: securego/gosec@v2.7.0
-      env:
-        GOROOT: ""
-      with:
-        args: ./...
-    - name: Ensure no files were modified as a result of the build
-      run: git update-index --refresh && git diff-index --quiet HEAD -- || git diff
+      - uses: actions/checkout@v2
+      - uses: actions/setup-go@v2
+        with:
+          go-version: '1.16'
+      - name: Install addlicense
+        run: go install github.com/google/addlicense@latest
+      - name: Check license headers
+        run: |
+          set -e
+          addlicense -l apache -c 'The Sigstore Authors' -f COPYRIGHT.txt -check -v *
+          git diff --exit-code
