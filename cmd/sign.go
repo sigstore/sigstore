@@ -16,9 +16,7 @@
 package cmd
 
 import (
-	"crypto/ecdsa"
-	"crypto/rand"
-	"crypto/sha256"
+	"context"
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
@@ -31,8 +29,8 @@ import (
 
 	"github.com/sigstore/sigstore/pkg/generated/client/operations"
 	"github.com/sigstore/sigstore/pkg/httpclients"
-	"github.com/sigstore/sigstore/pkg/keymgmt"
 	"github.com/sigstore/sigstore/pkg/oauthflow"
+	"github.com/sigstore/sigstore/pkg/signature"
 	"github.com/sigstore/sigstore/pkg/signfile"
 	"github.com/sigstore/sigstore/pkg/utils"
 )
@@ -48,7 +46,8 @@ var signCmd = &cobra.Command{
 		}
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
-		// Hash the artifact
+		ctx := context.Background()
+
 		payload, err := ioutil.ReadFile(viper.GetString("artifact"))
 		if err != nil {
 			return err
@@ -65,7 +64,6 @@ var signCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		digest := sha256.Sum256(payload)
 		// Retrieve idToken from oidc provider
 		idToken, email, err := oauthflow.OIDConnect(
 			viper.GetString("oidc-issuer"),
@@ -78,20 +76,21 @@ var signCmd = &cobra.Command{
 		}
 		fmt.Println("\nReceived OpenID Scope retrieved for account:", email)
 
-		key, pub, err := keymgmt.GeneratePrivateKey("ecdsaP256")
+		signer, err := signature.NewDefaultECDSASignerVerifier()
+		if err != nil {
+			return err
+		}
+		pub, err := signer.PublicKey(ctx)
 		if err != nil {
 			return err
 		}
 
-		privKey := key.(*ecdsa.PrivateKey)
-		pubKey := pub.(*ecdsa.PublicKey)
-		pubBytes, err := x509.MarshalPKIXPublicKey(pubKey)
+		pubBytes, err := x509.MarshalPKIXPublicKey(pub)
 		if err != nil {
 			return err
 		}
 
-		emailHash := sha256.Sum256([]byte(email))
-		proof, err := ecdsa.SignASN1(rand.Reader, privKey, emailHash[:])
+		proof, _, err := signer.Sign(ctx, []byte(email))
 		if err != nil {
 			return err
 		}
@@ -128,7 +127,7 @@ var signCmd = &cobra.Command{
 		}
 		fmt.Printf("Received signing Cerificate: %+v\n", cert.Subject)
 
-		signedMsg, err := ecdsa.SignASN1(rand.Reader, privKey, digest[:])
+		signature, signedVal, err := signer.Sign(ctx, payload)
 		if err != nil {
 			panic(fmt.Sprintf("Error occurred while during artifact signing: %s", err))
 		}
@@ -136,9 +135,9 @@ var signCmd = &cobra.Command{
 		// Send to rekor
 		fmt.Println("Sending entry to transparency log")
 		tlogEntry, err := signfile.UploadToRekor(
-			pubKey,
-			digest[:],
-			signedMsg,
+			pub,
+			signedVal,
+			signature,
 			viper.GetString("rekor-server"),
 			certPEM,
 			payload,
