@@ -3,6 +3,7 @@ module github.com/sigstore/sigstore
 go 1.16
 
 require (
+	cloud.google.com/go v0.81.0
 	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d // indirect
 	github.com/coreos/go-oidc/v3 v3.0.0
 	github.com/gabriel-vasile/mimetype v1.2.0
@@ -26,4 +27,6 @@ require (
 	golang.org/x/oauth2 v0.0.0-20210313182246-cd4f82c27b84
 	golang.org/x/sys v0.0.0-20210320140829-1e4c9ba3b0c4 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
+	google.golang.org/genproto v0.0.0-20210402141018-6c239bbf2bb1
+	google.golang.org/protobuf v1.26.0
 )
