@@ -25,8 +25,8 @@ import (
 )
 
 type RSAVerifier struct {
-	Key     *rsa.PublicKey
-	HashAlg crypto.Hash
+	Key  *rsa.PublicKey
+	opts rsa.PSSOptions
 }
 
 type RSASignerVerifier struct {
@@ -35,12 +35,12 @@ type RSASignerVerifier struct {
 }
 
 func (s RSASignerVerifier) Sign(_ context.Context, rawPayload []byte) (signature, signed []byte, err error) {
-	h := s.HashAlg.New()
+	h := s.opts.Hash.New()
 	if _, err := h.Write(rawPayload); err != nil {
 		return nil, nil, fmt.Errorf("failed to create hash: %v", err)
 	}
 	signed = h.Sum(nil)
-	signature, err = rsa.SignPKCS1v15(rand.Reader, s.Key, s.HashAlg, signed)
+	signature, err = rsa.SignPSS(rand.Reader, s.Key, s.opts.Hash, signed, &s.opts)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -48,11 +48,11 @@ func (s RSASignerVerifier) Sign(_ context.Context, rawPayload []byte) (signature
 }
 
 func (v RSAVerifier) Verify(_ context.Context, rawPayload, signature []byte) error {
-	h := v.HashAlg.New()
+	h := v.opts.Hash.New()
 	if _, err := h.Write(rawPayload); err != nil {
 		return fmt.Errorf("failed to create hash: %v", err)
 	}
-	if err := rsa.VerifyPKCS1v15(v.Key, v.HashAlg, h.Sum(nil), signature); err != nil {
+	if err := rsa.VerifyPSS(v.Key, v.opts.Hash, h.Sum(nil), signature, &v.opts); err != nil {
 		return fmt.Errorf("unable to verify signature: %v", err)
 	}
 	return nil
@@ -68,8 +68,11 @@ var _ Verifier = RSAVerifier{}
 func NewRSASignerVerifier(key *rsa.PrivateKey, hashAlg crypto.Hash) RSASignerVerifier {
 	return RSASignerVerifier{
 		RSAVerifier: RSAVerifier{
-			Key:     &key.PublicKey,
-			HashAlg: hashAlg,
+			Key: &key.PublicKey,
+			opts: rsa.PSSOptions{
+				SaltLength: hashAlg.Size(),
+				Hash:       hashAlg,
+			},
 		},
 		Key: key,
 	}
