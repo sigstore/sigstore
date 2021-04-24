@@ -39,12 +39,13 @@ type KMS struct {
 	locationID    string
 	keyRing       string
 	key           string
+	version       string
 }
 
 var (
-	ErrKMSReference = errors.New("kms specification should be in the format gcpkms://projects/[PROJECT_ID]/locations/[LOCATION]/keyRings/[KEY_RING]/cryptoKeys/[KEY]")
+	ErrKMSReference = errors.New("kms specification should be in the format gcpkms://projects/[PROJECT_ID]/locations/[LOCATION]/keyRings/[KEY_RING]/cryptoKeys/[KEY]/versions/[VERSION]")
 
-	re = regexp.MustCompile(`^gcpkms://projects/([^/]+)/locations/([^/]+)/keyRings/([^/]+)/cryptoKeys/([^/]+)$`)
+	re = regexp.MustCompile(`^gcpkms://projects/([^/]+)/locations/([^/]+)/keyRings/([^/]+)/cryptoKeys/([^/]+)(?:/versions/([^/]+))?$`)
 )
 
 // schemes for various KMS services are copied from https://github.com/google/go-cloud/tree/master/secrets
@@ -57,18 +58,18 @@ func ValidReference(ref string) error {
 	return nil
 }
 
-func parseReference(resourceID string) (projectID, locationID, keyRing, keyName string, err error) {
+func parseReference(resourceID string) (projectID, locationID, keyRing, keyName, version string, err error) {
 	v := re.FindStringSubmatch(resourceID)
-	if len(v) != 5 {
+	if len(v) != 6 {
 		err = errors.Errorf("invalid gcpkms format %q", resourceID)
 		return
 	}
-	projectID, locationID, keyRing, keyName = v[1], v[2], v[3], v[4]
+	projectID, locationID, keyRing, keyName, version = v[1], v[2], v[3], v[4], v[5]
 	return
 }
 
 func NewGCP(ctx context.Context, keyResourceID string) (*KMS, error) {
-	projectID, locationID, keyRing, keyName, err := parseReference(keyResourceID)
+	projectID, locationID, keyRing, keyName, version, err := parseReference(keyResourceID)
 	if err != nil {
 		return nil, err
 	}
@@ -84,14 +85,14 @@ func NewGCP(ctx context.Context, keyResourceID string) (*KMS, error) {
 		locationID:    locationID,
 		keyRing:       keyRing,
 		key:           keyName,
+		version:       version,
 	}, nil
 }
 
 func (g *KMS) Sign(ctx context.Context, rawPayload []byte) (signature, signed []byte, err error) {
 	// Calculate the digest of the message.
 	hash := sha256.New()
-	_, err = hash.Write(rawPayload)
-	if err != nil {
+	if _, err := hash.Write(rawPayload); err != nil {
 		return nil, nil, err
 	}
 	digest := hash.Sum(nil)
@@ -171,8 +172,15 @@ func (g *KMS) ECDSAPublicKey(ctx context.Context) (*ecdsa.PublicKey, error) {
 // keyVersionName returns the first key version found for a key in KMS
 // TODO: is there a better way to do this?
 func (g *KMS) keyVersionName(ctx context.Context) (string, error) {
+	parent := fmt.Sprintf("projects/%s/locations/%s/keyRings/%s/cryptoKeys/%s", g.projectID, g.locationID, g.keyRing, g.key)
+
+	if g.version != "" {
+		parent += fmt.Sprintf("/cryptoKeyVersions/%s", g.version)
+		return parent, nil
+	}
+
 	req := &kmspb.ListCryptoKeyVersionsRequest{
-		Parent: fmt.Sprintf("projects/%s/locations/%s/keyRings/%s/cryptoKeys/%s", g.projectID, g.locationID, g.keyRing, g.key),
+		Parent: parent,
 	}
 	iterator := g.client.ListCryptoKeyVersions(ctx, req)
 
