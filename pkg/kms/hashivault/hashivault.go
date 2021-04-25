@@ -251,13 +251,5 @@ func vaultDecode(data interface{}) ([]byte, error) {
 	if !ok {
 		return nil, errors.New("Received non-string data")
 	}
-
-	if strings.HasPrefix(encoded, vaultV1DataPrefix) {
-		encoded = strings.TrimPrefix(encoded, vaultV1DataPrefix)
-	}
-	return base64.StdEncoding.DecodeString(encoded)
-}
-
-func vaultEncode(data []byte) string {
-	return fmt.Sprintf("%s%s", vaultV1DataPrefix, base64.StdEncoding.EncodeToString(data))
+	return base64.StdEncoding.DecodeString(strings.TrimPrefix(encoded, vaultV1DataPrefix))
 }
