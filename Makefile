@@ -52,7 +52,10 @@ client: $(SRCS)
 	CGO_ENABLED=0 go build -ldflags $(LDFLAGS) -o sigstore
 
 test:
-	go test ./...
+	go test ./pkg/...
+
+test-e2e:
+	go test ./test/e2e/...
 
 clean:
 	rm -rf sigstore
