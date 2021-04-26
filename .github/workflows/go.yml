@@ -49,7 +49,7 @@ jobs:
       run: go build -v
 
     - name: Test
-      run: go test -v ./pkg/...
+      run: go test -v ./...
 
     - name: golangci-lint
       uses: golangci/golangci-lint-action@v2.5.1
@@ -97,4 +97,4 @@ jobs:
       env:
         VAULT_ADDR: http://localhost:${{ job.services.vault.ports[8200] }}
         VAULT_TOKEN: testtoken
-      run: go test -v ./test/e2e/...
+      run: go test -tag=e2e -race -v ./test/e2e/...

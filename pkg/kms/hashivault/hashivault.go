@@ -38,26 +38,29 @@ type KMS struct {
 }
 
 var (
-	ErrKMSReference = errors.New("kms specification should be in the format hashivault://<key>")
+	errReference   = errors.New("kms specification should be in the format hashivault://<key>")
+	referenceRegex = regexp.MustCompile(`^hashivault://(?P<path>\w(([\w-.]+)?\w)?)$`)
+)
 
-	re = regexp.MustCompile(`^hashivault://(?P<path>\w(([\w-.]+)?\w)?)$`)
-
+const (
 	hashAlg = "sha2-256"
 	signAlg = "sha2-256"
+
+	vaultV1DataPrefix = "vault:v1:"
 )
 
 const ReferenceScheme = "hashivault://"
 
 func ValidReference(ref string) error {
-	if !re.MatchString(ref) {
-		return ErrKMSReference
+	if !referenceRegex.MatchString(ref) {
+		return errReference
 	}
 	return nil
 }
 
 func parseReference(resourceID string) (keyPath string, err error) {
-	i := re.SubexpIndex("path")
-	v := re.FindStringSubmatch(resourceID)
+	i := referenceRegex.SubexpIndex("path")
+	v := referenceRegex.FindStringSubmatch(resourceID)
 	if len(v) < i+1 {
 		err = errors.Errorf("invalid vault format %q", resourceID)
 		return
@@ -147,10 +150,9 @@ func (g *KMS) Sign(ctx context.Context, rawPayload []byte) (signature, signed []
 func (g *KMS) CreateKey(ctx context.Context) (*ecdsa.PublicKey, error) {
 	client := g.client.Logical()
 
-	_, err := client.Write(fmt.Sprintf("/transit/keys/%s", g.keyPath), map[string]interface{}{
+	if _, err := client.Write(fmt.Sprintf("/transit/keys/%s", g.keyPath), map[string]interface{}{
 		"type": "ecdsa-p256",
-	})
-	if err != nil {
+	}); err != nil {
 		return nil, errors.Wrap(err, "Failed to create transit key")
 	}
 	return g.ECDSAPublicKey(ctx)
@@ -173,10 +175,9 @@ func (g *KMS) ECDSAPublicKey(ctx context.Context) (*ecdsa.PublicKey, error) {
 func (g *KMS) PublicKey(ctx context.Context) (crypto.PublicKey, error) {
 	client := g.client.Logical()
 
-	_, err := client.Write(fmt.Sprintf("/transit/keys/%s", g.keyPath), map[string]interface{}{
+	if _, err := client.Write(fmt.Sprintf("/transit/keys/%s", g.keyPath), map[string]interface{}{
 		"type": "ecdsa-p256",
-	})
-	if err != nil {
+	}); err != nil {
 		return nil, errors.Wrap(err, "public key")
 	}
 
@@ -242,8 +243,6 @@ func (g *KMS) Verify(ctx context.Context, payload, signature []byte) error {
 	}
 	return nil
 }
-
-var vaultV1DataPrefix = "vault:v1:"
 
 // Vault likes to prefix base64 data with a version prefix
 func vaultDecode(data interface{}) ([]byte, error) {
