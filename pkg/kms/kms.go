@@ -19,10 +19,27 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"fmt"
+	"strings"
 
 	"github.com/sigstore/sigstore/pkg/kms/gcp"
+	"github.com/sigstore/sigstore/pkg/kms/hashivault"
 	"github.com/sigstore/sigstore/pkg/signature"
 )
+
+func init() {
+	ProvidersMux().AddProvider(gcp.ReferenceScheme, func(ctx context.Context, keyResourceID string) (KMS, error) {
+		if err := gcp.ValidReference(keyResourceID); err != nil {
+			return nil, err
+		}
+		return gcp.NewGCP(ctx, keyResourceID)
+	})
+	ProvidersMux().AddProvider(hashivault.ReferenceScheme, func(ctx context.Context, keyResourceID string) (KMS, error) {
+		if err := hashivault.ValidReference(keyResourceID); err != nil {
+			return nil, err
+		}
+		return hashivault.NewVault(ctx, keyResourceID)
+	})
+}
 
 type KMS interface {
 	signature.Signer
@@ -33,9 +50,33 @@ type KMS interface {
 	CreateKey(context.Context) (*ecdsa.PublicKey, error)
 }
 
+type ProviderInit func(context.Context, string) (KMS, error)
+
+type KMSProviders struct {
+	providers map[string]ProviderInit
+}
+
+func (p *KMSProviders) AddProvider(keyResourceID string, init ProviderInit) {
+	p.providers[keyResourceID] = init
+}
+
+func (p *KMSProviders) Providers() map[string]ProviderInit {
+	return p.providers
+}
+
+var providersMux = &KMSProviders{
+	providers: map[string]ProviderInit{},
+}
+
+func ProvidersMux() *KMSProviders {
+	return providersMux
+}
+
 func Get(ctx context.Context, keyResourceID string) (KMS, error) {
-	if err := gcp.ValidReference(keyResourceID); err != nil {
-		return nil, fmt.Errorf("could not parse kms reference (only GCP supported for now): %w", err)
+	for ref, providerInit := range providersMux.providers {
+		if strings.HasPrefix(keyResourceID, ref) {
+			return providerInit(ctx, keyResourceID)
+		}
 	}
-	return gcp.NewGCP(ctx, keyResourceID)
+	return nil, fmt.Errorf("No provider found for that key reference")
 }

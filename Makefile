@@ -54,6 +54,9 @@ client: $(SRCS)
 test:
 	go test ./...
 
+test-e2e:
+	go test -tags e2e ./test/e2e/...
+
 clean:
 	rm -rf sigstore
 
