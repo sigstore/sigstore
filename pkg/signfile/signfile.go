@@ -26,7 +26,7 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/pkg/errors"
 
-	"github.com/sigstore/rekor/cmd/cli/app"
+	"github.com/sigstore/rekor/cmd/rekor-cli/app"
 	"github.com/sigstore/rekor/pkg/generated/client/entries"
 	"github.com/sigstore/rekor/pkg/generated/models"
 	"github.com/sigstore/sigstore/pkg/tlog"

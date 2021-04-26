@@ -31,23 +31,20 @@ import (
 	rekord_v001 "github.com/sigstore/rekor/pkg/types/rekord/v0.0.1"
 )
 
-func FindTlogEntry(rekorClient *client.Rekor, b64Sig string, payload []byte, pubKey []byte) (string, error) {
-	params := entries.NewGetLogEntryProofParams()
+func FindTlogEntry(rekorClient *client.Rekor, b64Sig string, payload, pubKey []byte) (string, error) {
 	searchParams := entries.NewSearchLogQueryParams()
 	searchLogQuery := models.SearchLogQuery{}
 	signature, err := base64.StdEncoding.DecodeString(b64Sig)
 	if err != nil {
 		return "", errors.Wrap(err, "decoding base64 signature")
 	}
-
 	re := RekorEntry(payload, signature, pubKey)
 	entry := &models.Rekord{
 		APIVersion: swag.String(re.APIVersion()),
 		Spec:       re.RekordObj,
 	}
 
-	entries := []models.ProposedEntry{entry}
-	searchLogQuery.SetEntries(entries)
+	searchLogQuery.SetEntries([]models.ProposedEntry{entry})
 
 	searchParams.SetEntry(&searchLogQuery)
 	resp, err := rekorClient.Entries.SearchLogQuery(searchParams)
@@ -64,25 +61,31 @@ func FindTlogEntry(rekorClient *client.Rekor, b64Sig string, payload []byte, pub
 		return "", errors.New("UUID value can not be extracted")
 	}
 
+	params := entries.NewGetLogEntryByUUIDParams()
 	for k := range logEntry {
 		params.EntryUUID = k
 	}
-	lep, err := rekorClient.Entries.GetLogEntryProof(params)
+	lep, err := rekorClient.Entries.GetLogEntryByUUID(params)
 	if err != nil {
 		return "", err
 	}
 
+	if len(lep.Payload) != 1 {
+		return "", errors.New("UUID value can not be extracted")
+	}
+	e := lep.Payload[params.EntryUUID]
+
 	hashes := [][]byte{}
-	for _, h := range lep.Payload.Hashes {
+	for _, h := range e.InclusionProof.Hashes {
 		hb, _ := hex.DecodeString(h)
 		hashes = append(hashes, hb)
 	}
 
-	rootHash, _ := hex.DecodeString(*lep.Payload.RootHash)
+	rootHash, _ := hex.DecodeString(*e.InclusionProof.RootHash)
 	leafHash, _ := hex.DecodeString(params.EntryUUID)
 
 	v := logverifier.New(hasher.DefaultHasher)
-	if err := v.VerifyInclusionProof(*lep.Payload.LogIndex, *lep.Payload.TreeSize, hashes, rootHash, leafHash); err != nil {
+	if err := v.VerifyInclusionProof(*e.InclusionProof.LogIndex, *e.InclusionProof.TreeSize, hashes, rootHash, leafHash); err != nil {
 		return "", errors.Wrap(err, "verifying inclusion proof")
 	}
 	return params.EntryUUID, nil
