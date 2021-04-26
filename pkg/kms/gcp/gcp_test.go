@@ -24,6 +24,7 @@ func TestParseReference(t *testing.T) {
 		wantLocationID string
 		wantKeyRing    string
 		wantKeyName    string
+		wantKeyVersion string
 		wantErr        bool
 	}{
 		{
@@ -32,6 +33,15 @@ func TestParseReference(t *testing.T) {
 			wantLocationID: "ll",
 			wantKeyRing:    "rr",
 			wantKeyName:    "kk",
+			wantErr:        false,
+		},
+		{
+			in:             "gcpkms://projects/pp/locations/ll/keyRings/rr/cryptoKeys/kk/versions/1",
+			wantProjectID:  "pp",
+			wantLocationID: "ll",
+			wantKeyRing:    "rr",
+			wantKeyName:    "kk",
+			wantKeyVersion: "1",
 			wantErr:        false,
 		},
 		{
@@ -46,10 +56,14 @@ func TestParseReference(t *testing.T) {
 			in:      "",
 			wantErr: true,
 		},
+		{
+			in:      "gcpkms://projects/p1/p2/locations/l1/l2/keyRings/r1/r2/cryptoKeys/k1/versions",
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.in, func(t *testing.T) {
-			gotProjectID, gotLocationID, gotKeyRing, gotKeyName, err := parseReference(tt.in)
+			gotProjectID, gotLocationID, gotKeyRing, gotKeyName, gotKeyVersion, err := parseReference(tt.in)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("parseReference() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -65,6 +79,9 @@ func TestParseReference(t *testing.T) {
 			}
 			if gotKeyName != tt.wantKeyName {
 				t.Errorf("parseReference() gotKeyName = %v, want %v", gotKeyName, tt.wantKeyName)
+			}
+			if gotKeyVersion != tt.wantKeyVersion {
+				t.Errorf("parseReference() gotKeyVersion = %v, want %v", gotKeyVersion, tt.wantKeyVersion)
 			}
 		})
 	}
