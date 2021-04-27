@@ -175,12 +175,6 @@ func (g *KMS) ECDSAPublicKey(ctx context.Context) (*ecdsa.PublicKey, error) {
 func (g *KMS) PublicKey(ctx context.Context) (crypto.PublicKey, error) {
 	client := g.client.Logical()
 
-	if _, err := client.Write(fmt.Sprintf("/transit/keys/%s", g.keyPath), map[string]interface{}{
-		"type": "ecdsa-p256",
-	}); err != nil {
-		return nil, errors.Wrap(err, "public key")
-	}
-
 	keyResult, err := client.Read(fmt.Sprintf("/transit/keys/%s", g.keyPath))
 	if err != nil {
 		return nil, errors.Wrap(err, "public key")

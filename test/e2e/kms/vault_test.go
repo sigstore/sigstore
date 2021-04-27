@@ -19,6 +19,7 @@ package main
 
 import (
 	"context"
+	"crypto"
 	"crypto/ecdsa"
 	"crypto/sha256"
 	"fmt"
@@ -30,6 +31,7 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/sigstore/sigstore/pkg/kms"
+	"github.com/sigstore/sigstore/pkg/signature"
 
 	vault "github.com/hashicorp/vault/api"
 )
@@ -102,6 +104,40 @@ func (suite *VaultSuite) TestSign() {
 	hash := sha256.Sum256(signed)
 	ok := ecdsa.VerifyASN1(key, hash[:], sig)
 	assert.True(suite.T(), ok)
+}
+
+func (suite *VaultSuite) TestPubKeyVerify() {
+	provider := suite.GetProvider("testsign")
+
+	key, err := provider.CreateKey(context.Background())
+	require.Nil(suite.T(), err)
+	require.NotNil(suite.T(), key)
+
+	data := []byte("mydata")
+	sig, signed, err := provider.Sign(context.Background(), data)
+	require.Nil(suite.T(), err)
+	require.NotNil(suite.T(), sig)
+	require.NotNil(suite.T(), signed)
+
+	k, err := provider.PublicKey(context.TODO())
+	require.Nil(suite.T(), err)
+	require.NotNil(suite.T(), key)
+
+	pubKey, ok := k.(*ecdsa.PublicKey)
+	require.True(suite.T(), ok)
+
+	hash := sha256.Sum256(signed)
+	ok = ecdsa.VerifyASN1(pubKey, hash[:], sig)
+	assert.True(suite.T(), ok)
+
+	ok = ecdsa.VerifyASN1(key, hash[:], sig)
+	assert.True(suite.T(), ok)
+
+	verifier := signature.ECDSAVerifier{
+		Key:     pubKey,
+		HashAlg: crypto.SHA256,
+	}
+	verifier.Verify(context.TODO(), data, sig)
 }
 
 func (suite *VaultSuite) TestVerify() {
