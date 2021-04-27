@@ -19,6 +19,7 @@ import (
 	"context"
 	"crypto"
 	"crypto/ecdsa"
+	"crypto/sha256"
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
@@ -98,38 +99,15 @@ func NewVault(ctx context.Context, keyResourceID string) (*KMS, error) {
 	}, nil
 }
 
-func (g *KMS) hash(ctx context.Context, rawPayload []byte) ([]byte, error) {
-	client := g.client.Logical()
-	encodedPayload := base64.StdEncoding.Strict().EncodeToString(rawPayload)
-	hashResult, err := client.Write(fmt.Sprintf("/transit/hmac/%s/%s", g.keyPath, hashAlg), map[string]interface{}{
-		"input": encodedPayload,
-	})
-	if err != nil {
-		return nil, err
-	}
-	encodedDigest, ok := hashResult.Data["hmac"]
-	if !ok {
-		return nil, errors.New("Transit: response corrupted in-transit")
-	}
-
-	digest, err := vaultDecode(encodedDigest)
-	if err != nil {
-		return nil, errors.Wrapf(err, "Transit: response corrupted in-transit: %s", encodedPayload)
-	}
-	return digest, nil
-
-}
-
 func (g *KMS) Sign(ctx context.Context, rawPayload []byte) (signature, signed []byte, err error) {
 	client := g.client.Logical()
 
-	signed, err = g.hash(ctx, rawPayload)
-	if err != nil {
-		return nil, nil, errors.Wrapf(err, "Issue getting payload hash")
-	}
+	hash := sha256.Sum256(rawPayload)
+	signed = hash[:]
 
 	signResult, err := client.Write(fmt.Sprintf("/transit/sign/%s/%s", g.keyPath, signAlg), map[string]interface{}{
-		"input": base64.StdEncoding.Strict().EncodeToString(signed),
+		"input":     base64.StdEncoding.Strict().EncodeToString(signed),
+		"prehashed": true,
 	})
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "Transit: failed to sign payload")
@@ -218,8 +196,10 @@ func (g *KMS) Verify(ctx context.Context, payload, signature []byte) error {
 	client := g.client.Logical()
 	encodedSig := base64.StdEncoding.EncodeToString(signature)
 
+	signed := sha256.Sum256(payload)
+
 	result, err := client.Write(fmt.Sprintf("/transit/verify/%s/%s", g.keyPath, hashAlg), map[string]interface{}{
-		"input":     base64.StdEncoding.EncodeToString(payload),
+		"input":     base64.StdEncoding.EncodeToString(signed[:]),
 		"signature": fmt.Sprintf("%s%s", vaultV1DataPrefix, encodedSig),
 	})
 

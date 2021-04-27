@@ -21,7 +21,6 @@ import (
 	"context"
 	"crypto"
 	"crypto/ecdsa"
-	"crypto/sha256"
 	"fmt"
 	"os"
 	"testing"
@@ -101,9 +100,12 @@ func (suite *VaultSuite) TestSign() {
 	assert.NotNil(suite.T(), sig)
 	assert.NotNil(suite.T(), signed)
 
-	hash := sha256.Sum256(signed)
-	ok := ecdsa.VerifyASN1(key, hash[:], sig)
-	assert.True(suite.T(), ok)
+	verifier := signature.ECDSAVerifier{
+		Key:     key,
+		HashAlg: crypto.SHA256,
+	}
+	err = verifier.Verify(context.TODO(), data, sig)
+	assert.Nil(suite.T(), err)
 }
 
 func (suite *VaultSuite) TestPubKeyVerify() {
@@ -126,18 +128,12 @@ func (suite *VaultSuite) TestPubKeyVerify() {
 	pubKey, ok := k.(*ecdsa.PublicKey)
 	require.True(suite.T(), ok)
 
-	hash := sha256.Sum256(signed)
-	ok = ecdsa.VerifyASN1(pubKey, hash[:], sig)
-	assert.True(suite.T(), ok)
-
-	ok = ecdsa.VerifyASN1(key, hash[:], sig)
-	assert.True(suite.T(), ok)
-
 	verifier := signature.ECDSAVerifier{
 		Key:     pubKey,
 		HashAlg: crypto.SHA256,
 	}
-	verifier.Verify(context.TODO(), data, sig)
+	err = verifier.Verify(context.TODO(), data, sig)
+	assert.Nil(suite.T(), err)
 }
 
 func (suite *VaultSuite) TestVerify() {
