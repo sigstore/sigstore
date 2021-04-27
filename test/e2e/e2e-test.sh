@@ -34,13 +34,15 @@ do
     fi
 done
 
+sleep 5
+
 echo
 echo "running tests"
 
 export VAULT_TOKEN=testtoken
 export VAULT_ADDR=http://localhost:8200/
 
-go test -tags e2e ./...
+go test -tags e2e -count=1 ./...
 
 echo "cleanup"
 docker-compose down
