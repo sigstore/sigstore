@@ -1,9 +1,16 @@
-# sigstore signing CLI tool
+# sigstore framework and signing CLI tool
 
 > :warning: Not ready for use yet!
 
-sigstore CLI is a generic tool to sign blobs, tarballs etc and establish
-a trust root using the sigstore signing infrastructure
+sigstore/sigstore is a generic library that is utilized by various other
+clients and projects inc fulcio (webPKI), cosign (container and OCI signing tool)
+and tektoncd/chains (Supply Chain Security in Tekton Pipelines).
+
+sigstore is also good candidate for anyone wanting to develop go based clients / systems
+and utilise exiting go modules for common sigstore functionality.
+
+It also  used as a general CLI signing tool for certificate requests from Fulcio
+and storing of artifacts into rekor.
 
 ## Security
 
