@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-.PHONY: all test clean lint gosec
+.PHONY: all test clean lint
 
 all: client
 
@@ -45,9 +45,6 @@ $(GENSRC):
 lint:
 	$(GOBIN)/golangci-lint run -v ./...
 
-gosec:
-	$(GOBIN)/gosec ./...
-
 client: $(SRCS)
 	CGO_ENABLED=0 go build -ldflags $(LDFLAGS) -o sigstore
 
@@ -60,10 +57,3 @@ test-e2e:
 clean:
 	rm -rf sigstore
 
-#up:
-	#docker-compose -f docker-compose.yml build
-	#docker-compose -f docker-compose.yml up
-
-#debug:
-	#docker-compose -f docker-compose.yml -f docker-compose.debug.yml build fulcio-server-debug
-	#docker-compose -f docker-compose.yml -f docker-compose.debug.yml up fulcio-server-debug
