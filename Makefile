@@ -39,8 +39,9 @@ endif
 PKG=github.com/sigstore/sigstore/cmd
 LDFLAGS="-X $(PKG).gitVersion=$(GIT_VERSION) -X $(PKG).gitCommit=$(GIT_HASH) -X $(PKG).gitTreeState=$(GIT_TREESTATE) -X $(PKG).buildDate=$(BUILD_DATE)"
 
+# TODO: pin this reference to the openapi file to a specific fulcio release tag
 $(GENSRC):
-	swagger generate client -f https://raw.githubusercontent.com/sigstore/fulcio/development/openapi.yaml -r COPYRIGHT.txt -t pkg/generated -P github.com/coreos/go-oidc/v3/oidc.IDToken
+	swagger generate client -f https://raw.githubusercontent.com/sigstore/fulcio/main/openapi.yaml -r COPYRIGHT.txt -t pkg/generated -P github.com/coreos/go-oidc/v3/oidc.IDToken
 
 lint:
 	$(GOBIN)/golangci-lint run -v ./...
