@@ -52,23 +52,23 @@ type KMS interface {
 
 type ProviderInit func(context.Context, string) (KMS, error)
 
-type KMSProviders struct {
+type Providers struct {
 	providers map[string]ProviderInit
 }
 
-func (p *KMSProviders) AddProvider(keyResourceID string, init ProviderInit) {
+func (p *Providers) AddProvider(keyResourceID string, init ProviderInit) {
 	p.providers[keyResourceID] = init
 }
 
-func (p *KMSProviders) Providers() map[string]ProviderInit {
+func (p *Providers) Providers() map[string]ProviderInit {
 	return p.providers
 }
 
-var providersMux = &KMSProviders{
+var providersMux = &Providers{
 	providers: map[string]ProviderInit{},
 }
 
-func ProvidersMux() *KMSProviders {
+func ProvidersMux() *Providers {
 	return providersMux
 }
 
@@ -78,5 +78,5 @@ func Get(ctx context.Context, keyResourceID string) (KMS, error) {
 			return providerInit(ctx, keyResourceID)
 		}
 	}
-	return nil, fmt.Errorf("No provider found for that key reference")
+	return nil, fmt.Errorf("no provider found for that key reference")
 }
