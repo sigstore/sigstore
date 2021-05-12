@@ -56,7 +56,8 @@ func (i *InteractiveIDTokenGetter) GetIDToken(p *oidc.Provider, cfg oauth2.Confi
 	authCodeURL := cfg.AuthCodeURL(stateToken, append(pkce.AuthURLOpts(), oauth2.AccessTypeOnline, oidc.Nonce(nonce))...)
 	fmt.Fprintf(os.Stderr, "Your browser will now be opened to:\n%s\n", authCodeURL)
 	if err := open.Run(authCodeURL); err != nil {
-		return nil, err
+		fmt.Fprintf(os.Stderr, "error opening browser: %v\n", err)
+		fmt.Fprintln(os.Stderr, "Please copy & paste the above URL into your browser to continue the authentication process...")
 	}
 
 	code, err := getCodeFromLocalServer(stateToken, redirectURL)
