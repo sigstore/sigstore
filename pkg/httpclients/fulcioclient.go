@@ -21,7 +21,6 @@ import (
 	"github.com/go-openapi/runtime"
 	httptransport "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"
-	"github.com/go-openapi/swag"
 
 	"github.com/sigstore/sigstore/pkg/generated/client"
 	"github.com/sigstore/sigstore/pkg/generated/client/operations"
@@ -50,8 +49,7 @@ func GetCert(idToken *oauthflow.OIDCIDToken, proof []byte, pubBytes []uint8, add
 	params.SetCertificateRequest(
 		&models.CertificateRequest{
 			PublicKey: &models.CertificateRequestPublicKey{
-				Algorithm: swag.String(models.CertificateRequestPublicKeyAlgorithmEcdsa),
-				Content:   &content,
+				Content: &content,
 			},
 			SignedEmailAddress: &email,
 		},
