@@ -50,7 +50,7 @@ func init() {
 	cobra.OnInitialize(initConfig)
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.sigstore.yaml)")
 	rootCmd.PersistentFlags().StringVar(&fulcioAddr, "fulcio-server", "https://fulcio.sigstore.dev", "address of sigstore PKI server")
-	rootCmd.PersistentFlags().StringVar(&rekorAddr, "rekor-server", "https://api.rekor.dev", "address of rekor STL server")
+	rootCmd.PersistentFlags().StringVar(&rekorAddr, "rekor-server", "https://rekor.sigstore.dev", "address of rekor STL server")
 	if err := viper.BindPFlags(rootCmd.PersistentFlags()); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
