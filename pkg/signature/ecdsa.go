@@ -60,8 +60,8 @@ func (v ECDSAVerifier) Verify(_ context.Context, rawPayload, signature []byte) e
 	return nil
 }
 
-func (k ECDSAVerifier) PublicKey(_ context.Context) (crypto.PublicKey, error) {
-	return k.Key, nil
+func (v ECDSAVerifier) PublicKey(_ context.Context) (crypto.PublicKey, error) {
+	return v.Key, nil
 }
 
 var _ SignerVerifier = ECDSASignerVerifier{}

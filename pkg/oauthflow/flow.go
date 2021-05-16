@@ -68,14 +68,14 @@ func OIDConnect(issuer string, id string, secret string, tg TokenGetter) (*OIDCI
 		return nil, "", err
 	}
 
-	email, err := emailFromIdToken(idToken.ParsedToken)
+	email, err := emailFromIDToken(idToken.ParsedToken)
 	if err != nil {
 		return nil, "", err
 	}
 	return idToken, email, nil
 }
 
-func emailFromIdToken(tok *oidc.IDToken) (string, error) {
+func emailFromIDToken(tok *oidc.IDToken) (string, error) {
 	var claims struct {
 		Email    string `json:"email"`
 		Verified bool   `json:"email_verified"`

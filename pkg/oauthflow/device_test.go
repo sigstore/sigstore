@@ -100,7 +100,7 @@ func codeResponse() deviceResp {
 		UserCode:                "mysecret",
 		DeviceCode:              "foobar",
 		Interval:                3,
-		VerificationUriComplete: "complete-uri",
+		VerificationURIComplete: "complete-uri",
 	}
 }
 

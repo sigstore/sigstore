@@ -39,8 +39,8 @@ type SignedPayload struct {
 	Chain           []*x509.Certificate
 }
 
-func UploadToRekor(publicKey crypto.PublicKey, digest []byte, signedMsg []byte, rekorUrl string, certPEM []byte, payload []byte) (string, error) {
-	rekorClient, err := app.GetRekorClient(rekorUrl)
+func UploadToRekor(publicKey crypto.PublicKey, digest []byte, signedMsg []byte, rekorURL string, certPEM []byte, payload []byte) (string, error) {
+	rekorClient, err := app.GetRekorClient(rekorURL)
 	if err != nil {
 		return "", err
 	}
@@ -65,7 +65,7 @@ func UploadToRekor(publicKey crypto.PublicKey, digest []byte, signedMsg []byte, 
 		if _, ok := err.(*entries.CreateLogEntryConflict); ok {
 			cs := SignedPayload{
 				Base64Signature: base64.StdEncoding.EncodeToString(signedMsg),
-				Payload:         digest[:],
+				Payload:         digest,
 			}
 			fmt.Println("Signature already exists. Displaying proof")
 
