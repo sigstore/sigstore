@@ -124,16 +124,16 @@ func findTlogEntry(rekorClient *client.Rekor, b64Sig string, payload, pubKey []b
 	e := lep.Payload[params.EntryUUID]
 
 	hashes := [][]byte{}
-	for _, h := range e.InclusionProof.Hashes {
+	for _, h := range e.Verification.InclusionProof.Hashes {
 		hb, _ := hex.DecodeString(h)
 		hashes = append(hashes, hb)
 	}
 
-	rootHash, _ := hex.DecodeString(*e.InclusionProof.RootHash)
+	rootHash, _ := hex.DecodeString(*e.Verification.InclusionProof.RootHash)
 	leafHash, _ := hex.DecodeString(params.EntryUUID)
 
 	v := logverifier.New(hasher.DefaultHasher)
-	if err := v.VerifyInclusionProof(*e.InclusionProof.LogIndex, *e.InclusionProof.TreeSize, hashes, rootHash, leafHash); err != nil {
+	if err := v.VerifyInclusionProof(*e.Verification.InclusionProof.LogIndex, *e.Verification.InclusionProof.TreeSize, hashes, rootHash, leafHash); err != nil {
 		return "", errors.Wrap(err, "verifying inclusion proof")
 	}
 	return params.EntryUUID, nil
