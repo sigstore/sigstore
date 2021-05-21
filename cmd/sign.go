@@ -20,7 +20,6 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
-	"github.com/sigstore/sigstore/pkg/tlog"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -32,6 +31,7 @@ import (
 	"github.com/sigstore/sigstore/pkg/httpclients"
 	"github.com/sigstore/sigstore/pkg/oauthflow"
 	"github.com/sigstore/sigstore/pkg/signature"
+	"github.com/sigstore/sigstore/pkg/tlog"
 	"github.com/sigstore/sigstore/pkg/utils"
 )
 
