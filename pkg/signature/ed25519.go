@@ -24,8 +24,12 @@ import (
 )
 
 type ED25519SignerVerifier struct {
-	BaseSignerVeriiferType
+	BaseSignerVerifierType
 	private *ed25519.PrivateKey
+}
+
+func (e ED25519SignerVerifier) Hasher() func(crypto.SignerOpts, []byte) ([]byte, crypto.Hash, error) {
+	return e.ComputeHash
 }
 
 func (e ED25519SignerVerifier) Public() crypto.PublicKey {
@@ -66,7 +70,7 @@ func (e ED25519SignerVerifier) VerifySignatureWithKey(publicKey crypto.PublicKey
 
 func NewED25519SignerVerifier(private *ed25519.PrivateKey, public *ed25519.PublicKey) ED25519SignerVerifier {
 	return ED25519SignerVerifier{
-		BaseSignerVeriiferType: BaseSignerVeriiferType{
+		BaseSignerVerifierType: BaseSignerVerifierType{
 			hashFunc:  crypto.Hash(0),
 			publicKey: public,
 		},

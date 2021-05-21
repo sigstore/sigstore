@@ -34,12 +34,14 @@ import (
 	"github.com/ReneKroon/ttlcache/v2"
 	vault "github.com/hashicorp/vault/api"
 	"github.com/pkg/errors"
+	"github.com/sigstore/sigstore/pkg/signature"
 )
 
 type KMS struct {
 	client      *vault.Client
 	keyPath     string
 	pubKeyCache *ttlcache.Cache
+	signer      signature.SignerVerifier
 }
 
 var (
@@ -232,6 +234,11 @@ func (g *KMS) VerifySignature(payload, signature []byte) error {
 	}
 	return nil
 }
+
+func (g *KMS) Hasher() func(crypto.SignerOpts, []byte) ([]byte, crypto.Hash, error) {
+	return g.signer.Hasher()
+}
+
 func (g *KMS) VerifySignatureWithKey(_ crypto.PublicKey, payload, signature []byte) error {
 	client := g.client.Logical()
 	encodedSig := base64.StdEncoding.EncodeToString(signature)

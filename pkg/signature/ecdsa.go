@@ -26,8 +26,12 @@ import (
 )
 
 type ECDSASignerVerifier struct {
-	BaseSignerVeriiferType
+	BaseSignerVerifierType
 	private *ecdsa.PrivateKey
+}
+
+func (e ECDSASignerVerifier) Hasher() func(crypto.SignerOpts, []byte) ([]byte, crypto.Hash, error) {
+	return e.ComputeHash
 }
 
 func (e ECDSASignerVerifier) Public() crypto.PublicKey {
@@ -76,7 +80,7 @@ func (e ECDSASignerVerifier) VerifySignatureWithKey(publicKey crypto.PublicKey, 
 
 func NewECDSASignerVerifier(private *ecdsa.PrivateKey, public *ecdsa.PublicKey, hashFunc crypto.Hash) ECDSASignerVerifier {
 	return ECDSASignerVerifier{
-		BaseSignerVeriiferType: BaseSignerVeriiferType{
+		BaseSignerVerifierType: BaseSignerVerifierType{
 			hashFunc:  hashFunc,
 			publicKey: public,
 		},

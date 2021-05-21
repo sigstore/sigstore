@@ -22,12 +22,12 @@ import (
 	"github.com/pkg/errors"
 )
 
-type BaseSignerVeriiferType struct {
+type BaseSignerVerifierType struct {
 	hashFunc  crypto.Hash
 	publicKey crypto.PublicKey
 }
 
-func (b BaseSignerVeriiferType) ComputeHash(opts crypto.SignerOpts, payload []byte) ([]byte, crypto.Hash, error) {
+func (b BaseSignerVerifierType) ComputeHash(opts crypto.SignerOpts, payload []byte) ([]byte, crypto.Hash, error) {
 	hf := b.hashFunc
 	if opts != nil {
 		hf = opts.HashFunc()
@@ -56,6 +56,7 @@ func (s SignerOpts) HashFunc() crypto.Hash {
 type SignerVerifier interface {
 	crypto.Signer
 	//TODO: add methods to pass io.Reader for payload/signature instead of []byte
+	Hasher() func(crypto.SignerOpts, []byte) ([]byte, crypto.Hash, error)
 	VerifySignature(payload, signature []byte) error // verifies using public key from signer in instance
 	VerifySignatureWithKey(publicKey crypto.PublicKey, payload, signature []byte) error
 }

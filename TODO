@@ -1,0 +1,3 @@
+swap Printf/Println to logging calls
+make GCP create key path more generic to algorithm
+review/optimize hashicorp code path

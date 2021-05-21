@@ -19,7 +19,7 @@ import (
 	"context"
 	"crypto"
 	"crypto/ecdsa"
-	"crypto/sha256"
+	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
@@ -45,6 +45,8 @@ type KMS struct {
 	keyRing       string
 	key           string
 	version       string
+	keyVersion    *kmspb.CryptoKeyVersion
+	signer        signature.SignerVerifier
 	pubKeyCache   *ttlcache.Cache
 }
 
@@ -108,7 +110,43 @@ func NewGCP(ctx context.Context, keyResourceID string) (*KMS, error) {
 	kms.pubKeyCache.SetLoaderFunction(kms.pubKeyCacheLoaderFunction)
 	kms.pubKeyCache.SkipTTLExtensionOnHit(true)
 
+	kms.keyVersion, err = kms.keyVersionName(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "fetching key version from GCP KMS")
+	}
+
+	if err = kms.createSigner(); err != nil {
+		return nil, errors.Wrap(err, "fetching key version from GCP KMS")
+	}
+
 	return &kms, nil
+}
+
+func (k *KMS) createSigner() error {
+	if k.keyVersion == nil {
+		return errors.New("key version object not initialized")
+	}
+
+	pubKey := k.Public()
+	if pubKey == nil {
+		return errors.New("unable to fetch public key while creating signer")
+	}
+
+	switch k.keyVersion.Algorithm {
+	case kmspb.CryptoKeyVersion_EC_SIGN_P256_SHA256:
+		k.signer = signature.NewECDSASignerVerifier(nil, pubKey.(*ecdsa.PublicKey), crypto.SHA256)
+	case kmspb.CryptoKeyVersion_EC_SIGN_P384_SHA384:
+		k.signer = signature.NewECDSASignerVerifier(nil, pubKey.(*ecdsa.PublicKey), crypto.SHA384)
+	case kmspb.CryptoKeyVersion_RSA_SIGN_PSS_2048_SHA256,
+		kmspb.CryptoKeyVersion_RSA_SIGN_PSS_3072_SHA256,
+		kmspb.CryptoKeyVersion_RSA_SIGN_PSS_4096_SHA256:
+		k.signer = signature.NewRSASignerVerifier(nil, pubKey.(*rsa.PublicKey), crypto.SHA256)
+	case kmspb.CryptoKeyVersion_RSA_SIGN_PSS_4096_SHA512:
+		k.signer = signature.NewRSASignerVerifier(nil, pubKey.(*rsa.PublicKey), crypto.SHA512)
+	default:
+		return errors.New("unknown algorithm specified by KMS")
+	}
+	return nil
 }
 
 func (g *KMS) Sign(rand io.Reader, payload []byte, opts crypto.SignerOpts) ([]byte, error) {
@@ -116,51 +154,71 @@ func (g *KMS) Sign(rand io.Reader, payload []byte, opts crypto.SignerOpts) ([]by
 	if sOpts, ok := opts.(signature.SignerOpts); ok {
 		ctx = sOpts.Context
 	}
-	sig, _, err := g.sign(ctx, payload)
-	return sig, err
+	return g.sign(ctx, payload)
 }
 
-func (g *KMS) sign(ctx context.Context, rawPayload []byte) (signature, signed []byte, err error) {
-	// Calculate the digest of the message.
-	hash := sha256.New()
-	if _, err := hash.Write(rawPayload); err != nil {
-		return nil, nil, err
+func (g *KMS) Hasher() func(crypto.SignerOpts, []byte) ([]byte, crypto.Hash, error) {
+	return g.signer.Hasher()
+}
+
+func (g *KMS) generateSignRequest(digest []byte, hasher crypto.Hash, crc uint32) (*kmspb.AsymmetricSignRequest, error) {
+	if g.keyVersion == nil {
+		return nil, errors.New("keyVersion has not been initialized")
 	}
-	digest := hash.Sum(nil)
+	req := &kmspb.AsymmetricSignRequest{
+		Name:         g.keyVersion.Name,
+		Digest:       &kmspb.Digest{},
+		DigestCrc32C: wrapperspb.Int64(int64(crc)),
+	}
+	switch hasher {
+	case crypto.SHA256:
+		req.Digest.Digest = &kmspb.Digest_Sha256{
+			Sha256: digest,
+		}
+	case crypto.SHA384:
+		req.Digest.Digest = &kmspb.Digest_Sha384{
+			Sha384: digest,
+		}
+	case crypto.SHA512:
+		req.Digest.Digest = &kmspb.Digest_Sha512{
+			Sha512: digest,
+		}
+	default:
+		return nil, errors.New("unsupported hashing algorithm")
+	}
+	return req, nil
+}
+
+func (g *KMS) sign(ctx context.Context, rawPayload []byte) (signature []byte, err error) {
+	// Calculate the digest of the message.
+	digest, hasher, err := g.Hasher()(nil, rawPayload)
+	if err != nil {
+		return nil, errors.Wrap(err, "computing digest")
+	}
 	// Optional but recommended: Compute digest's CRC32C.
 	crc32c := func(data []byte) uint32 {
 		t := crc32.MakeTable(crc32.Castagnoli)
 		return crc32.Checksum(data, t)
 	}
-	digestCRC32C := crc32c(digest)
-
-	name, err := g.keyVersionName(ctx)
+	req, err := g.generateSignRequest(digest, hasher, crc32c(digest))
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-	req := &kmspb.AsymmetricSignRequest{
-		Name: name,
-		Digest: &kmspb.Digest{
-			Digest: &kmspb.Digest_Sha256{
-				Sha256: digest,
-			},
-		},
-		DigestCrc32C: wrapperspb.Int64(int64(digestCRC32C)),
-	}
+
 	result, err := g.client.AsymmetricSign(ctx, req)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	// Optional, but recommended: perform integrity verification on result.
 	// For more details on ensuring E2E in-transit integrity to and from Cloud KMS visit:
 	// https://cloud.google.com/kms/docs/data-integrity-guidelines
 	if !result.VerifiedDigestCrc32C {
-		return nil, nil, fmt.Errorf("AsymmetricSign: request corrupted in-transit")
+		return nil, fmt.Errorf("AsymmetricSign: request corrupted in-transit")
 	}
 	if int64(crc32c(result.Signature)) != result.SignatureCrc32C.Value {
-		return nil, nil, fmt.Errorf("AsymmetricSign: response corrupted in-transit")
+		return nil, fmt.Errorf("AsymmetricSign: response corrupted in-transit")
 	}
-	return result.GetSignature(), digest, nil
+	return result.GetSignature(), nil
 }
 
 func (g *KMS) Public() crypto.PublicKey {
@@ -172,12 +230,8 @@ func (g *KMS) Public() crypto.PublicKey {
 }
 
 func (g *KMS) publicKey(ctx context.Context) (crypto.PublicKey, error) {
-	name, err := g.keyVersionName(ctx)
-	if err != nil {
-		return nil, errors.Wrap(err, "key version")
-	}
 	// Build the request.
-	pkreq := &kmspb.GetPublicKeyRequest{Name: name}
+	pkreq := &kmspb.GetPublicKeyRequest{Name: g.keyVersion.Name}
 	// Call the API.
 	pk, err := g.client.GetPublicKey(ctx, pkreq)
 	if err != nil {
@@ -208,37 +262,24 @@ func (g *KMS) ECDSAPublicKey() (*ecdsa.PublicKey, error) {
 
 // keyVersionName returns the first key version found for a key in KMS
 // TODO: is there a better way to do this?
-func (g *KMS) keyVersionName(ctx context.Context) (string, error) {
+func (g *KMS) keyVersionName(ctx context.Context) (*kmspb.CryptoKeyVersion, error) {
 	parent := fmt.Sprintf("projects/%s/locations/%s/keyRings/%s/cryptoKeys/%s", g.projectID, g.locationID, g.keyRing, g.key)
-
-	if g.version != "" {
-		parent += fmt.Sprintf("/cryptoKeyVersions/%s", g.version)
-		return parent, nil
-	}
 
 	req := &kmspb.ListCryptoKeyVersionsRequest{
 		Parent: parent,
+		Filter: "state=ENABLED",
 	}
 	iterator := g.client.ListCryptoKeyVersions(ctx, req)
 
 	// pick the first key version that is enabled
-	var name string
-	for {
-		kv, err := iterator.Next()
-		if err != nil {
-			break
-		}
-		if kv.State == kmspb.CryptoKeyVersion_ENABLED {
-			name = kv.GetName()
-			break
-		}
+	kv, err := iterator.Next()
+	if err != nil {
+		return nil, errors.New("unable to find an enabled key version in GCP KMS, generate one via `cosign generate-key-pair`")
 	}
-	if name == "" {
-		return "", errors.New("unable to find an enabled key version in GCP KMS, generate one via `cosign generate-key-pair`")
-	}
-	return name, nil
+	return kv, nil
 }
 
+//TODO: make these more generic for different algorithms (RSA/ECDSA)
 func (g *KMS) CreateKey(ctx context.Context) (*ecdsa.PublicKey, error) {
 	if err := g.createKeyRing(ctx); err != nil {
 		return nil, errors.Wrap(err, "creating key ring")
@@ -304,17 +345,7 @@ func (g *KMS) VerifySignatureWithKey(publicKey crypto.PublicKey, payload, signat
 	if publicKey == nil {
 		return errors.New("invalid public key specified")
 	}
-	switch k := publicKey.(type) {
-	case *ecdsa.PublicKey:
-		h := sha256.Sum256(payload)
-		if !ecdsa.VerifyASN1(k, h[:], signature) {
-			return errors.New("unable to verify signature")
-		}
-	default:
-		return fmt.Errorf("unknown public key type: %T", k)
-	}
-
-	return nil
+	return g.signer.VerifySignatureWithKey(publicKey, payload, signature)
 }
 
 func (g *KMS) VerifySignature(payload, signature []byte) error {

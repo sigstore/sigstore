@@ -26,8 +26,12 @@ import (
 )
 
 type RSASignerVerifier struct {
-	BaseSignerVeriiferType
+	BaseSignerVerifierType
 	private *rsa.PrivateKey
+}
+
+func (r RSASignerVerifier) Hasher() func(crypto.SignerOpts, []byte) ([]byte, crypto.Hash, error) {
+	return r.ComputeHash
 }
 
 func (r RSASignerVerifier) Public() crypto.PublicKey {
@@ -81,7 +85,7 @@ func (r RSASignerVerifier) VerifySignatureWithKey(publicKey crypto.PublicKey, pa
 
 func NewRSASignerVerifier(private *rsa.PrivateKey, public *rsa.PublicKey, hashFunc crypto.Hash) RSASignerVerifier {
 	return RSASignerVerifier{
-		BaseSignerVeriiferType: BaseSignerVeriiferType{
+		BaseSignerVerifierType: BaseSignerVerifierType{
 			hashFunc:  hashFunc,
 			publicKey: public,
 		},
