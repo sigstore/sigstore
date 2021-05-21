@@ -26,6 +26,8 @@ import (
 	"reflect"
 	"testing"
 
+	"time"
+
 	"golang.org/x/oauth2"
 	"gopkg.in/square/go-jose.v2"
 )
@@ -68,6 +70,8 @@ func TestGetCodeWrongState(t *testing.T) {
 		doneCh <- 1
 	}()
 
+	// Give the server a couple milliseconds to start up
+	time.Sleep(50 * time.Millisecond)
 	sendCodeAndState(t, desiredCode, "WRONG")
 	<-doneCh
 
@@ -77,6 +81,7 @@ func TestGetCodeWrongState(t *testing.T) {
 }
 
 func sendCodeAndState(t *testing.T, code, state string) {
+	t.Helper()
 	testURL, _ := url.Parse(fmt.Sprintf("http://localhost:5556/auth/callback?code=%v&state=%v", code, state))
 	if _, err := http.Get(testURL.String()); err != nil {
 		t.Fatal(err)
