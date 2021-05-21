@@ -65,7 +65,7 @@ var signCmd = &cobra.Command{
 		}
 
 		// Retrieve idToken from oidc provider
-		idToken, email, err := oauthflow.OIDConnect(
+		idToken, err := oauthflow.OIDConnect(
 			viper.GetString("oidc-issuer"),
 			viper.GetString("oidc-client-id"),
 			viper.GetString("oidc-client-secret"),
@@ -74,7 +74,7 @@ var signCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		fmt.Println("\nReceived OpenID Scope retrieved for account:", email)
+		fmt.Println("\nReceived OpenID Scope retrieved for account:", idToken.Email)
 
 		signer, err := signature.NewDefaultECDSASignerVerifier()
 		if err != nil {
@@ -90,7 +90,7 @@ var signCmd = &cobra.Command{
 			return err
 		}
 
-		proof, _, err := signer.Sign(ctx, []byte(email))
+		proof, _, err := signer.Sign(ctx, []byte(idToken.Email))
 		if err != nil {
 			return err
 		}

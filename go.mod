@@ -36,4 +36,5 @@ require (
 	golang.org/x/time v0.0.0-20210220033141-f8bda1e9f3ba // indirect
 	google.golang.org/genproto v0.0.0-20210402141018-6c239bbf2bb1
 	google.golang.org/protobuf v1.26.0
+	gopkg.in/square/go-jose.v2 v2.5.1
 )

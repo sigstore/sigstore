@@ -135,7 +135,6 @@ func (d *DeviceFlowTokenGetter) deviceFlow(clientID string) (string, error) {
 }
 
 func (d *DeviceFlowTokenGetter) GetIDToken(p *oidc.Provider, cfg oauth2.Config) (*OIDCIDToken, error) {
-
 	idToken, err := d.deviceFlow(cfg.ClientID)
 	if err != nil {
 		return nil, err
@@ -146,12 +145,13 @@ func (d *DeviceFlowTokenGetter) GetIDToken(p *oidc.Provider, cfg oauth2.Config) 
 		return nil, err
 	}
 
-	if _, err := emailFromIDToken(parsedIDToken); err != nil {
+	email, err := emailFromIDToken(parsedIDToken)
+	if err != nil {
 		return nil, err
 	}
 
 	return &OIDCIDToken{
-		RawString:   idToken,
-		ParsedToken: parsedIDToken,
+		RawString: idToken,
+		Email:     email,
 	}, nil
 }
