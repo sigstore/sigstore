@@ -16,29 +16,98 @@
 package tlog
 
 import (
+	"crypto"
+	"crypto/x509"
 	"encoding/base64"
 	"encoding/hex"
+	"encoding/pem"
+	"fmt"
+	"strconv"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/google/trillian/merkle/logverifier"
 	"github.com/google/trillian/merkle/rfc6962/hasher"
 	"github.com/pkg/errors"
-
+	"github.com/sigstore/rekor/cmd/rekor-cli/app"
 	"github.com/sigstore/rekor/pkg/generated/client"
 	"github.com/sigstore/rekor/pkg/generated/client/entries"
 	"github.com/sigstore/rekor/pkg/generated/models"
 	rekord_v001 "github.com/sigstore/rekor/pkg/types/rekord/v0.0.1"
 )
 
-func FindTlogEntry(rekorClient *client.Rekor, b64Sig string, payload, pubKey []byte) (string, error) {
+type SignedPayload struct {
+	Base64Signature string
+	Payload         []byte
+	Cert            *x509.Certificate
+	Chain           []*x509.Certificate
+}
+
+func UploadToRekor(publicKey crypto.PublicKey, digest []byte, signedMsg []byte, rekorUrl string, certPEM []byte, payload []byte) (string, error) {
+	rekorClient, err := app.GetRekorClient(rekorUrl)
+	if err != nil {
+		return "", err
+	}
+
+	wrappedKey, err := MarshalPublicKey(publicKey)
+	if err != nil {
+		return "", err
+	}
+
+	re := rekorEntry(payload, signedMsg, certPEM)
+	returnVal := models.Rekord{
+		APIVersion: swag.String(re.APIVersion()),
+		Spec:       re.RekordObj,
+	}
+	params := entries.NewCreateLogEntryParams()
+	params.SetProposedEntry(&returnVal)
+	resp, err := rekorClient.Entries.CreateLogEntry(params)
+
+	if err != nil {
+		// If the entry already exists, we get a specific error.
+		// Here, we display the proof and succeed.
+		if _, ok := err.(*entries.CreateLogEntryConflict); ok {
+			cs := SignedPayload{
+				Base64Signature: base64.StdEncoding.EncodeToString(signedMsg),
+				Payload:         digest[:],
+			}
+			fmt.Println("Signature already exists. Displaying proof")
+
+			return findTlogEntry(rekorClient, cs.Base64Signature, cs.Payload, wrappedKey)
+		}
+		return "", err
+	}
+	// UUID is at the end of location
+	for _, p := range resp.Payload {
+		return strconv.FormatInt(*p.LogIndex, 10), nil
+	}
+	return "", errors.New("bad response from server")
+}
+
+func MarshalPublicKey(pub crypto.PublicKey) ([]byte, error) {
+	if pub == nil {
+		return nil, errors.New("empty key")
+	}
+	pubKey, err := x509.MarshalPKIXPublicKey(pub)
+	if err != nil {
+		panic("failed to marshall public key")
+	}
+	pubBytes := pem.EncodeToMemory(&pem.Block{
+		Type:  "PUBLIC KEY",
+		Bytes: pubKey,
+	})
+	return pubBytes, nil
+}
+
+
+func findTlogEntry(rekorClient *client.Rekor, b64Sig string, payload, pubKey []byte) (string, error) {
 	searchParams := entries.NewSearchLogQueryParams()
 	searchLogQuery := models.SearchLogQuery{}
 	signature, err := base64.StdEncoding.DecodeString(b64Sig)
 	if err != nil {
 		return "", errors.Wrap(err, "decoding base64 signature")
 	}
-	re := RekorEntry(payload, signature, pubKey)
+	re := rekorEntry(payload, signature, pubKey)
 	entry := &models.Rekord{
 		APIVersion: swag.String(re.APIVersion()),
 		Spec:       re.RekordObj,
@@ -91,7 +160,7 @@ func FindTlogEntry(rekorClient *client.Rekor, b64Sig string, payload, pubKey []b
 	return params.EntryUUID, nil
 }
 
-func RekorEntry(payload, signature, pubKey []byte) rekord_v001.V001Entry {
+func rekorEntry(payload, signature, pubKey []byte) rekord_v001.V001Entry {
 	return rekord_v001.V001Entry{
 		RekordObj: models.RekordV001Schema{
 			Data: &models.RekordV001SchemaData{
