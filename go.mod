@@ -25,7 +25,7 @@ require (
 	github.com/pierrec/lz4 v2.6.0+incompatible // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/segmentio/ksuid v1.0.3
-	github.com/sigstore/rekor v0.1.2-0.20210422173947-d52685fc3178
+	github.com/sigstore/rekor v0.1.2-0.20210514231425-7e3d950f34c6
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966
 	github.com/spf13/cobra v1.1.3
 	github.com/spf13/viper v1.7.1
@@ -36,5 +36,4 @@ require (
 	golang.org/x/time v0.0.0-20210220033141-f8bda1e9f3ba // indirect
 	google.golang.org/genproto v0.0.0-20210402141018-6c239bbf2bb1
 	google.golang.org/protobuf v1.26.0
-	gopkg.in/go-playground/assert.v1 v1.2.1 // indirect
 )
