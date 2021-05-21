@@ -16,11 +16,9 @@
 package tlog
 
 import (
-	"crypto"
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/hex"
-	"encoding/pem"
 	"fmt"
 	"strconv"
 
@@ -43,18 +41,15 @@ type SignedPayload struct {
 	Chain           []*x509.Certificate
 }
 
-func UploadToRekor(publicKey crypto.PublicKey, digest []byte, signedMsg []byte, rekorURL string, certPEM []byte, payload []byte) (string, error) {
+func UploadToRekor(pemBytes []byte, digest []byte, signedMsg []byte, rekorURL string, payload []byte) (string, error) {
+
 	rekorClient, err := app.GetRekorClient(rekorURL)
 	if err != nil {
 		return "", err
 	}
 
-	wrappedKey, err := MarshalPublicKey(publicKey)
-	if err != nil {
-		return "", err
-	}
+	re := rekorEntry(payload, signedMsg, pemBytes)
 
-	re := rekorEntry(payload, signedMsg, certPEM)
 	returnVal := models.Rekord{
 		APIVersion: swag.String(re.APIVersion()),
 		Spec:       re.RekordObj,
@@ -73,7 +68,7 @@ func UploadToRekor(publicKey crypto.PublicKey, digest []byte, signedMsg []byte, 
 			}
 			fmt.Println("Signature already exists. Displaying proof")
 
-			return findTlogEntry(rekorClient, cs.Base64Signature, cs.Payload, wrappedKey)
+			return findTlogEntry(rekorClient, cs.Base64Signature, cs.Payload, pemBytes)
 		}
 		return "", err
 	}
@@ -82,21 +77,6 @@ func UploadToRekor(publicKey crypto.PublicKey, digest []byte, signedMsg []byte, 
 		return strconv.FormatInt(*p.LogIndex, 10), nil
 	}
 	return "", errors.New("bad response from server")
-}
-
-func MarshalPublicKey(pub crypto.PublicKey) ([]byte, error) {
-	if pub == nil {
-		return nil, errors.New("empty key")
-	}
-	pubKey, err := x509.MarshalPKIXPublicKey(pub)
-	if err != nil {
-		panic("failed to marshall public key")
-	}
-	pubBytes := pem.EncodeToMemory(&pem.Block{
-		Type:  "PUBLIC KEY",
-		Bytes: pubKey,
-	})
-	return pubBytes, nil
 }
 
 func findTlogEntry(rekorClient *client.Rekor, b64Sig string, payload, pubKey []byte) (string, error) {
