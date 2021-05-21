@@ -46,7 +46,7 @@ func (v ED25519Verifier) Verify(_ context.Context, rawPayload, signature []byte)
 	return nil
 }
 
-func (k ED25519Verifier) PublicKey(_ context.Context) (crypto.PublicKey, error) {
+func (k ED25519Verifier) PublicKey(_ context.Context) (crypto.PublicKey, error) { //nolint
 	return k.Key, nil
 }
 
