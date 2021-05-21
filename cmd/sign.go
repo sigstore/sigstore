@@ -80,12 +80,14 @@ var signCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+
 		pub, err := signer.PublicKey(ctx)
 		if err != nil {
 			return err
 		}
 
 		pubBytes, err := x509.MarshalPKIXPublicKey(pub)
+
 		if err != nil {
 			return err
 		}
@@ -135,11 +137,10 @@ var signCmd = &cobra.Command{
 		// Send to rekor
 		fmt.Println("Sending entry to transparency log")
 		tlogEntry, err := tlog.UploadToRekor(
-			pub,
+			certPEM,
 			signedVal,
 			signature,
 			viper.GetString("rekor-server"),
-			certPEM,
 			payload,
 		)
 		if err != nil {
