@@ -13,22 +13,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package tlog
+package signfile
 
 import (
 	"crypto"
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
-	"strconv"
 
-	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/pkg/errors"
+
 	"github.com/sigstore/rekor/cmd/rekor-cli/app"
 	"github.com/sigstore/rekor/pkg/generated/client/entries"
 	"github.com/sigstore/rekor/pkg/generated/models"
-	rekord_v001 "github.com/sigstore/rekor/pkg/types/rekord/v0.0.1"
+	"github.com/sigstore/sigstore/pkg/tlog"
 )
 
 type SignedPayload struct {
@@ -44,7 +43,7 @@ func UploadToRekor(publicKey crypto.PublicKey, signedMsg []byte, rekorURL string
 		return "", err
 	}
 
-	re := RekorEntry(payload, signedMsg, certPEM)
+	re := tlog.RekorEntry(payload, signedMsg, certPEM)
 	returnVal := models.Rekord{
 		APIVersion: swag.String(re.APIVersion()),
 		Spec:       re.RekordObj,
@@ -58,14 +57,13 @@ func UploadToRekor(publicKey crypto.PublicKey, signedMsg []byte, rekorURL string
 		// Here, we display the proof and succeed.
 		if e, ok := err.(*entries.CreateLogEntryConflict); ok {
 			fmt.Printf("Signature already exists at %v\n", e.Location.String())
-
 			return e.Location.String(), nil
 		}
 		return "", err
 	}
 	// UUID is at the end of location
-	for _, p := range resp.Payload {
-		return strconv.FormatInt(*p.LogIndex, 10), nil
+	for k := range resp.Payload {
+		return k, nil
 	}
 	return "", errors.New("bad response from server")
 }
@@ -83,21 +81,4 @@ func MarshalPublicKey(pub crypto.PublicKey) ([]byte, error) {
 		Bytes: pubKey,
 	})
 	return pubBytes, nil
-}
-
-func RekorEntry(payload, signature, pubKey []byte) rekord_v001.V001Entry {
-	return rekord_v001.V001Entry{
-		RekordObj: models.RekordV001Schema{
-			Data: &models.RekordV001SchemaData{
-				Content: strfmt.Base64(payload),
-			},
-			Signature: &models.RekordV001SchemaSignature{
-				Content: strfmt.Base64(signature),
-				Format:  models.RekordV001SchemaSignatureFormatX509,
-				PublicKey: &models.RekordV001SchemaSignaturePublicKey{
-					Content: strfmt.Base64(pubKey),
-				},
-			},
-		},
-	}
 }

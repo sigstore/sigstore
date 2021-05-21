@@ -25,17 +25,21 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"fmt"
+	"io"
 	"os"
 	"regexp"
 	"strings"
+	"time"
 
+	"github.com/ReneKroon/ttlcache/v2"
 	vault "github.com/hashicorp/vault/api"
 	"github.com/pkg/errors"
 )
 
 type KMS struct {
-	client  *vault.Client
-	keyPath string
+	client      *vault.Client
+	keyPath     string
+	pubKeyCache *ttlcache.Cache
 }
 
 var (
@@ -49,6 +53,9 @@ const (
 
 	vaultV1DataPrefix = "vault:v1:"
 )
+
+// use a consistent key for cache lookups
+const CacheKey = "public_key"
 
 const ReferenceScheme = "hashivault://"
 
@@ -93,13 +100,30 @@ func NewVault(ctx context.Context, keyResourceID string) (*KMS, error) {
 		return nil, errors.Wrap(err, "new vault client")
 	}
 
-	return &KMS{
-		client:  client,
-		keyPath: keyPath,
-	}, nil
+	kms := KMS{
+		client:      client,
+		keyPath:     keyPath,
+		pubKeyCache: ttlcache.NewCache(),
+	}
+	kms.pubKeyCache.SetLoaderFunction(kms.pubKeyCacheLoaderFunction)
+	kms.pubKeyCache.SkipTTLExtensionOnHit(true)
+
+	return &kms, nil
 }
 
-func (g *KMS) Sign(ctx context.Context, rawPayload []byte) (signature, signed []byte, err error) {
+func (g *KMS) pubKeyCacheLoaderFunction(key string) (data interface{}, ttl time.Duration, err error) {
+	ttl = time.Second * 300
+	data, err = g.publicKey(context.Background())
+
+	return data, ttl, err
+}
+
+func (g *KMS) Sign(_ io.Reader, payload []byte, _ crypto.SignerOpts) ([]byte, error) {
+	sig, _, err := g.sign(context.TODO(), payload)
+	return sig, err
+}
+
+func (g *KMS) sign(_ context.Context, rawPayload []byte) (signature, signed []byte, err error) {
 	client := g.client.Logical()
 
 	hash := sha256.Sum256(rawPayload)
@@ -137,7 +161,7 @@ func (g *KMS) CreateKey(ctx context.Context) (*ecdsa.PublicKey, error) {
 }
 
 func (g *KMS) ECDSAPublicKey(ctx context.Context) (*ecdsa.PublicKey, error) {
-	k, err := g.PublicKey(ctx)
+	k, err := g.publicKey(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -150,7 +174,15 @@ func (g *KMS) ECDSAPublicKey(ctx context.Context) (*ecdsa.PublicKey, error) {
 	return pub, nil
 }
 
-func (g *KMS) PublicKey(ctx context.Context) (crypto.PublicKey, error) {
+func (g *KMS) Public() crypto.PublicKey {
+	key, err := g.pubKeyCache.Get("key")
+	if err != nil {
+		return nil
+	}
+	return key
+}
+
+func (g *KMS) publicKey(ctx context.Context) (crypto.PublicKey, error) {
 	client := g.client.Logical()
 
 	keyResult, err := client.Read(fmt.Sprintf("/transit/keys/%s", g.keyPath))
@@ -192,7 +224,15 @@ func (g *KMS) PublicKey(ctx context.Context) (crypto.PublicKey, error) {
 	return publicKey, nil
 }
 
-func (g *KMS) Verify(ctx context.Context, payload, signature []byte) error {
+func (g *KMS) VerifySignature(payload, signature []byte) error {
+	if err := g.VerifySignatureWithKey(g.Public(), payload, signature); err != nil {
+		// key could have been rotated, clear cache and try again
+		g.pubKeyCache.Remove(CacheKey)
+		return g.VerifySignatureWithKey(g.Public(), payload, signature)
+	}
+	return nil
+}
+func (g *KMS) VerifySignatureWithKey(_ crypto.PublicKey, payload, signature []byte) error {
 	client := g.client.Logical()
 	encodedSig := base64.StdEncoding.EncodeToString(signature)
 

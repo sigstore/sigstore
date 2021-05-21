@@ -16,71 +16,83 @@
 package signature
 
 import (
-	"context"
 	"crypto"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
 	_ "crypto/sha256" // To ensure `crypto.SHA256` is implemented.
 	"errors"
-	"fmt"
+	"io"
 )
 
-type ECDSAVerifier struct {
-	Key     *ecdsa.PublicKey
-	HashAlg crypto.Hash
-}
-
 type ECDSASignerVerifier struct {
-	ECDSAVerifier
-	Key *ecdsa.PrivateKey
+	BaseSignerVeriiferType
+	private *ecdsa.PrivateKey
 }
 
-func (s ECDSASignerVerifier) Sign(_ context.Context, rawPayload []byte) (signature, signed []byte, err error) {
-	h := s.HashAlg.New()
-	if _, err := h.Write(rawPayload); err != nil {
-		return nil, nil, fmt.Errorf("failed to create hash: %v", err)
+func (e ECDSASignerVerifier) Public() crypto.PublicKey {
+	return e.publicKey
+}
+
+func (e ECDSASignerVerifier) Sign(rand io.Reader, payload []byte, opts crypto.SignerOpts) ([]byte, error) {
+	if e.private == nil {
+		return nil, errors.New("ECDSA private key not initialized")
 	}
-	signed = h.Sum(nil)
-	signature, err = ecdsa.SignASN1(rand.Reader, s.Key, signed)
+	digest, _, err := e.ComputeHash(opts, payload)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-	return signature, signed, nil
+	return ecdsa.SignASN1(rand, e.private, digest)
 }
 
-func (v ECDSAVerifier) Verify(_ context.Context, rawPayload, signature []byte) error {
-	h := v.HashAlg.New()
-	if _, err := h.Write(rawPayload); err != nil {
-		return fmt.Errorf("failed to create hash: %v", err)
+func (e ECDSASignerVerifier) VerifySignature(payload, signature []byte) error {
+	return e.VerifySignatureWithKey(e.publicKey, payload, signature)
+}
+
+func (e ECDSASignerVerifier) VerifySignatureWithKey(publicKey crypto.PublicKey, payload, signature []byte) error {
+	pk := publicKey
+	if pk == nil {
+		pk = e.publicKey
+		if pk == nil {
+			return errors.New("public key has not been initialized")
+		}
 	}
-	if !ecdsa.VerifyASN1(v.Key, h.Sum(nil), signature) {
-		return errors.New("unable to verify signature")
+
+	digest, _, err := e.ComputeHash(e.hashFunc, payload)
+	if err != nil {
+		return err
+	}
+
+	ecPub, ok := pk.(*ecdsa.PublicKey)
+	if !ok {
+		return errors.New("invalid ECDSA public key")
+	}
+
+	if !ecdsa.VerifyASN1(ecPub, digest, signature) {
+		return errors.New("ECDSA signature failed to verify")
 	}
 	return nil
 }
 
-func (v ECDSAVerifier) PublicKey(_ context.Context) (crypto.PublicKey, error) {
-	return v.Key, nil
+func NewECDSASignerVerifier(private *ecdsa.PrivateKey, public *ecdsa.PublicKey, hashFunc crypto.Hash) ECDSASignerVerifier {
+	return ECDSASignerVerifier{
+		BaseSignerVeriiferType: BaseSignerVeriiferType{
+			hashFunc:  hashFunc,
+			publicKey: public,
+		},
+		private: private,
+	}
 }
 
-var _ SignerVerifier = ECDSASignerVerifier{}
-var _ Verifier = ECDSAVerifier{}
-
-func NewECDSASignerVerifier(key *ecdsa.PrivateKey, hashAlg crypto.Hash) ECDSASignerVerifier {
-	return ECDSASignerVerifier{
-		ECDSAVerifier: ECDSAVerifier{
-			Key:     &key.PublicKey,
-			HashAlg: hashAlg,
-		},
-		Key: key,
+func GenerateECDSASignerVerifier(curve elliptic.Curve, hashFunc crypto.Hash) (ECDSASignerVerifier, error) {
+	key, err := ecdsa.GenerateKey(curve, rand.Reader)
+	if err != nil {
+		return ECDSASignerVerifier{}, err
 	}
+
+	return NewECDSASignerVerifier(key, &key.PublicKey, hashFunc), nil
 }
 
 func NewDefaultECDSASignerVerifier() (ECDSASignerVerifier, error) {
-	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	if err != nil {
-		return ECDSASignerVerifier{}, fmt.Errorf("could not generate ecdsa keypair: %v", err)
-	}
-	return NewECDSASignerVerifier(key, crypto.SHA256), nil
+	return GenerateECDSASignerVerifier(elliptic.P256(), crypto.SHA256)
 }

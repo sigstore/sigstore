@@ -24,12 +24,17 @@ import (
 	"encoding/pem"
 	"fmt"
 	"hash/crc32"
+	"io"
 	"regexp"
+	"time"
 
 	kms "cloud.google.com/go/kms/apiv1"
 	"github.com/pkg/errors"
+	"github.com/sigstore/sigstore/pkg/signature"
 	kmspb "google.golang.org/genproto/googleapis/cloud/kms/v1"
 	"google.golang.org/protobuf/types/known/wrapperspb"
+
+	"github.com/ReneKroon/ttlcache/v2"
 )
 
 type KMS struct {
@@ -40,6 +45,7 @@ type KMS struct {
 	keyRing       string
 	key           string
 	version       string
+	pubKeyCache   *ttlcache.Cache
 }
 
 var (
@@ -47,6 +53,9 @@ var (
 
 	re = regexp.MustCompile(`^gcpkms://projects/([^/]+)/locations/([^/]+)/keyRings/([^/]+)/cryptoKeys/([^/]+)(?:/versions/([^/]+))?$`)
 )
+
+// use a consistent key for cache lookups
+const CacheKey = "public_key"
 
 // schemes for various KMS services are copied from https://github.com/google/go-cloud/tree/master/secrets
 const ReferenceScheme = "gcpkms://"
@@ -68,6 +77,13 @@ func parseReference(resourceID string) (projectID, locationID, keyRing, keyName,
 	return
 }
 
+func (g *KMS) pubKeyCacheLoaderFunction(key string) (data interface{}, ttl time.Duration, err error) {
+	ttl = time.Second * 300
+	data, err = g.publicKey(context.Background())
+
+	return data, ttl, err
+}
+
 func NewGCP(ctx context.Context, keyResourceID string) (*KMS, error) {
 	projectID, locationID, keyRing, keyName, version, err := parseReference(keyResourceID)
 	if err != nil {
@@ -78,7 +94,8 @@ func NewGCP(ctx context.Context, keyResourceID string) (*KMS, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "new gcp kms client")
 	}
-	return &KMS{
+
+	kms := KMS{
 		client:        client,
 		keyResourceID: keyResourceID,
 		projectID:     projectID,
@@ -86,10 +103,24 @@ func NewGCP(ctx context.Context, keyResourceID string) (*KMS, error) {
 		keyRing:       keyRing,
 		key:           keyName,
 		version:       version,
-	}, nil
+		pubKeyCache:   ttlcache.NewCache(),
+	}
+	kms.pubKeyCache.SetLoaderFunction(kms.pubKeyCacheLoaderFunction)
+	kms.pubKeyCache.SkipTTLExtensionOnHit(true)
+
+	return &kms, nil
 }
 
-func (g *KMS) Sign(ctx context.Context, rawPayload []byte) (signature, signed []byte, err error) {
+func (g *KMS) Sign(rand io.Reader, payload []byte, opts crypto.SignerOpts) ([]byte, error) {
+	ctx := context.Background()
+	if sOpts, ok := opts.(signature.SignerOpts); ok {
+		ctx = sOpts.Context
+	}
+	sig, _, err := g.sign(ctx, payload)
+	return sig, err
+}
+
+func (g *KMS) sign(ctx context.Context, rawPayload []byte) (signature, signed []byte, err error) {
 	// Calculate the digest of the message.
 	hash := sha256.New()
 	if _, err := hash.Write(rawPayload); err != nil {
@@ -132,7 +163,15 @@ func (g *KMS) Sign(ctx context.Context, rawPayload []byte) (signature, signed []
 	return result.GetSignature(), digest, nil
 }
 
-func (g *KMS) PublicKey(ctx context.Context) (crypto.PublicKey, error) {
+func (g *KMS) Public() crypto.PublicKey {
+	key, err := g.pubKeyCache.Get(CacheKey)
+	if err != nil {
+		return nil
+	}
+	return key.(crypto.PublicKey)
+}
+
+func (g *KMS) publicKey(ctx context.Context) (crypto.PublicKey, error) {
 	name, err := g.keyVersionName(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "key version")
@@ -155,18 +194,16 @@ func (g *KMS) PublicKey(ctx context.Context) (crypto.PublicKey, error) {
 	return publicKey, nil
 }
 
-func (g *KMS) ECDSAPublicKey(ctx context.Context) (*ecdsa.PublicKey, error) {
-	k, err := g.PublicKey(ctx)
-	if err != nil {
-		return nil, err
+func (g *KMS) ECDSAPublicKey() (*ecdsa.PublicKey, error) {
+	k := g.Public()
+	if k == nil {
+		return nil, errors.New("unable to obtain public key")
 	}
-	pub, ok := k.(*ecdsa.PublicKey)
+	ecPub, ok := k.(*ecdsa.PublicKey)
 	if !ok {
-		if err != nil {
-			return nil, fmt.Errorf("public key was not ECDSA: %#v", k)
-		}
+		return nil, fmt.Errorf("public key was not ECDSA: %#v", k)
 	}
-	return pub, nil
+	return ecPub, nil
 }
 
 // keyVersionName returns the first key version found for a key in KMS
@@ -235,7 +272,7 @@ func (g *KMS) createKey(ctx context.Context) (*ecdsa.PublicKey, error) {
 	}
 	if result, err := g.client.GetCryptoKey(ctx, getKeyRequest); err == nil {
 		fmt.Printf("Key %s already exists in GCP KMS, skipping creation.\n", result.GetName())
-		pub, err := g.ECDSAPublicKey(ctx)
+		pub, err := g.ECDSAPublicKey()
 		if err != nil {
 			return nil, errors.Wrap(err, "retrieving public key")
 		}
@@ -256,19 +293,18 @@ func (g *KMS) createKey(ctx context.Context) (*ecdsa.PublicKey, error) {
 		return nil, errors.Wrap(err, "creating crypto key")
 	}
 	fmt.Printf("Created key %s in GCP KMS\n", result.GetName())
-	pub, err := g.ECDSAPublicKey(ctx)
+	pub, err := g.ECDSAPublicKey()
 	if err != nil {
 		return nil, errors.Wrap(err, "retrieving public key")
 	}
 	return pub, nil
 }
 
-func (g *KMS) Verify(ctx context.Context, payload, signature []byte) error {
-	pub, err := g.PublicKey(ctx)
-	if err != nil {
-		return errors.Wrap(err, "retrieving public key")
+func (g *KMS) VerifySignatureWithKey(publicKey crypto.PublicKey, payload, signature []byte) error {
+	if publicKey == nil {
+		return errors.New("invalid public key specified")
 	}
-	switch k := pub.(type) {
+	switch k := publicKey.(type) {
 	case *ecdsa.PublicKey:
 		h := sha256.Sum256(payload)
 		if !ecdsa.VerifyASN1(k, h[:], signature) {
@@ -278,5 +314,14 @@ func (g *KMS) Verify(ctx context.Context, payload, signature []byte) error {
 		return fmt.Errorf("unknown public key type: %T", k)
 	}
 
+	return nil
+}
+
+func (g *KMS) VerifySignature(payload, signature []byte) error {
+	if err := g.VerifySignatureWithKey(g.Public(), payload, signature); err != nil {
+		// key could have been rotated, clear cache and try again
+		g.pubKeyCache.Remove(CacheKey)
+		return g.VerifySignatureWithKey(g.Public(), payload, signature)
+	}
 	return nil
 }

@@ -4,6 +4,7 @@ go 1.16
 
 require (
 	cloud.google.com/go v0.81.0
+	github.com/ReneKroon/ttlcache/v2 v2.4.0
 	github.com/coreos/go-oidc/v3 v3.0.0
 	github.com/gabriel-vasile/mimetype v1.2.0
 	github.com/go-openapi/errors v0.20.0

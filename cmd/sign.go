@@ -16,7 +16,7 @@
 package cmd
 
 import (
-	"context"
+	"crypto/rand"
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
@@ -46,8 +46,6 @@ var signCmd = &cobra.Command{
 		}
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
-		ctx := context.Background()
-
 		payload, err := ioutil.ReadFile(viper.GetString("artifact"))
 		if err != nil {
 			return err
@@ -80,17 +78,14 @@ var signCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		pub, err := signer.PublicKey(ctx)
-		if err != nil {
-			return err
-		}
+		pub := signer.Public()
 
 		pubBytes, err := x509.MarshalPKIXPublicKey(pub)
 		if err != nil {
 			return err
 		}
 
-		proof, _, err := signer.Sign(ctx, []byte(email))
+		proof, err := signer.Sign(rand.Reader, []byte(email), signature.SignerOpts{})
 		if err != nil {
 			return err
 		}
@@ -127,7 +122,7 @@ var signCmd = &cobra.Command{
 		}
 		fmt.Printf("Received signing Cerificate: %+v\n", cert.Subject)
 
-		signature, signedVal, err := signer.Sign(ctx, payload)
+		signature, err := signer.Sign(rand.Reader, payload, signature.SignerOpts{})
 		if err != nil {
 			panic(fmt.Sprintf("Error occurred while during artifact signing: %s", err))
 		}
@@ -136,7 +131,6 @@ var signCmd = &cobra.Command{
 		fmt.Println("Sending entry to transparency log")
 		tlogEntry, err := tlog.UploadToRekor(
 			pub,
-			signedVal,
 			signature,
 			viper.GetString("rekor-server"),
 			certPEM,

@@ -21,6 +21,7 @@ import (
 	"context"
 	"crypto"
 	"crypto/ecdsa"
+	"crypto/rand"
 	"fmt"
 	"os"
 	"testing"
@@ -95,16 +96,12 @@ func (suite *VaultSuite) TestSign() {
 	assert.NotNil(suite.T(), key)
 
 	data := []byte("mydata")
-	sig, signed, err := provider.Sign(context.Background(), data)
+	sig, err := provider.Sign(rand.Reader, data, signature.SignerOpts{})
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), sig)
-	assert.NotNil(suite.T(), signed)
 
-	verifier := signature.ECDSAVerifier{
-		Key:     key,
-		HashAlg: crypto.SHA256,
-	}
-	err = verifier.Verify(context.TODO(), data, sig)
+	verifier := signature.NewECDSASignerVerifier(nil, key, crypto.SHA256)
+	err = verifier.VerifySignature(data, sig)
 	assert.Nil(suite.T(), err)
 }
 
@@ -116,23 +113,18 @@ func (suite *VaultSuite) TestPubKeyVerify() {
 	require.NotNil(suite.T(), key)
 
 	data := []byte("mydata")
-	sig, signed, err := provider.Sign(context.Background(), data)
+	sig, err := provider.Sign(rand.Reader, data, signature.SignerOpts{})
 	require.Nil(suite.T(), err)
 	require.NotNil(suite.T(), sig)
-	require.NotNil(suite.T(), signed)
 
-	k, err := provider.PublicKey(context.TODO())
-	require.Nil(suite.T(), err)
+	k := provider.Public()
 	require.NotNil(suite.T(), key)
 
 	pubKey, ok := k.(*ecdsa.PublicKey)
 	require.True(suite.T(), ok)
 
-	verifier := signature.ECDSAVerifier{
-		Key:     pubKey,
-		HashAlg: crypto.SHA256,
-	}
-	err = verifier.Verify(context.TODO(), data, sig)
+	verifier := signature.NewECDSASignerVerifier(nil, pubKey, crypto.SHA256)
+	err = verifier.VerifySignature(data, sig)
 	assert.Nil(suite.T(), err)
 }
 
@@ -144,12 +136,11 @@ func (suite *VaultSuite) TestVerify() {
 	assert.NotNil(suite.T(), key)
 
 	data := []byte("mydata")
-	sig, signed, err := provider.Sign(context.Background(), data)
+	sig, err := provider.Sign(rand.Reader, data, signature.SignerOpts{})
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), sig)
-	assert.NotNil(suite.T(), signed)
 
-	err = provider.Verify(context.Background(), data, sig)
+	err = provider.VerifySignature(data, sig)
 	assert.Nil(suite.T(), err)
 }
 

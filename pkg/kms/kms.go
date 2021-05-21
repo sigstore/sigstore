@@ -42,8 +42,7 @@ func init() {
 }
 
 type KMS interface {
-	signature.Signer
-	signature.Verifier
+	signature.SignerVerifier
 
 	// CreateKey is responsible for creating an asymmetric key pair
 	// with the ECDSA algorithm on the P-256 Curve with a SHA-256 digest

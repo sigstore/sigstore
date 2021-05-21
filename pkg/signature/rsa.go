@@ -16,72 +16,88 @@
 package signature
 
 import (
-	"context"
 	"crypto"
 	"crypto/rand"
 	"crypto/rsa"
 	_ "crypto/sha256" // To ensure `crypto.SHA256` is implemented.
-	"fmt"
+	"io"
+
+	"github.com/pkg/errors"
 )
 
-type RSAVerifier struct {
-	Key  *rsa.PublicKey
-	opts rsa.PSSOptions
-}
-
 type RSASignerVerifier struct {
-	RSAVerifier
-	Key *rsa.PrivateKey
+	BaseSignerVeriiferType
+	private *rsa.PrivateKey
 }
 
-func (s RSASignerVerifier) Sign(_ context.Context, rawPayload []byte) (signature, signed []byte, err error) {
-	h := s.opts.Hash.New()
-	if _, err := h.Write(rawPayload); err != nil {
-		return nil, nil, fmt.Errorf("failed to create hash: %v", err)
+func (r RSASignerVerifier) Public() crypto.PublicKey {
+	return r.publicKey
+}
+
+func (r RSASignerVerifier) Sign(rand io.Reader, payload []byte, opts crypto.SignerOpts) ([]byte, error) {
+	if r.private == nil {
+		return nil, errors.New("RSA private key not initialized")
 	}
-	signed = h.Sum(nil)
-	signature, err = rsa.SignPSS(rand.Reader, s.Key, s.opts.Hash, signed, &s.opts)
+	digest, hasher, err := r.ComputeHash(opts, payload)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-	return signature, signed, nil
+	// PKCS #1 v1.5 has known vulnerabilities so we do not support it
+	var pssOpts *rsa.PSSOptions
+	if opts != nil {
+		var ok bool
+		if pssOpts, ok = opts.(*rsa.PSSOptions); !ok {
+			return nil, errors.New("invalid signing options")
+		}
+	}
+	return rsa.SignPSS(rand, r.private, hasher, digest, pssOpts)
 }
 
-func (v RSAVerifier) Verify(_ context.Context, rawPayload, signature []byte) error {
-	h := v.opts.Hash.New()
-	if _, err := h.Write(rawPayload); err != nil {
-		return fmt.Errorf("failed to create hash: %v", err)
-	}
-	if err := rsa.VerifyPSS(v.Key, v.opts.Hash, h.Sum(nil), signature, &v.opts); err != nil {
-		return fmt.Errorf("unable to verify signature: %v", err)
-	}
-	return nil
+func (r RSASignerVerifier) VerifySignature(payload, signature []byte) error {
+	return r.VerifySignatureWithKey(r.publicKey, payload, signature)
 }
 
-func (v RSAVerifier) PublicKey(_ context.Context) (crypto.PublicKey, error) {
-	return v.Key, nil
+func (r RSASignerVerifier) VerifySignatureWithKey(publicKey crypto.PublicKey, payload, signature []byte) error {
+	pk := publicKey
+	if pk == nil {
+		pk = r.publicKey
+		if pk == nil {
+			return errors.New("public key has not been initialized")
+		}
+	}
+
+	digest, _, err := r.ComputeHash(r.hashFunc, payload)
+	if err != nil {
+		return err
+	}
+
+	rsaPub, ok := pk.(*rsa.PublicKey)
+	if !ok {
+		return errors.New("invalid RSA public key")
+	}
+
+	return rsa.VerifyPSS(rsaPub, r.hashFunc, digest, signature, nil)
 }
 
-var _ SignerVerifier = RSASignerVerifier{}
-var _ Verifier = RSAVerifier{}
-
-func NewRSASignerVerifier(key *rsa.PrivateKey, hashAlg crypto.Hash) RSASignerVerifier {
+func NewRSASignerVerifier(private *rsa.PrivateKey, public *rsa.PublicKey, hashFunc crypto.Hash) RSASignerVerifier {
 	return RSASignerVerifier{
-		RSAVerifier: RSAVerifier{
-			Key: &key.PublicKey,
-			opts: rsa.PSSOptions{
-				SaltLength: hashAlg.Size(),
-				Hash:       hashAlg,
-			},
+		BaseSignerVeriiferType: BaseSignerVeriiferType{
+			hashFunc:  hashFunc,
+			publicKey: public,
 		},
-		Key: key,
+		private: private,
 	}
+}
+
+func GenerateRSASignerVerifier(bits int, hashFunc crypto.Hash) (RSASignerVerifier, error) {
+	key, err := rsa.GenerateKey(rand.Reader, bits)
+	if err != nil {
+		return RSASignerVerifier{}, err
+	}
+
+	return NewRSASignerVerifier(key, &key.PublicKey, hashFunc), nil
 }
 
 func NewDefaultRSASignerVerifier() (RSASignerVerifier, error) {
-	key, err := rsa.GenerateKey(rand.Reader, 2048)
-	if err != nil {
-		return RSASignerVerifier{}, fmt.Errorf("could not generate RSA keypair: %v", err)
-	}
-	return NewRSASignerVerifier(key, crypto.SHA256), nil
+	return GenerateRSASignerVerifier(2048, crypto.SHA256)
 }

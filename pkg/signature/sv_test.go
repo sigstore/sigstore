@@ -16,7 +16,7 @@
 package signature
 
 import (
-	"context"
+	crand "crypto/rand"
 	"fmt"
 	"math/rand"
 	"testing"
@@ -24,23 +24,19 @@ import (
 
 func smokeTestSignerVerifier(t *testing.T, sv SignerVerifier) {
 	t.Helper()
-	ctx := context.Background()
-	pub, err := sv.PublicKey(ctx)
-	if err != nil {
-		t.Fatalf("PublicKey() failed with error: %v", err)
-	}
+	pub := sv.Public()
 	if pub == nil {
 		t.Fatal("PublicKey() returned nil")
 	}
 	payload := []byte("test payload " + fmt.Sprint(rand.Int()))
-	sig, _, err := sv.Sign(ctx, payload)
+	sig, err := sv.Sign(crand.Reader, payload, nil)
 	if err != nil {
 		t.Fatalf("Sign() failed with error: %v", err)
 	}
 	if len(sig) == 0 {
 		t.Fatal("Sign() didn't return a signature")
 	}
-	if err := sv.Verify(ctx, payload, sig); err != nil {
+	if err := sv.VerifySignatureWithKey(sv.Public(), payload, sig); err != nil {
 		t.Fatalf("Verify() failed with error: %v", err)
 	}
 }

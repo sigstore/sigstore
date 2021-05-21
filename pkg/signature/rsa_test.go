@@ -21,7 +21,7 @@ func newTestRSASignerVerifier(t *testing.T) RSASignerVerifier {
 	t.Helper()
 	sv, err := NewDefaultRSASignerVerifier()
 	if err != nil {
-		t.Fatalf("NewDefaultRSASignerVerifier() failed with error: %v", err)
+		t.Fatalf("NewDefaultRSASigner() failed with error: %v", err)
 	}
 
 	return sv

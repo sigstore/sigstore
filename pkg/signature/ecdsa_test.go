@@ -21,7 +21,7 @@ func newTestECDSASignerVerifier(t *testing.T) ECDSASignerVerifier {
 	t.Helper()
 	sv, err := NewDefaultECDSASignerVerifier()
 	if err != nil {
-		t.Fatalf("NewDefaultECDSASignerVerifier() failed with error: %v", err)
+		t.Fatalf("NewDefaultECDSASigner() failed with error: %v", err)
 	}
 
 	return sv

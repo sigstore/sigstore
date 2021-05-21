@@ -18,24 +18,44 @@ package signature
 import (
 	"context"
 	"crypto"
+
+	"github.com/pkg/errors"
 )
 
-type PublicKeyProvider interface {
-	PublicKey(context.Context) (crypto.PublicKey, error)
+type BaseSignerVeriiferType struct {
+	hashFunc  crypto.Hash
+	publicKey crypto.PublicKey
 }
 
-type Verifier interface {
-	Verify(ctx context.Context, rawPayload, signature []byte) error
+func (b BaseSignerVeriiferType) ComputeHash(opts crypto.SignerOpts, payload []byte) ([]byte, crypto.Hash, error) {
+	hf := b.hashFunc
+	if opts != nil {
+		hf = opts.HashFunc()
+		if hf == crypto.Hash(0) {
+			return nil, 0, errors.New("invalid hash function specified")
+		}
+	}
+
+	hasher := hf.New()
+	if _, err := hasher.Write(payload); err != nil {
+		return nil, hf, errors.Wrap(err, "hashing payload for signature")
+	}
+	return hasher.Sum(nil), hf, nil
 }
 
-type Signer interface {
-	PublicKeyProvider
+// SignerOpts implements crypto.SignerOpts
+type SignerOpts struct {
+	Context context.Context
+	Hash    crypto.Hash
+}
 
-	// Sign takes a raw payload, potentially creating a derivative (e.g. hashed) payload, and returns the signature as well as the actual payload that was signed.
-	Sign(ctx context.Context, rawPayload []byte) (signature, signed []byte, err error)
+func (s SignerOpts) HashFunc() crypto.Hash {
+	return s.Hash
 }
 
 type SignerVerifier interface {
-	Signer
-	Verifier
+	crypto.Signer
+	//TODO: add methods to pass io.Reader for payload/signature instead of []byte
+	VerifySignature(payload, signature []byte) error // verifies using public key from signer in instance
+	VerifySignatureWithKey(publicKey crypto.PublicKey, payload, signature []byte) error
 }

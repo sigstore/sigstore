@@ -16,56 +16,75 @@
 package signature
 
 import (
-	"context"
 	"crypto"
 	"crypto/ed25519"
 	"crypto/rand"
-	_ "crypto/sha256" // To ensure `crypto.SHA256` is implemented.
 	"errors"
-	"fmt"
+	"io"
 )
 
-type ED25519Verifier struct {
-	Key ed25519.PublicKey
-}
-
 type ED25519SignerVerifier struct {
-	ED25519Verifier
-	Key ed25519.PrivateKey
+	BaseSignerVeriiferType
+	private *ed25519.PrivateKey
 }
 
-func (s ED25519SignerVerifier) Sign(_ context.Context, rawPayload []byte) (signature, signed []byte, err error) {
-	signature = ed25519.Sign(s.Key, rawPayload)
-	return
+func (e ED25519SignerVerifier) Public() crypto.PublicKey {
+	return e.publicKey
 }
 
-func (v ED25519Verifier) Verify(_ context.Context, rawPayload, signature []byte) error {
-	if !ed25519.Verify(v.Key, rawPayload, signature) {
-		return errors.New("unable to verify signature")
+func (e ED25519SignerVerifier) Sign(_ io.Reader, payload []byte, _ crypto.SignerOpts) ([]byte, error) {
+	if e.private == nil {
+		return nil, errors.New("ED25519 private key not initialized")
 	}
+	return ed25519.Sign(*e.private, payload), nil
+}
+
+func (e ED25519SignerVerifier) VerifySignature(payload, signature []byte) error {
+	return e.VerifySignatureWithKey(e.publicKey, payload, signature)
+}
+
+func (e ED25519SignerVerifier) VerifySignatureWithKey(publicKey crypto.PublicKey, payload, signature []byte) error {
+	pk := publicKey
+	if pk == nil {
+		pk = e.publicKey
+		if pk == nil {
+			return errors.New("public key has not been initialized")
+		}
+	}
+
+	ed25519Pub, ok := pk.(*ed25519.PublicKey)
+	if !ok {
+		return errors.New("invalid ED25519 public key")
+	}
+
+	if ok := ed25519.Verify(*ed25519Pub, payload, signature); !ok {
+		return errors.New("signature verification failed")
+	}
+
 	return nil
 }
 
-func (k ED25519Verifier) PublicKey(_ context.Context) (crypto.PublicKey, error) { //nolint
-	return k.Key, nil
+func NewED25519SignerVerifier(private *ed25519.PrivateKey, public *ed25519.PublicKey) ED25519SignerVerifier {
+	return ED25519SignerVerifier{
+		BaseSignerVeriiferType: BaseSignerVeriiferType{
+			hashFunc:  crypto.Hash(0),
+			publicKey: public,
+		},
+		private: private,
+	}
 }
 
-var _ SignerVerifier = ECDSASignerVerifier{}
-var _ Verifier = ECDSAVerifier{}
+func GenerateED25519SignerVerifier(seed [ed25519.SeedSize]byte) ED25519SignerVerifier {
+	private := ed25519.NewKeyFromSeed(seed[:])
+	public := private.Public().(ed25519.PublicKey)
 
-func NewED25519SignerVerifier(pubKey ed25519.PublicKey, privKey ed25519.PrivateKey) ED25519SignerVerifier {
-	return ED25519SignerVerifier{
-		ED25519Verifier: ED25519Verifier{
-			Key: pubKey,
-		},
-		Key: privKey,
-	}
+	return NewED25519SignerVerifier(&private, &public)
 }
 
 func NewDefaultED25519SignerVerifier() (ED25519SignerVerifier, error) {
-	pubKey, privKey, err := ed25519.GenerateKey(rand.Reader)
-	if err != nil {
-		return ED25519SignerVerifier{}, fmt.Errorf("could not generate ed25519 keypair: %v", err)
+	var seed [ed25519.SeedSize]byte
+	if _, err := rand.Read(seed[:]); err != nil {
+		return ED25519SignerVerifier{}, err
 	}
-	return NewED25519SignerVerifier(pubKey, privKey), nil
+	return GenerateED25519SignerVerifier(seed), nil
 }
