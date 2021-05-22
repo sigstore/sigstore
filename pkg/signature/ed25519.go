@@ -34,13 +34,13 @@ type ED25519SignerVerifier struct {
 	Key ed25519.PrivateKey
 }
 
-func (s ED25519SignerVerifier) Sign(_ context.Context, rawPayload []byte) (signature, signed []byte, err error) {
-	signature = ed25519.Sign(s.Key, rawPayload)
+func (k ED25519SignerVerifier) Sign(_ context.Context, rawPayload []byte) (signature, signed []byte, err error) {
+	signature = ed25519.Sign(k.Key, rawPayload)
 	return
 }
 
-func (v ED25519Verifier) Verify(_ context.Context, rawPayload, signature []byte) error {
-	if !ed25519.Verify(v.Key, rawPayload, signature) {
+func (k ED25519Verifier) Verify(_ context.Context, rawPayload, signature []byte) error {
+	if !ed25519.Verify(k.Key, rawPayload, signature) {
 		return errors.New("unable to verify signature")
 	}
 	return nil

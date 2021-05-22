@@ -16,10 +16,18 @@
 package oauthflow
 
 import (
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
+	"reflect"
 	"testing"
+
+	"golang.org/x/oauth2"
+	"gopkg.in/square/go-jose.v2"
 )
 
 func TestGetCodeWorking(t *testing.T) {
@@ -72,5 +80,94 @@ func sendCodeAndState(t *testing.T, code, state string) {
 	testURL, _ := url.Parse(fmt.Sprintf("http://localhost:5556/auth/callback?code=%v&state=%v", code, state))
 	if _, err := http.Get(testURL.String()); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestStaticTokenGetter_GetIDToken(t *testing.T) {
+	priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	k := jose.SigningKey{
+		Algorithm: jose.ES256,
+		Key:       priv,
+	}
+	signer, err := jose.NewSigner(k, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	tests := []struct {
+		name    string
+		payload interface{}
+		want    *OIDCIDToken
+		wantErr bool
+	}{
+		{
+			name: "no email",
+			payload: struct {
+				A string
+			}{
+				A: "foo",
+			},
+			wantErr: true,
+		},
+		{
+			name: "no verified",
+			payload: struct {
+				Email string
+			}{
+				Email: "foobar",
+			},
+			wantErr: true,
+		},
+		{
+			name: "not verified",
+			payload: claims{
+				Email:    "foobar",
+				Verified: false,
+			},
+			wantErr: true,
+		},
+		{
+			name: "verified",
+			payload: claims{
+				Email:    "foobar",
+				Verified: true,
+			},
+			want: &OIDCIDToken{
+				Email: "foobar",
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			raw, err := json.Marshal(tt.payload)
+			if err != nil {
+				t.Fatal(err)
+			}
+			jws, err := signer.Sign(raw)
+			if err != nil {
+				t.Fatal(err)
+			}
+			token, err := jws.CompactSerialize()
+			if err != nil {
+				t.Fatal(err)
+			}
+			if tt.want != nil {
+				tt.want.RawString = token
+			}
+			stg := &StaticTokenGetter{
+				RawToken: token,
+			}
+			got, err := stg.GetIDToken(nil, oauth2.Config{})
+			if (err != nil) != tt.wantErr {
+				t.Errorf("StaticTokenGetter.GetIDToken() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("StaticTokenGetter.GetIDToken() = %v, want %v", got, tt.want)
+			}
+		})
 	}
 }
