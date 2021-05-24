@@ -122,27 +122,27 @@ func NewGCP(ctx context.Context, keyResourceID string) (*KMS, error) {
 	return &kms, nil
 }
 
-func (k *KMS) createSigner() error {
-	if k.keyVersion == nil {
+func (g *KMS) createSigner() error {
+	if g.keyVersion == nil {
 		return errors.New("key version object not initialized")
 	}
 
-	pubKey := k.Public()
+	pubKey := g.Public()
 	if pubKey == nil {
 		return errors.New("unable to fetch public key while creating signer")
 	}
 
-	switch k.keyVersion.Algorithm {
+	switch g.keyVersion.Algorithm {
 	case kmspb.CryptoKeyVersion_EC_SIGN_P256_SHA256:
-		k.signer = signature.NewECDSASignerVerifier(nil, pubKey.(*ecdsa.PublicKey), crypto.SHA256)
+		g.signer = signature.NewECDSASignerVerifier(nil, pubKey.(*ecdsa.PublicKey), crypto.SHA256)
 	case kmspb.CryptoKeyVersion_EC_SIGN_P384_SHA384:
-		k.signer = signature.NewECDSASignerVerifier(nil, pubKey.(*ecdsa.PublicKey), crypto.SHA384)
+		g.signer = signature.NewECDSASignerVerifier(nil, pubKey.(*ecdsa.PublicKey), crypto.SHA384)
 	case kmspb.CryptoKeyVersion_RSA_SIGN_PSS_2048_SHA256,
 		kmspb.CryptoKeyVersion_RSA_SIGN_PSS_3072_SHA256,
 		kmspb.CryptoKeyVersion_RSA_SIGN_PSS_4096_SHA256:
-		k.signer = signature.NewRSASignerVerifier(nil, pubKey.(*rsa.PublicKey), crypto.SHA256)
+		g.signer = signature.NewRSASignerVerifier(nil, pubKey.(*rsa.PublicKey), crypto.SHA256)
 	case kmspb.CryptoKeyVersion_RSA_SIGN_PSS_4096_SHA512:
-		k.signer = signature.NewRSASignerVerifier(nil, pubKey.(*rsa.PublicKey), crypto.SHA512)
+		g.signer = signature.NewRSASignerVerifier(nil, pubKey.(*rsa.PublicKey), crypto.SHA512)
 	default:
 		return errors.New("unknown algorithm specified by KMS")
 	}
@@ -265,16 +265,36 @@ func (g *KMS) ECDSAPublicKey() (*ecdsa.PublicKey, error) {
 func (g *KMS) keyVersionName(ctx context.Context) (*kmspb.CryptoKeyVersion, error) {
 	parent := fmt.Sprintf("projects/%s/locations/%s/keyRings/%s/cryptoKeys/%s", g.projectID, g.locationID, g.keyRing, g.key)
 
+	parentReq := &kmspb.GetCryptoKeyRequest{
+		Name: parent,
+	}
+	key, err := g.client.GetCryptoKey(ctx, parentReq)
+	if err != nil {
+		return nil, err
+	}
+	if key.Purpose != kmspb.CryptoKey_ASYMMETRIC_SIGN {
+		return nil, errors.New("specified key cannot be used to sign")
+	}
+
+	// if g.version was specified, use it explicitly
+	if g.version != "" {
+		req := &kmspb.GetCryptoKeyVersionRequest{
+			Name: parent + fmt.Sprintf("/cryptoKeyVersions/%s", g.version),
+		}
+		return g.client.GetCryptoKeyVersion(ctx, req)
+	}
+
 	req := &kmspb.ListCryptoKeyVersionsRequest{
-		Parent: parent,
-		Filter: "state=ENABLED",
+		Parent:  parent,
+		Filter:  "state=ENABLED",
+		OrderBy: "name desc",
 	}
 	iterator := g.client.ListCryptoKeyVersions(ctx, req)
 
-	// pick the first key version that is enabled
+	// pick the key version that is enabled with the greatest version value
 	kv, err := iterator.Next()
 	if err != nil {
-		return nil, errors.New("unable to find an enabled key version in GCP KMS, generate one via `cosign generate-key-pair`")
+		return nil, errors.New("unable to find an enabled key version in GCP KMS")
 	}
 	return kv, nil
 }
