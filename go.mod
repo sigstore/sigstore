@@ -1,4 +1,4 @@
-module github.com/bobcallaway/sigstore
+module github.com/sigstore/sigstore
 
 go 1.16
 
