@@ -4,7 +4,7 @@ go 1.16
 
 require (
 	cloud.google.com/go v0.81.0
-	github.com/ReneKroon/ttlcache/v2 v2.4.0
+	github.com/ReneKroon/ttlcache/v2 v2.5.0
 	github.com/coreos/go-oidc/v3 v3.0.0
 	github.com/gabriel-vasile/mimetype v1.2.0
 	github.com/go-openapi/errors v0.20.0
@@ -15,7 +15,6 @@ require (
 	github.com/go-test/deep v1.0.7
 	github.com/golang/snappy v0.0.3 // indirect
 	github.com/google/go-containerregistry v0.4.1
-	github.com/google/trillian v1.3.14-0.20210413093047-5e12fb368c8f
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect

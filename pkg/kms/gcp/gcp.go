@@ -25,6 +25,7 @@ import (
 	"fmt"
 	"hash/crc32"
 	"io"
+	"log"
 	"regexp"
 	"time"
 
@@ -37,6 +38,11 @@ import (
 	"github.com/ReneKroon/ttlcache/v2"
 )
 
+type KMSVersion struct {
+	CryptoKeyVersion *kmspb.CryptoKeyVersion
+	Signer           signature.SignerVerifier
+}
+
 type KMS struct {
 	client        *kms.KeyManagementClient
 	keyResourceID string
@@ -45,9 +51,7 @@ type KMS struct {
 	keyRing       string
 	key           string
 	version       string
-	keyVersion    *kmspb.CryptoKeyVersion
-	signer        signature.SignerVerifier
-	pubKeyCache   *ttlcache.Cache
+	kvCache       *ttlcache.Cache
 }
 
 var (
@@ -79,11 +83,16 @@ func parseReference(resourceID string) (projectID, locationID, keyRing, keyName,
 	return
 }
 
-func (g *KMS) pubKeyCacheLoaderFunction(key string) (data interface{}, ttl time.Duration, err error) {
-	ttl = time.Second * 300
-	data, err = g.publicKey(context.Background())
+func (g *KMS) kvCacheLoaderFunction(key string) (data interface{}, ttl time.Duration, err error) {
+	// if we're given an explicit version, cache this value forever
+	if g.version != "" {
+		ttl = time.Second * 0
+	} else {
+		ttl = time.Second * 300
+	}
+	data, err = g.keyVersionName(context.Background())
 
-	return data, ttl, err
+	return
 }
 
 func NewGCP(ctx context.Context, keyResourceID string) (*KMS, error) {
@@ -105,68 +114,57 @@ func NewGCP(ctx context.Context, keyResourceID string) (*KMS, error) {
 		keyRing:       keyRing,
 		key:           keyName,
 		version:       version,
-		pubKeyCache:   ttlcache.NewCache(),
+		kvCache:       ttlcache.NewCache(),
 	}
-	kms.pubKeyCache.SetLoaderFunction(kms.pubKeyCacheLoaderFunction)
-	kms.pubKeyCache.SkipTTLExtensionOnHit(true)
+	kms.kvCache.SetLoaderFunction(kms.kvCacheLoaderFunction)
+	kms.kvCache.SkipTTLExtensionOnHit(true)
 
-	kms.keyVersion, err = kms.keyVersionName(ctx)
+	// prime the cache
+	_, err = kms.kvCache.Get(CacheKey)
 	if err != nil {
-		return nil, errors.Wrap(err, "fetching key version from GCP KMS")
-	}
-
-	if err = kms.createSigner(); err != nil {
-		return nil, errors.Wrap(err, "fetching key version from GCP KMS")
+		return nil, errors.Wrap(err, "initializing key version from GCP KMS")
 	}
 
 	return &kms, nil
 }
 
-func (g *KMS) createSigner() error {
-	if g.keyVersion == nil {
-		return errors.New("key version object not initialized")
-	}
-
-	pubKey := g.Public()
-	if pubKey == nil {
-		return errors.New("unable to fetch public key while creating signer")
-	}
-
-	switch g.keyVersion.Algorithm {
-	case kmspb.CryptoKeyVersion_EC_SIGN_P256_SHA256:
-		g.signer = signature.NewECDSASignerVerifier(nil, pubKey.(*ecdsa.PublicKey), crypto.SHA256)
-	case kmspb.CryptoKeyVersion_EC_SIGN_P384_SHA384:
-		g.signer = signature.NewECDSASignerVerifier(nil, pubKey.(*ecdsa.PublicKey), crypto.SHA384)
-	case kmspb.CryptoKeyVersion_RSA_SIGN_PSS_2048_SHA256,
-		kmspb.CryptoKeyVersion_RSA_SIGN_PSS_3072_SHA256,
-		kmspb.CryptoKeyVersion_RSA_SIGN_PSS_4096_SHA256:
-		g.signer = signature.NewRSASignerVerifier(nil, pubKey.(*rsa.PublicKey), crypto.SHA256)
-	case kmspb.CryptoKeyVersion_RSA_SIGN_PSS_4096_SHA512:
-		g.signer = signature.NewRSASignerVerifier(nil, pubKey.(*rsa.PublicKey), crypto.SHA512)
-	default:
-		return errors.New("unknown algorithm specified by KMS")
-	}
-	return nil
-}
-
 func (g *KMS) Sign(rand io.Reader, payload []byte, opts crypto.SignerOpts) ([]byte, error) {
 	ctx := context.Background()
 	if sOpts, ok := opts.(signature.SignerOpts); ok {
-		ctx = sOpts.Context
+		if sOpts.Context != nil {
+			ctx = sOpts.Context
+		}
 	}
 	return g.sign(ctx, payload)
 }
 
 func (g *KMS) Hasher() func(crypto.SignerOpts, []byte) ([]byte, crypto.Hash, error) {
-	return g.signer.Hasher()
+	signer, err := g.getSigner()
+	if err != nil {
+		return func(crypto.SignerOpts, []byte) ([]byte, crypto.Hash, error) {
+			return nil, 0, errors.Wrap(err, "getting signer for Hasher")
+		}
+	}
+	return signer.Hasher()
 }
 
-func (g *KMS) generateSignRequest(digest []byte, hasher crypto.Hash, crc uint32) (*kmspb.AsymmetricSignRequest, error) {
-	if g.keyVersion == nil {
-		return nil, errors.New("keyVersion has not been initialized")
+func (g *KMS) generateSignRequest(payload []byte) (*kmspb.AsymmetricSignRequest, error) {
+	// we get once and use consistently to ensure the cache value doesn't change underneath us
+	kmsVersionInt, err := g.kvCache.Get(CacheKey)
+	if err != nil {
+		return nil, errors.Wrap(err, "getting KMSVersion from cache")
 	}
+
+	kmsVersion := kmsVersionInt.(*KMSVersion)
+	// Calculate the digest of the message.
+	digest, hasher, err := kmsVersion.Signer.Hasher()(nil, payload)
+	if err != nil {
+		return nil, errors.Wrap(err, "computing digest")
+	}
+	crc := crc32c(payload)
+
 	req := &kmspb.AsymmetricSignRequest{
-		Name:         g.keyVersion.Name,
+		Name:         kmsVersion.CryptoKeyVersion.Name,
 		Digest:       &kmspb.Digest{},
 		DigestCrc32C: wrapperspb.Int64(int64(crc)),
 	}
@@ -189,18 +187,14 @@ func (g *KMS) generateSignRequest(digest []byte, hasher crypto.Hash, crc uint32)
 	return req, nil
 }
 
+// Optional but recommended: Compute digest's CRC32C.
+func crc32c(data []byte) uint32 {
+	t := crc32.MakeTable(crc32.Castagnoli)
+	return crc32.Checksum(data, t)
+}
+
 func (g *KMS) sign(ctx context.Context, rawPayload []byte) (signature []byte, err error) {
-	// Calculate the digest of the message.
-	digest, hasher, err := g.Hasher()(nil, rawPayload)
-	if err != nil {
-		return nil, errors.Wrap(err, "computing digest")
-	}
-	// Optional but recommended: Compute digest's CRC32C.
-	crc32c := func(data []byte) uint32 {
-		t := crc32.MakeTable(crc32.Castagnoli)
-		return crc32.Checksum(data, t)
-	}
-	req, err := g.generateSignRequest(digest, hasher, crc32c(digest))
+	req, err := g.generateSignRequest(rawPayload)
 	if err != nil {
 		return nil, err
 	}
@@ -221,17 +215,25 @@ func (g *KMS) sign(ctx context.Context, rawPayload []byte) (signature []byte, er
 	return result.GetSignature(), nil
 }
 
+func (g *KMS) getSigner() (signature.SignerVerifier, error) {
+	kmsVersion, err := g.kvCache.Get(CacheKey)
+	if err != nil {
+		return nil, errors.Wrap(err, "getting KMSVersion from cache")
+	}
+	return kmsVersion.(*KMSVersion).Signer, nil
+}
+
 func (g *KMS) Public() crypto.PublicKey {
-	key, err := g.pubKeyCache.Get(CacheKey)
+	signer, err := g.getSigner()
 	if err != nil {
 		return nil
 	}
-	return key.(crypto.PublicKey)
+	return signer.Public()
 }
 
-func (g *KMS) publicKey(ctx context.Context) (crypto.PublicKey, error) {
+func (g *KMS) fetchPublicKey(ctx context.Context, name string) (crypto.PublicKey, error) {
 	// Build the request.
-	pkreq := &kmspb.GetPublicKeyRequest{Name: g.keyVersion.Name}
+	pkreq := &kmspb.GetPublicKeyRequest{Name: name}
 	// Call the API.
 	pk, err := g.client.GetPublicKey(ctx, pkreq)
 	if err != nil {
@@ -261,8 +263,7 @@ func (g *KMS) ECDSAPublicKey() (*ecdsa.PublicKey, error) {
 }
 
 // keyVersionName returns the first key version found for a key in KMS
-// TODO: is there a better way to do this?
-func (g *KMS) keyVersionName(ctx context.Context) (*kmspb.CryptoKeyVersion, error) {
+func (g *KMS) keyVersionName(ctx context.Context) (*KMSVersion, error) {
 	parent := fmt.Sprintf("projects/%s/locations/%s/keyRings/%s/cryptoKeys/%s", g.projectID, g.locationID, g.keyRing, g.key)
 
 	parentReq := &kmspb.GetCryptoKeyRequest{
@@ -277,26 +278,54 @@ func (g *KMS) keyVersionName(ctx context.Context) (*kmspb.CryptoKeyVersion, erro
 	}
 
 	// if g.version was specified, use it explicitly
+	var kv *kmspb.CryptoKeyVersion
 	if g.version != "" {
 		req := &kmspb.GetCryptoKeyVersionRequest{
 			Name: parent + fmt.Sprintf("/cryptoKeyVersions/%s", g.version),
 		}
-		return g.client.GetCryptoKeyVersion(ctx, req)
+		kv, err = g.client.GetCryptoKeyVersion(ctx, req)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		req := &kmspb.ListCryptoKeyVersionsRequest{
+			Parent:  parent,
+			Filter:  "state=ENABLED",
+			OrderBy: "name desc",
+		}
+		iterator := g.client.ListCryptoKeyVersions(ctx, req)
+
+		// pick the key version that is enabled with the greatest version value
+		kv, err = iterator.Next()
+		if err != nil {
+			return nil, errors.Wrap(err, "unable to find an enabled key version in GCP KMS")
+		}
+	}
+	// kv is keyVersion to use
+	kmsVersion := KMSVersion{
+		CryptoKeyVersion: kv,
 	}
 
-	req := &kmspb.ListCryptoKeyVersionsRequest{
-		Parent:  parent,
-		Filter:  "state=ENABLED",
-		OrderBy: "name desc",
-	}
-	iterator := g.client.ListCryptoKeyVersions(ctx, req)
-
-	// pick the key version that is enabled with the greatest version value
-	kv, err := iterator.Next()
+	pubKey, err := g.fetchPublicKey(ctx, kv.Name)
 	if err != nil {
-		return nil, errors.New("unable to find an enabled key version in GCP KMS")
+		return nil, errors.Wrap(err, "unable to fetch public key while creating signer")
 	}
-	return kv, nil
+
+	switch kv.Algorithm {
+	case kmspb.CryptoKeyVersion_EC_SIGN_P256_SHA256:
+		kmsVersion.Signer = signature.NewECDSASignerVerifier(nil, pubKey.(*ecdsa.PublicKey), crypto.SHA256)
+	case kmspb.CryptoKeyVersion_EC_SIGN_P384_SHA384:
+		kmsVersion.Signer = signature.NewECDSASignerVerifier(nil, pubKey.(*ecdsa.PublicKey), crypto.SHA384)
+	case kmspb.CryptoKeyVersion_RSA_SIGN_PSS_2048_SHA256,
+		kmspb.CryptoKeyVersion_RSA_SIGN_PSS_3072_SHA256,
+		kmspb.CryptoKeyVersion_RSA_SIGN_PSS_4096_SHA256:
+		kmsVersion.Signer = signature.NewRSASignerVerifier(nil, pubKey.(*rsa.PublicKey), crypto.SHA256)
+	case kmspb.CryptoKeyVersion_RSA_SIGN_PSS_4096_SHA512:
+		kmsVersion.Signer = signature.NewRSASignerVerifier(nil, pubKey.(*rsa.PublicKey), crypto.SHA512)
+	default:
+		return nil, errors.New("unknown algorithm specified by KMS")
+	}
+	return &kmsVersion, nil
 }
 
 //TODO: make these more generic for different algorithms (RSA/ECDSA)
@@ -312,7 +341,7 @@ func (g *KMS) createKeyRing(ctx context.Context) error {
 		Name: fmt.Sprintf("projects/%s/locations/%s/keyRings/%s", g.projectID, g.locationID, g.keyRing),
 	}
 	if result, err := g.client.GetKeyRing(ctx, getKeyRingRequest); err == nil {
-		fmt.Printf("Key ring %s already exists in GCP KMS, moving on to creating key.\n", result.GetName())
+		log.Printf("Key ring %s already exists in GCP KMS, moving on to creating key.\n", result.GetName())
 		// key ring already exists, no need to create
 		return err
 	}
@@ -322,7 +351,7 @@ func (g *KMS) createKeyRing(ctx context.Context) error {
 		KeyRingId: g.keyRing,
 	}
 	result, err := g.client.CreateKeyRing(ctx, createKeyRingRequest)
-	fmt.Printf("Created key ring %s in GCP KMS.\n", result.GetName())
+	log.Printf("Created key ring %s in GCP KMS.\n", result.GetName())
 	return err
 }
 
@@ -332,7 +361,7 @@ func (g *KMS) createKey(ctx context.Context) (*ecdsa.PublicKey, error) {
 		Name: name,
 	}
 	if result, err := g.client.GetCryptoKey(ctx, getKeyRequest); err == nil {
-		fmt.Printf("Key %s already exists in GCP KMS, skipping creation.\n", result.GetName())
+		log.Printf("Key %s already exists in GCP KMS, skipping creation.\n", result.GetName())
 		pub, err := g.ECDSAPublicKey()
 		if err != nil {
 			return nil, errors.Wrap(err, "retrieving public key")
@@ -353,7 +382,7 @@ func (g *KMS) createKey(ctx context.Context) (*ecdsa.PublicKey, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "creating crypto key")
 	}
-	fmt.Printf("Created key %s in GCP KMS\n", result.GetName())
+	log.Printf("Created key %s in GCP KMS\n", result.GetName())
 	pub, err := g.ECDSAPublicKey()
 	if err != nil {
 		return nil, errors.Wrap(err, "retrieving public key")
@@ -365,14 +394,21 @@ func (g *KMS) VerifySignatureWithKey(publicKey crypto.PublicKey, payload, signat
 	if publicKey == nil {
 		return errors.New("invalid public key specified")
 	}
-	return g.signer.VerifySignatureWithKey(publicKey, payload, signature)
+	signer, err := g.getSigner()
+	if err != nil {
+		return errors.Wrap(err, "getting underlying signer")
+	}
+	return signer.VerifySignatureWithKey(publicKey, payload, signature)
 }
 
 func (g *KMS) VerifySignature(payload, signature []byte) error {
 	if err := g.VerifySignatureWithKey(g.Public(), payload, signature); err != nil {
-		// key could have been rotated, clear cache and try again
-		g.pubKeyCache.Remove(CacheKey)
-		return g.VerifySignatureWithKey(g.Public(), payload, signature)
+		// key could have been rotated, clear cache and try again if we're not pinned to a version
+		if g.version == "" {
+			_ = g.kvCache.Remove(CacheKey)
+			return g.VerifySignatureWithKey(g.Public(), payload, signature)
+		}
+		return errors.Wrap(err, "failed to verify for fixed version")
 	}
 	return nil
 }

@@ -229,7 +229,7 @@ func (g *KMS) publicKey(ctx context.Context) (crypto.PublicKey, error) {
 func (g *KMS) VerifySignature(payload, signature []byte) error {
 	if err := g.VerifySignatureWithKey(g.Public(), payload, signature); err != nil {
 		// key could have been rotated, clear cache and try again
-		g.pubKeyCache.Remove(CacheKey)
+		_ = g.pubKeyCache.Remove(CacheKey)
 		return g.VerifySignatureWithKey(g.Public(), payload, signature)
 	}
 	return nil
