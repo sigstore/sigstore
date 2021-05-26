@@ -57,6 +57,11 @@ func (suite *VaultSuite) SetupSuite() {
 		Type: "transit",
 	})
 	require.Nil(suite.T(), err)
+
+	err = client.Sys().Mount("somerandompath", &vault.MountInput{
+		Type: "transit",
+	})
+	require.Nil(suite.T(), err)
 }
 
 func (suite *VaultSuite) TearDownSuite() {
@@ -89,6 +94,28 @@ func (suite *VaultSuite) TestCreateKey() {
 
 func (suite *VaultSuite) TestSign() {
 	provider := suite.GetProvider("testsign")
+
+	key, err := provider.CreateKey(context.Background())
+	assert.Nil(suite.T(), err)
+	assert.NotNil(suite.T(), key)
+
+	data := []byte("mydata")
+	sig, signed, err := provider.Sign(context.Background(), data)
+	assert.Nil(suite.T(), err)
+	assert.NotNil(suite.T(), sig)
+	assert.NotNil(suite.T(), signed)
+
+	verifier := signature.ECDSAVerifier{
+		Key:     key,
+		HashAlg: crypto.SHA256,
+	}
+	err = verifier.Verify(context.TODO(), data, sig)
+	assert.Nil(suite.T(), err)
+}
+
+func (suite *VaultSuite) TestSignWithDifferentTransitSecretEnginePath() {
+	provider := suite.GetProvider("testsign")
+	os.Setenv("TRANSIT_SECRET_ENGINE_PATH", "somerandompath")
 
 	key, err := provider.CreateKey(context.Background())
 	assert.Nil(suite.T(), err)
