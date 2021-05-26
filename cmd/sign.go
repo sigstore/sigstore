@@ -139,7 +139,7 @@ var signCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		fmt.Println("Rekor entry successful. Index number: :", tlogEntry)
+		fmt.Println("Rekor entry successful. URL: ", tlogEntry)
 		return nil
 	},
 }

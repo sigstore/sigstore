@@ -20,7 +20,6 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
-	"strconv"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -64,10 +63,7 @@ func UploadToRekor(publicKey crypto.PublicKey, signedMsg []byte, rekorURL string
 		return "", err
 	}
 	// UUID is at the end of location
-	for _, p := range resp.Payload {
-		return strconv.FormatInt(*p.LogIndex, 10), nil
-	}
-	return "", errors.New("bad response from server")
+	return resp.Location.String(), nil
 }
 
 func MarshalPublicKey(pub crypto.PublicKey) ([]byte, error) {

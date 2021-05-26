@@ -62,10 +62,7 @@ func UploadToRekor(publicKey crypto.PublicKey, signedMsg []byte, rekorURL string
 		return "", err
 	}
 	// UUID is at the end of location
-	for k := range resp.Payload {
-		return k, nil
-	}
-	return "", errors.New("bad response from server")
+	return resp.Location.String(), nil
 }
 
 func MarshalPublicKey(pub crypto.PublicKey) ([]byte, error) {
