@@ -34,8 +34,9 @@ import (
 )
 
 type KMS struct {
-	client  *vault.Client
-	keyPath string
+	client                  *vault.Client
+	keyPath                 string
+	transitSecretEnginePath string
 }
 
 var (
@@ -93,9 +94,15 @@ func NewVault(ctx context.Context, keyResourceID string) (*KMS, error) {
 		return nil, errors.Wrap(err, "new vault client")
 	}
 
+	transitSecretEnginePath := os.Getenv("TRANSIT_SECRET_ENGINE_PATH")
+	if transitSecretEnginePath == "" {
+		transitSecretEnginePath = "transit"
+	}
+
 	return &KMS{
-		client:  client,
-		keyPath: keyPath,
+		client:                  client,
+		keyPath:                 keyPath,
+		transitSecretEnginePath: transitSecretEnginePath,
 	}, nil
 }
 
@@ -105,7 +112,7 @@ func (g *KMS) Sign(ctx context.Context, rawPayload []byte) (signature, signed []
 	hash := sha256.Sum256(rawPayload)
 	signed = hash[:]
 
-	signResult, err := client.Write(fmt.Sprintf("/transit/sign/%s/%s", g.keyPath, signAlg), map[string]interface{}{
+	signResult, err := client.Write(fmt.Sprintf("/%s/sign/%s/%s", g.transitSecretEnginePath, g.keyPath, signAlg), map[string]interface{}{
 		"input":     base64.StdEncoding.Strict().EncodeToString(signed),
 		"prehashed": true,
 	})
@@ -128,7 +135,7 @@ func (g *KMS) Sign(ctx context.Context, rawPayload []byte) (signature, signed []
 func (g *KMS) CreateKey(ctx context.Context) (*ecdsa.PublicKey, error) {
 	client := g.client.Logical()
 
-	if _, err := client.Write(fmt.Sprintf("/transit/keys/%s", g.keyPath), map[string]interface{}{
+	if _, err := client.Write(fmt.Sprintf("/%s/keys/%s", g.transitSecretEnginePath, g.keyPath), map[string]interface{}{
 		"type": "ecdsa-p256",
 	}); err != nil {
 		return nil, errors.Wrap(err, "Failed to create transit key")
@@ -153,7 +160,7 @@ func (g *KMS) ECDSAPublicKey(ctx context.Context) (*ecdsa.PublicKey, error) {
 func (g *KMS) PublicKey(ctx context.Context) (crypto.PublicKey, error) {
 	client := g.client.Logical()
 
-	keyResult, err := client.Read(fmt.Sprintf("/transit/keys/%s", g.keyPath))
+	keyResult, err := client.Read(fmt.Sprintf("/%s/keys/%s", g.transitSecretEnginePath, g.keyPath))
 	if err != nil {
 		return nil, errors.Wrap(err, "public key")
 	}
@@ -198,7 +205,7 @@ func (g *KMS) Verify(ctx context.Context, payload, signature []byte) error {
 
 	signed := sha256.Sum256(payload)
 
-	result, err := client.Write(fmt.Sprintf("/transit/verify/%s/%s", g.keyPath, hashAlg), map[string]interface{}{
+	result, err := client.Write(fmt.Sprintf("/%s/verify/%s/%s", g.transitSecretEnginePath, g.keyPath, hashAlg), map[string]interface{}{
 		"input":     base64.StdEncoding.EncodeToString(signed[:]),
 		"signature": fmt.Sprintf("%s%s", vaultV1DataPrefix, encodedSig),
 	})
