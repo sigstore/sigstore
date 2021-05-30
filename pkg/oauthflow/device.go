@@ -145,13 +145,13 @@ func (d *DeviceFlowTokenGetter) GetIDToken(p *oidc.Provider, cfg oauth2.Config) 
 		return nil, err
 	}
 
-	email, err := emailFromIDToken(parsedIDToken)
+	subj, err := SubjectFromToken(parsedIDToken)
 	if err != nil {
 		return nil, err
 	}
 
 	return &OIDCIDToken{
 		RawString: idToken,
-		Email:     email,
+		Subject:   subj,
 	}, nil
 }

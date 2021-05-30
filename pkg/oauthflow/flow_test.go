@@ -136,7 +136,16 @@ func TestStaticTokenGetter_GetIDToken(t *testing.T) {
 				Verified: true,
 			},
 			want: &OIDCIDToken{
-				Email: "foobar",
+				Subject: "foobar",
+			},
+		},
+		{
+			name: "spiffeid",
+			payload: claims{
+				Subject: "spiffe://foobar",
+			},
+			want: &OIDCIDToken{
+				Subject: "spiffe://foobar",
 			},
 		},
 	}
