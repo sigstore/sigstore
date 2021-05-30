@@ -74,7 +74,7 @@ var signCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		fmt.Println("\nReceived OpenID Scope retrieved for account:", idToken.Email)
+		fmt.Println("\nReceived OpenID Scope retrieved for account:", idToken.Subject)
 
 		signer, err := signature.NewDefaultECDSASignerVerifier()
 		if err != nil {
@@ -92,7 +92,7 @@ var signCmd = &cobra.Command{
 			return err
 		}
 
-		proof, _, err := signer.Sign(ctx, []byte(idToken.Email))
+		proof, _, err := signer.Sign(ctx, []byte(idToken.Subject))
 		if err != nil {
 			return err
 		}

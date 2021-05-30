@@ -42,7 +42,7 @@ type TokenGetter interface {
 
 type OIDCIDToken struct {
 	RawString string
-	Email     string
+	Subject   string
 }
 
 // DefaultIDTokenGetter is the default implementation.
@@ -71,17 +71,29 @@ func OIDConnect(issuer string, id string, secret string, tg TokenGetter) (*OIDCI
 type claims struct {
 	Email    string `json:"email"`
 	Verified bool   `json:"email_verified"`
+	Subject  string `json:"sub"`
 }
 
-func emailFromIDToken(tok *oidc.IDToken) (string, error) {
+func SubjectFromToken(tok *oidc.IDToken) (string, error) {
 	claims := claims{}
 	if err := tok.Claims(&claims); err != nil {
 		return "", err
 	}
-	if !claims.Verified {
-		return "", errors.New("not verified by identity provider")
+	return subjectFromClaims(claims)
+}
+
+func subjectFromClaims(c claims) (string, error) {
+	if c.Email != "" {
+		if !c.Verified {
+			return "", errors.New("not verified by identity provider")
+		}
+		return c.Email, nil
 	}
-	return claims.Email, nil
+
+	if c.Subject == "" {
+		return "", errors.New("no subject found in claims")
+	}
+	return c.Subject, nil
 }
 
 type StaticTokenGetter struct {
@@ -102,11 +114,14 @@ func (stg *StaticTokenGetter) GetIDToken(_ *oidc.Provider, _ oauth2.Config) (*OI
 	if err := json.Unmarshal(unsafePayload, &claims); err != nil {
 		return nil, err
 	}
-	if !claims.Verified {
-		return nil, errors.New("not verified by identity provider")
+
+	subj, err := subjectFromClaims(claims)
+	if err != nil {
+		return nil, err
 	}
+
 	return &OIDCIDToken{
 		RawString: stg.RawToken,
-		Email:     claims.Email,
+		Subject:   subj,
 	}, nil
 }

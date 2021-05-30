@@ -90,14 +90,14 @@ func (i *InteractiveIDTokenGetter) GetIDToken(p *oidc.Provider, cfg oauth2.Confi
 		}
 	}
 
-	email, err := emailFromIDToken(parsedIDToken)
+	email, err := SubjectFromToken(parsedIDToken)
 	if err != nil {
 		return nil, err
 	}
 
 	returnToken := OIDCIDToken{
 		RawString: idToken,
-		Email:     email,
+		Subject:   email,
 	}
 	return &returnToken, nil
 }
