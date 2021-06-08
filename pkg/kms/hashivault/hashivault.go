@@ -25,12 +25,15 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"os"
 	"regexp"
 	"strings"
 
 	vault "github.com/hashicorp/vault/api"
 	"github.com/pkg/errors"
+	"github.com/sigstore/sigstore/pkg/signature"
 )
 
 type KMS struct {
@@ -106,28 +109,32 @@ func NewVault(ctx context.Context, keyResourceID string) (*KMS, error) {
 	}, nil
 }
 
-func (g *KMS) Sign(ctx context.Context, rawPayload []byte) (signature, signed []byte, err error) {
+func (g *KMS) Sign(message io.Reader, _ ...signature.SignOption) (signature []byte, err error) {
 	client := g.client.Logical()
+	messageBytes, err := ioutil.ReadAll(message)
+	if err != nil {
+		return nil, err
+	}
 
-	hash := sha256.Sum256(rawPayload)
-	signed = hash[:]
+	hash := sha256.Sum256(messageBytes)
+	hashedMessage := hash[:]
 
 	signResult, err := client.Write(fmt.Sprintf("/%s/sign/%s/%s", g.transitSecretEnginePath, g.keyPath, signAlg), map[string]interface{}{
-		"input":     base64.StdEncoding.Strict().EncodeToString(signed),
+		"input":     base64.StdEncoding.Strict().EncodeToString(hashedMessage),
 		"prehashed": true,
 	})
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "Transit: failed to sign payload")
+		return nil, errors.Wrap(err, "Transit: failed to sign payload")
 	}
 
 	encodedSignature, ok := signResult.Data["signature"]
 	if !ok {
-		return nil, nil, errors.New("Transit: response corrupted in-transit")
+		return nil, errors.New("Transit: response corrupted in-transit")
 	}
 
 	signature, err = vaultDecode(encodedSignature)
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "Transit: response corrupted in-transit")
+		return nil, errors.Wrap(err, "Transit: response corrupted in-transit")
 	}
 	return
 }
@@ -143,8 +150,8 @@ func (g *KMS) CreateKey(ctx context.Context) (*ecdsa.PublicKey, error) {
 	return g.ECDSAPublicKey(ctx)
 }
 
-func (g *KMS) ECDSAPublicKey(ctx context.Context) (*ecdsa.PublicKey, error) {
-	k, err := g.PublicKey(ctx)
+func (g *KMS) ECDSAPublicKey(context.Context) (*ecdsa.PublicKey, error) {
+	k, err := g.PublicKey()
 	if err != nil {
 		return nil, err
 	}
@@ -157,7 +164,7 @@ func (g *KMS) ECDSAPublicKey(ctx context.Context) (*ecdsa.PublicKey, error) {
 	return pub, nil
 }
 
-func (g *KMS) PublicKey(ctx context.Context) (crypto.PublicKey, error) {
+func (g *KMS) PublicKey(...signature.PublicKeyOption) (crypto.PublicKey, error) {
 	client := g.client.Logical()
 
 	keyResult, err := client.Read(fmt.Sprintf("/%s/keys/%s", g.transitSecretEnginePath, g.keyPath))
@@ -199,11 +206,14 @@ func (g *KMS) PublicKey(ctx context.Context) (crypto.PublicKey, error) {
 	return publicKey, nil
 }
 
-func (g *KMS) Verify(ctx context.Context, payload, signature []byte) error {
+func (g *KMS) Verify(message io.Reader, signature []byte, _ ...signature.VerifyOption) error {
 	client := g.client.Logical()
 	encodedSig := base64.StdEncoding.EncodeToString(signature)
-
-	signed := sha256.Sum256(payload)
+	messageBytes, err := ioutil.ReadAll(message)
+	if err != nil {
+		return err
+	}
+	signed := sha256.Sum256(messageBytes)
 
 	result, err := client.Write(fmt.Sprintf("/%s/verify/%s/%s", g.transitSecretEnginePath, g.keyPath, hashAlg), map[string]interface{}{
 		"input":     base64.StdEncoding.EncodeToString(signed[:]),

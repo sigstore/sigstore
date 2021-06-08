@@ -1,4 +1,3 @@
-//
 // Copyright 2021 The Sigstore Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,26 +15,29 @@
 package signature
 
 import (
-	"context"
 	"crypto"
+	"io"
 )
 
-type PublicKeyProvider interface {
-	PublicKey(context.Context) (crypto.PublicKey, error)
+type PublicKeyOption interface {
+	RPCOption
 }
 
-type Verifier interface {
-	Verify(ctx context.Context, rawPayload, signature []byte) error
+type PublicKeyProvider interface {
+	PublicKey(...PublicKeyOption) (crypto.PublicKey, error)
+}
+
+type SignOption interface {
+	PublicKeyOption
+	MessageOption
+
+	// ApplyRand defines the source of randomness for creating a signature.
+	ApplyRand(rand *io.Reader)
 }
 
 type Signer interface {
 	PublicKeyProvider
 
-	// Sign takes a raw payload, potentially creating a derivative (e.g. hashed) payload, and returns the signature as well as the actual payload that was signed.
-	Sign(ctx context.Context, rawPayload []byte) (signature, signed []byte, err error)
-}
-
-type SignerVerifier interface {
-	Signer
-	Verifier
+	// Sign takes a raw message, and returns a `Verify`-able signature for the message.
+	Sign(message io.Reader, signerOpts ...SignOption) (signature []byte, err error)
 }

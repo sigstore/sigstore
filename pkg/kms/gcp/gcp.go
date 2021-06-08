@@ -19,15 +19,16 @@ import (
 	"context"
 	"crypto"
 	"crypto/ecdsa"
-	"crypto/sha256"
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
 	"hash/crc32"
+	"io"
 	"regexp"
 
 	kms "cloud.google.com/go/kms/apiv1"
 	"github.com/pkg/errors"
+	"github.com/sigstore/sigstore/pkg/signature"
 	kmspb "google.golang.org/genproto/googleapis/cloud/kms/v1"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
@@ -45,7 +46,12 @@ type KMS struct {
 var (
 	ErrKMSReference = errors.New("kms specification should be in the format gcpkms://projects/[PROJECT_ID]/locations/[LOCATION]/keyRings/[KEY_RING]/cryptoKeys/[KEY]/versions/[VERSION]")
 
-	re = regexp.MustCompile(`^gcpkms://projects/([^/]+)/locations/([^/]+)/keyRings/([^/]+)/cryptoKeys/([^/]+)(?:/versions/([^/]+))?$`)
+	re                = regexp.MustCompile(`^gcpkms://projects/([^/]+)/locations/([^/]+)/keyRings/([^/]+)/cryptoKeys/([^/]+)(?:/versions/([^/]+))?$`)
+	supportedHashAlgs = []crypto.Hash{
+		crypto.SHA256,
+		crypto.SHA512,
+		crypto.SHA384,
+	}
 )
 
 // schemes for various KMS services are copied from https://github.com/google/go-cloud/tree/master/secrets
@@ -89,13 +95,11 @@ func NewGCP(ctx context.Context, keyResourceID string) (*KMS, error) {
 	}, nil
 }
 
-func (g *KMS) Sign(ctx context.Context, rawPayload []byte) (signature, signed []byte, err error) {
-	// Calculate the digest of the message.
-	hash := sha256.New()
-	if _, err := hash.Write(rawPayload); err != nil {
-		return nil, nil, err
+func (g *KMS) Sign(message io.Reader, opts ...signature.SignOption) (sig []byte, err error) {
+	digest, hashAlg, err := signature.MessageToSign(message, crypto.SHA256, []crypto.Hash{crypto.SHA256}, opts...)
+	if err != nil {
+		return nil, err
 	}
-	digest := hash.Sum(nil)
 	// Optional but recommended: Compute digest's CRC32C.
 	crc32c := func(data []byte) uint32 {
 		t := crc32.MakeTable(crc32.Castagnoli)
@@ -103,36 +107,51 @@ func (g *KMS) Sign(ctx context.Context, rawPayload []byte) (signature, signed []
 	}
 	digestCRC32C := crc32c(digest)
 
+	ctx := context.Background()
+	for _, opt := range opts {
+		opt.ApplyContext(&ctx)
+	}
 	name, err := g.keyVersionName(ctx)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
+
 	req := &kmspb.AsymmetricSignRequest{
-		Name: name,
-		Digest: &kmspb.Digest{
-			Digest: &kmspb.Digest_Sha256{
-				Sha256: digest,
-			},
-		},
+		Name:         name,
+		Digest:       &kmspb.Digest{},
 		DigestCrc32C: wrapperspb.Int64(int64(digestCRC32C)),
+	}
+	switch hashAlg {
+	case crypto.SHA256:
+		req.Digest.Digest = &kmspb.Digest_Sha256{Sha256: digest}
+	case crypto.SHA512:
+		req.Digest.Digest = &kmspb.Digest_Sha512{Sha512: digest}
+	case crypto.SHA384:
+		req.Digest.Digest = &kmspb.Digest_Sha384{Sha384: digest}
+	default:
+		return nil, fmt.Errorf("unsupported hash algorithm: %q not in %v", hashAlg.String(), supportedHashAlgs)
 	}
 	result, err := g.client.AsymmetricSign(ctx, req)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	// Optional, but recommended: perform integrity verification on result.
 	// For more details on ensuring E2E in-transit integrity to and from Cloud KMS visit:
 	// https://cloud.google.com/kms/docs/data-integrity-guidelines
 	if !result.VerifiedDigestCrc32C {
-		return nil, nil, fmt.Errorf("AsymmetricSign: request corrupted in-transit")
+		return nil, fmt.Errorf("AsymmetricSign: request corrupted in-transit")
 	}
 	if int64(crc32c(result.Signature)) != result.SignatureCrc32C.Value {
-		return nil, nil, fmt.Errorf("AsymmetricSign: response corrupted in-transit")
+		return nil, fmt.Errorf("AsymmetricSign: response corrupted in-transit")
 	}
-	return result.GetSignature(), digest, nil
+	return result.GetSignature(), nil
 }
 
-func (g *KMS) PublicKey(ctx context.Context) (crypto.PublicKey, error) {
+func (g *KMS) PublicKey(opts ...signature.PublicKeyOption) (crypto.PublicKey, error) {
+	ctx := context.Background()
+	for _, opt := range opts {
+		opt.ApplyContext(&ctx)
+	}
 	name, err := g.keyVersionName(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "key version")
@@ -155,8 +174,8 @@ func (g *KMS) PublicKey(ctx context.Context) (crypto.PublicKey, error) {
 	return publicKey, nil
 }
 
-func (g *KMS) ECDSAPublicKey(ctx context.Context) (*ecdsa.PublicKey, error) {
-	k, err := g.PublicKey(ctx)
+func (g *KMS) ECDSAPublicKey(context.Context) (*ecdsa.PublicKey, error) {
+	k, err := g.PublicKey()
 	if err != nil {
 		return nil, err
 	}
@@ -263,15 +282,22 @@ func (g *KMS) createKey(ctx context.Context) (*ecdsa.PublicKey, error) {
 	return pub, nil
 }
 
-func (g *KMS) Verify(ctx context.Context, payload, signature []byte) error {
-	pub, err := g.PublicKey(ctx)
+func (g *KMS) Verify(message io.Reader, sig []byte, opts ...signature.VerifyOption) error {
+	var pkOpts []signature.PublicKeyOption = make([]signature.PublicKeyOption, 0, len(opts))
+	for _, opt := range opts {
+		pkOpts = append(pkOpts, opt)
+	}
+	pub, err := g.PublicKey(pkOpts...)
 	if err != nil {
 		return errors.Wrap(err, "retrieving public key")
 	}
 	switch k := pub.(type) {
 	case *ecdsa.PublicKey:
-		h := sha256.Sum256(payload)
-		if !ecdsa.VerifyASN1(k, h[:], signature) {
+		digest, _, err := signature.MessageToVerify(message, crypto.SHA256, supportedHashAlgs, opts...)
+		if err != nil {
+			return errors.Wrap(err, "processing message")
+		}
+		if !ecdsa.VerifyASN1(k, digest, sig) {
 			return errors.New("unable to verify signature")
 		}
 	default:

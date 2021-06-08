@@ -22,11 +22,20 @@ import (
 	"crypto/rsa"
 	_ "crypto/sha256" // To ensure `crypto.SHA256` is implemented.
 	"fmt"
+	"io"
 )
 
+var rsaSupportedHashAlgs = []crypto.Hash{
+	crypto.SHA256,
+	crypto.SHA512,
+	crypto.SHA224,
+	crypto.SHA384,
+	crypto.SHA1,
+}
+
 type RSAVerifier struct {
-	Key  *rsa.PublicKey
-	opts rsa.PSSOptions
+	Key            *rsa.PublicKey
+	defaultHashAlg crypto.Hash
 }
 
 type RSASignerVerifier struct {
@@ -34,45 +43,49 @@ type RSASignerVerifier struct {
 	Key *rsa.PrivateKey
 }
 
-func (s RSASignerVerifier) Sign(_ context.Context, rawPayload []byte) (signature, signed []byte, err error) {
-	h := s.opts.Hash.New()
-	if _, err := h.Write(rawPayload); err != nil {
-		return nil, nil, fmt.Errorf("failed to create hash: %v", err)
-	}
-	signed = h.Sum(nil)
-	signature, err = rsa.SignPSS(rand.Reader, s.Key, s.opts.Hash, signed, &s.opts)
-	if err != nil {
-		return nil, nil, err
-	}
-	return signature, signed, nil
+func (s RSASignerVerifier) CryptoSigner(_ context.Context) (crypto.Signer, error) {
+	return s.Key, nil
 }
 
-func (v RSAVerifier) Verify(_ context.Context, rawPayload, signature []byte) error {
-	h := v.opts.Hash.New()
-	if _, err := h.Write(rawPayload); err != nil {
-		return fmt.Errorf("failed to create hash: %v", err)
+func (s RSASignerVerifier) Sign(rawMessage io.Reader, opts ...SignOption) (signature []byte, err error) {
+	digest, hashAlg, err := MessageToSign(rawMessage, s.defaultHashAlg, rsaSupportedHashAlgs, opts...)
+	if err != nil {
+		return nil, err
 	}
-	if err := rsa.VerifyPSS(v.Key, v.opts.Hash, h.Sum(nil), signature, &v.opts); err != nil {
+	pssOpts := rsa.PSSOptions{
+		SaltLength: hashAlg.Size(),
+		Hash:       hashAlg,
+	}
+	return rsa.SignPSS(rand.Reader, s.Key, hashAlg, digest, &pssOpts)
+}
+
+func (v RSAVerifier) Verify(rawMessage io.Reader, signature []byte, opts ...VerifyOption) error {
+	digest, hashAlg, err := MessageToVerify(rawMessage, v.defaultHashAlg, rsaSupportedHashAlgs, opts...)
+	if err != nil {
+		return err
+	}
+	pssOpts := rsa.PSSOptions{
+		SaltLength: hashAlg.Size(),
+		Hash:       hashAlg,
+	}
+	if err := rsa.VerifyPSS(v.Key, hashAlg, digest, signature, &pssOpts); err != nil {
 		return fmt.Errorf("unable to verify signature: %v", err)
 	}
 	return nil
 }
 
-func (v RSAVerifier) PublicKey(_ context.Context) (crypto.PublicKey, error) {
+func (v RSAVerifier) PublicKey(...PublicKeyOption) (crypto.PublicKey, error) {
 	return v.Key, nil
 }
 
 var _ SignerVerifier = RSASignerVerifier{}
 var _ Verifier = RSAVerifier{}
 
-func NewRSASignerVerifier(key *rsa.PrivateKey, hashAlg crypto.Hash) RSASignerVerifier {
+func NewRSASignerVerifier(key *rsa.PrivateKey, defaultHashAlg crypto.Hash) RSASignerVerifier {
 	return RSASignerVerifier{
 		RSAVerifier: RSAVerifier{
-			Key: &key.PublicKey,
-			opts: rsa.PSSOptions{
-				SaltLength: hashAlg.Size(),
-				Hash:       hashAlg,
-			},
+			Key:            &key.PublicKey,
+			defaultHashAlg: defaultHashAlg,
 		},
 		Key: key,
 	}

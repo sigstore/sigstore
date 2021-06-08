@@ -18,6 +18,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"crypto"
 	"crypto/ecdsa"
@@ -31,6 +32,7 @@ import (
 
 	"github.com/sigstore/sigstore/pkg/kms"
 	"github.com/sigstore/sigstore/pkg/signature"
+	"github.com/sigstore/sigstore/pkg/signature/option"
 
 	vault "github.com/hashicorp/vault/api"
 )
@@ -93,23 +95,23 @@ func (suite *VaultSuite) TestCreateKey() {
 }
 
 func (suite *VaultSuite) TestSign() {
+	ctx := context.Background()
 	provider := suite.GetProvider("testsign")
 
-	key, err := provider.CreateKey(context.Background())
+	key, err := provider.CreateKey(ctx)
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), key)
 
 	data := []byte("mydata")
-	sig, signed, err := provider.Sign(context.Background(), data)
+	sig, err := provider.Sign(bytes.NewReader(data), option.WithContext(ctx))
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), sig)
-	assert.NotNil(suite.T(), signed)
 
 	verifier := signature.ECDSAVerifier{
 		Key:     key,
 		HashAlg: crypto.SHA256,
 	}
-	err = verifier.Verify(context.TODO(), data, sig)
+	err = verifier.Verify(bytes.NewReader(data), sig)
 	assert.Nil(suite.T(), err)
 }
 
@@ -122,16 +124,15 @@ func (suite *VaultSuite) TestSignWithDifferentTransitSecretEnginePath() {
 	assert.NotNil(suite.T(), key)
 
 	data := []byte("mydata")
-	sig, signed, err := provider.Sign(context.Background(), data)
+	sig, err := provider.Sign(bytes.NewReader(data))
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), sig)
-	assert.NotNil(suite.T(), signed)
 
 	verifier := signature.ECDSAVerifier{
 		Key:     key,
 		HashAlg: crypto.SHA256,
 	}
-	err = verifier.Verify(context.TODO(), data, sig)
+	err = verifier.Verify(bytes.NewReader(data), sig)
 	assert.Nil(suite.T(), err)
 }
 
@@ -143,12 +144,11 @@ func (suite *VaultSuite) TestPubKeyVerify() {
 	require.NotNil(suite.T(), key)
 
 	data := []byte("mydata")
-	sig, signed, err := provider.Sign(context.Background(), data)
+	sig, err := provider.Sign(bytes.NewReader(data))
 	require.Nil(suite.T(), err)
 	require.NotNil(suite.T(), sig)
-	require.NotNil(suite.T(), signed)
 
-	k, err := provider.PublicKey(context.TODO())
+	k, err := provider.PublicKey()
 	require.Nil(suite.T(), err)
 	require.NotNil(suite.T(), key)
 
@@ -159,7 +159,7 @@ func (suite *VaultSuite) TestPubKeyVerify() {
 		Key:     pubKey,
 		HashAlg: crypto.SHA256,
 	}
-	err = verifier.Verify(context.TODO(), data, sig)
+	err = verifier.Verify(bytes.NewReader(data), sig)
 	assert.Nil(suite.T(), err)
 }
 
@@ -171,12 +171,11 @@ func (suite *VaultSuite) TestVerify() {
 	assert.NotNil(suite.T(), key)
 
 	data := []byte("mydata")
-	sig, signed, err := provider.Sign(context.Background(), data)
+	sig, err := provider.Sign(bytes.NewReader(data))
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), sig)
-	assert.NotNil(suite.T(), signed)
 
-	err = provider.Verify(context.Background(), data, sig)
+	err = provider.Verify(bytes.NewReader(data), sig)
 	assert.Nil(suite.T(), err)
 }
 

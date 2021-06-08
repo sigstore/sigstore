@@ -19,7 +19,7 @@ import (
 	"context"
 	"crypto"
 	"crypto/rand"
-	"fmt"
+	"io"
 )
 
 type GenericSigner struct {
@@ -27,26 +27,24 @@ type GenericSigner struct {
 	SignerOpts crypto.SignerOpts
 }
 
-func (s GenericSigner) Sign(_ context.Context, rawPayload []byte) (signature, signed []byte, err error) {
-	signed = rawPayload
-	if s.SignerOpts != nil {
-		preHash := s.SignerOpts.HashFunc()
-		if preHash != crypto.Hash(0) {
-			h := preHash.New()
-			if _, err := h.Write(rawPayload); err != nil {
-				return nil, nil, fmt.Errorf("failed to create hash: %v", err)
-			}
-			signed = h.Sum(nil)
-		}
-	}
-	signature, err = s.Signer.Sign(rand.Reader, signed, s.SignerOpts)
-	if err != nil {
-		return nil, nil, err
-	}
-	return signature, signed, nil
+func (s GenericSigner) CryptoSigner(_ context.Context) (crypto.Signer, error) {
+	return s.Signer, nil
 }
 
-func (s GenericSigner) PublicKey(_ context.Context) (crypto.PublicKey, error) {
+func (s GenericSigner) Sign(rawMessage io.Reader, opts ...SignOption) (signature []byte, err error) {
+	digest, hashAlg, err := MessageToSign(rawMessage, s.SignerOpts.HashFunc(), nil, opts...)
+	if err != nil {
+		return nil, err
+	}
+	randReader := GetRand(rand.Reader, opts...)
+	signature, err = s.Signer.Sign(randReader, digest, hashAlg)
+	if err != nil {
+		return nil, err
+	}
+	return signature, nil
+}
+
+func (s GenericSigner) PublicKey(...PublicKeyOption) (crypto.PublicKey, error) {
 	return s.Signer.Public(), nil
 }
 

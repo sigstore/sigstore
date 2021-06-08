@@ -16,16 +16,19 @@
 package signature
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"math/rand"
 	"testing"
+
+	"github.com/sigstore/sigstore/pkg/signature/option"
 )
 
 func smokeTestSignerVerifier(t *testing.T, sv SignerVerifier) {
 	t.Helper()
 	ctx := context.Background()
-	pub, err := sv.PublicKey(ctx)
+	pub, err := sv.PublicKey(option.WithContext(ctx))
 	if err != nil {
 		t.Fatalf("PublicKey() failed with error: %v", err)
 	}
@@ -33,14 +36,14 @@ func smokeTestSignerVerifier(t *testing.T, sv SignerVerifier) {
 		t.Fatal("PublicKey() returned nil")
 	}
 	payload := []byte("test payload " + fmt.Sprint(rand.Int()))
-	sig, _, err := sv.Sign(ctx, payload)
+	sig, err := sv.Sign(bytes.NewReader(payload), option.WithContext(ctx))
 	if err != nil {
 		t.Fatalf("Sign() failed with error: %v", err)
 	}
 	if len(sig) == 0 {
 		t.Fatal("Sign() didn't return a signature")
 	}
-	if err := sv.Verify(ctx, payload, sig); err != nil {
+	if err := sv.Verify(bytes.NewReader(payload), sig, option.WithContext(ctx)); err != nil {
 		t.Fatalf("Verify() failed with error: %v", err)
 	}
 }

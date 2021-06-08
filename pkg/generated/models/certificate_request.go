@@ -22,7 +22,6 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	"context"
 	"encoding/json"
 
 	"github.com/go-openapi/errors"
@@ -86,34 +85,6 @@ func (m *CertificateRequest) validateSignedEmailAddress(formats strfmt.Registry)
 
 	if err := validate.Required("signedEmailAddress", "body", m.SignedEmailAddress); err != nil {
 		return err
-	}
-
-	return nil
-}
-
-// ContextValidate validate this certificate request based on the context it is used
-func (m *CertificateRequest) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
-	var res []error
-
-	if err := m.contextValidatePublicKey(ctx, formats); err != nil {
-		res = append(res, err)
-	}
-
-	if len(res) > 0 {
-		return errors.CompositeValidationError(res...)
-	}
-	return nil
-}
-
-func (m *CertificateRequest) contextValidatePublicKey(ctx context.Context, formats strfmt.Registry) error {
-
-	if m.PublicKey != nil {
-		if err := m.PublicKey.ContextValidate(ctx, formats); err != nil {
-			if ve, ok := err.(*errors.Validation); ok {
-				return ve.ValidateName("publicKey")
-			}
-			return err
-		}
 	}
 
 	return nil
@@ -197,6 +168,7 @@ func (m *CertificateRequestPublicKey) validateAlgorithmEnum(path, location strin
 }
 
 func (m *CertificateRequestPublicKey) validateAlgorithm(formats strfmt.Registry) error {
+
 	if swag.IsZero(m.Algorithm) { // not required
 		return nil
 	}
@@ -215,11 +187,6 @@ func (m *CertificateRequestPublicKey) validateContent(formats strfmt.Registry) e
 		return err
 	}
 
-	return nil
-}
-
-// ContextValidate validates this certificate request public key based on context it is used
-func (m *CertificateRequestPublicKey) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
 	return nil
 }
 

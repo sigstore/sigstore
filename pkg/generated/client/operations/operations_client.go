@@ -39,12 +39,9 @@ type Client struct {
 	formats   strfmt.Registry
 }
 
-// ClientOption is the option for Client methods
-type ClientOption func(*runtime.ClientOperation)
-
 // ClientService is the interface for Client methods
 type ClientService interface {
-	SigningCert(params *SigningCertParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*SigningCertCreated, error)
+	SigningCert(params *SigningCertParams, authInfo runtime.ClientAuthInfoWriter) (*SigningCertCreated, error)
 
 	SetTransport(transport runtime.ClientTransport)
 }
@@ -52,12 +49,13 @@ type ClientService interface {
 /*
   SigningCert create a cert, return content with a location header (with URL to CTL entry)
 */
-func (a *Client) SigningCert(params *SigningCertParams, authInfo runtime.ClientAuthInfoWriter, opts ...ClientOption) (*SigningCertCreated, error) {
+func (a *Client) SigningCert(params *SigningCertParams, authInfo runtime.ClientAuthInfoWriter) (*SigningCertCreated, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
 		params = NewSigningCertParams()
 	}
-	op := &runtime.ClientOperation{
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "signingCert",
 		Method:             "POST",
 		PathPattern:        "/signingCert",
@@ -69,12 +67,7 @@ func (a *Client) SigningCert(params *SigningCertParams, authInfo runtime.ClientA
 		AuthInfo:           authInfo,
 		Context:            params.Context,
 		Client:             params.HTTPClient,
-	}
-	for _, opt := range opts {
-		opt(op)
-	}
-
-	result, err := a.transport.Submit(op)
+	})
 	if err != nil {
 		return nil, err
 	}

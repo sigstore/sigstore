@@ -16,6 +16,7 @@
 package cmd
 
 import (
+	"bytes"
 	"context"
 	"crypto/x509"
 	"encoding/pem"
@@ -23,6 +24,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -31,6 +33,7 @@ import (
 	"github.com/sigstore/sigstore/pkg/httpclients"
 	"github.com/sigstore/sigstore/pkg/oauthflow"
 	"github.com/sigstore/sigstore/pkg/signature"
+	"github.com/sigstore/sigstore/pkg/signature/option"
 	"github.com/sigstore/sigstore/pkg/tlog"
 	"github.com/sigstore/sigstore/pkg/utils"
 )
@@ -81,7 +84,7 @@ var signCmd = &cobra.Command{
 			return err
 		}
 
-		pub, err := signer.PublicKey(ctx)
+		pub, err := signer.PublicKey(option.WithContext(ctx))
 		if err != nil {
 			return err
 		}
@@ -92,7 +95,7 @@ var signCmd = &cobra.Command{
 			return err
 		}
 
-		proof, _, err := signer.Sign(ctx, []byte(idToken.Subject))
+		proof, err := signer.Sign(strings.NewReader(idToken.Subject), option.WithContext(ctx))
 		if err != nil {
 			return err
 		}
@@ -130,7 +133,7 @@ var signCmd = &cobra.Command{
 
 		fmt.Println("Received signing cerificate with serial number: ", cert.SerialNumber)
 
-		signature, signedVal, err := signer.Sign(ctx, payload)
+		signature, err := signer.Sign(bytes.NewReader(payload), option.WithContext(ctx))
 		if err != nil {
 			panic(fmt.Sprintf("Error occurred while during artifact signing: %s", err))
 		}
@@ -139,7 +142,6 @@ var signCmd = &cobra.Command{
 		fmt.Println("Sending entry to transparency log")
 		tlogEntry, err := tlog.UploadToRekor(
 			certPEM,
-			signedVal,
 			signature,
 			viper.GetString("rekor-server"),
 			payload,

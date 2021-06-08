@@ -16,7 +16,6 @@
 package signature_test
 
 import (
-	"context"
 	"testing"
 
 	"github.com/go-test/deep"
@@ -37,7 +36,6 @@ func mustParseDigest(t *testing.T, digestStr string) name.Digest {
 }
 
 func TestProviderRoundtrip(t *testing.T) {
-	ctx := context.Background()
 	ecdsaSV, err := signature.NewDefaultECDSASignerVerifier()
 	if err != nil {
 		t.Fatalf("Could not generate ecdsa SignerVerifier for test: %v", err)
@@ -75,12 +73,12 @@ func TestProviderRoundtrip(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.desc, func(t *testing.T) {
-			payload, sig, _, err := signature.SignImage(ctx, tc.sv, tc.digest, tc.claims)
+			payload, sig, err := signature.SignImage(tc.sv, tc.digest, tc.claims)
 			if err != nil {
 				t.Fatalf("SignImage returned error: %v", err)
 			}
 
-			rtDigest, rtClaims, err := signature.VerifyImageSignature(ctx, tc.sv, payload, sig)
+			rtDigest, rtClaims, err := signature.VerifyImageSignature(tc.sv, payload, sig)
 			if err != nil {
 				t.Fatalf("VerifyImageSignature returned error: %v", err)
 			}

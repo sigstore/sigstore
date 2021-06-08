@@ -23,6 +23,8 @@ import (
 	_ "crypto/sha256" // To ensure `crypto.SHA256` is implemented.
 	"errors"
 	"fmt"
+	"io"
+	"io/ioutil"
 )
 
 type ED25519Verifier struct {
@@ -34,19 +36,30 @@ type ED25519SignerVerifier struct {
 	Key ed25519.PrivateKey
 }
 
-func (k ED25519SignerVerifier) Sign(_ context.Context, rawPayload []byte) (signature, signed []byte, err error) {
-	signature = ed25519.Sign(k.Key, rawPayload)
-	return
+func (k ED25519SignerVerifier) CryptoSigner(_ context.Context) (crypto.Signer, error) {
+	return k.Key, nil
 }
 
-func (k ED25519Verifier) Verify(_ context.Context, rawPayload, signature []byte) error {
-	if !ed25519.Verify(k.Key, rawPayload, signature) {
+func (k ED25519SignerVerifier) Sign(rawMessage io.Reader, opts ...SignOption) (signature []byte, err error) {
+	message, err := ioutil.ReadAll(rawMessage)
+	if err != nil {
+		return nil, err
+	}
+	return ed25519.Sign(k.Key, message), nil
+}
+
+func (k ED25519Verifier) Verify(rawMessage io.Reader, signature []byte, opts ...VerifyOption) error {
+	message, err := ioutil.ReadAll(rawMessage)
+	if err != nil {
+		return err
+	}
+	if !ed25519.Verify(k.Key, message, signature) {
 		return errors.New("unable to verify signature")
 	}
 	return nil
 }
 
-func (k ED25519Verifier) PublicKey(_ context.Context) (crypto.PublicKey, error) { //nolint
+func (k ED25519Verifier) PublicKey(...PublicKeyOption) (crypto.PublicKey, error) { //nolint
 	return k.Key, nil
 }
 

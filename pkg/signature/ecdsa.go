@@ -16,7 +16,6 @@
 package signature
 
 import (
-	"context"
 	"crypto"
 	"crypto/ecdsa"
 	"crypto/elliptic"
@@ -24,7 +23,16 @@ import (
 	_ "crypto/sha256" // To ensure `crypto.SHA256` is implemented.
 	"errors"
 	"fmt"
+	"io"
 )
+
+var ecdsaSupportedHashAlgs = []crypto.Hash{
+	crypto.SHA256,
+	crypto.SHA512,
+	crypto.SHA384,
+	crypto.SHA224,
+	crypto.SHA1,
+}
 
 type ECDSAVerifier struct {
 	Key     *ecdsa.PublicKey
@@ -36,31 +44,32 @@ type ECDSASignerVerifier struct {
 	Key *ecdsa.PrivateKey
 }
 
-func (s ECDSASignerVerifier) Sign(_ context.Context, rawPayload []byte) (signature, signed []byte, err error) {
-	h := s.HashAlg.New()
-	if _, err := h.Write(rawPayload); err != nil {
-		return nil, nil, fmt.Errorf("failed to create hash: %v", err)
-	}
-	signed = h.Sum(nil)
-	signature, err = ecdsa.SignASN1(rand.Reader, s.Key, signed)
+func (s ECDSASignerVerifier) Sign(rawMessage io.Reader, opts ...SignOption) (signature []byte, err error) {
+	digest, _, err := MessageToSign(rawMessage, s.HashAlg, ecdsaSupportedHashAlgs, opts...)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-	return signature, signed, nil
+	randReader := GetRand(rand.Reader, opts...)
+	signature, err = ecdsa.SignASN1(randReader, s.Key, digest)
+	if err != nil {
+		return nil, err
+	}
+	return signature, nil
 }
 
-func (v ECDSAVerifier) Verify(_ context.Context, rawPayload, signature []byte) error {
-	h := v.HashAlg.New()
-	if _, err := h.Write(rawPayload); err != nil {
-		return fmt.Errorf("failed to create hash: %v", err)
+func (v ECDSAVerifier) Verify(rawMessage io.Reader, signature []byte, opts ...VerifyOption) error {
+	digest, _, err := MessageToVerify(rawMessage, v.HashAlg, ecdsaSupportedHashAlgs, opts...)
+	if err != nil {
+		return err
 	}
-	if !ecdsa.VerifyASN1(v.Key, h.Sum(nil), signature) {
+
+	if !ecdsa.VerifyASN1(v.Key, digest, signature) {
 		return errors.New("unable to verify signature")
 	}
 	return nil
 }
 
-func (v ECDSAVerifier) PublicKey(_ context.Context) (crypto.PublicKey, error) {
+func (v ECDSAVerifier) PublicKey(...PublicKeyOption) (crypto.PublicKey, error) {
 	return v.Key, nil
 }
 
