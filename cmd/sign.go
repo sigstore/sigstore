@@ -127,7 +127,8 @@ var signCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		fmt.Printf("Received signing Cerificate: %+v\n", cert.Subject)
+
+		fmt.Println("Received signing cerificate with serial number: ", cert.SerialNumber)
 
 		signature, signedVal, err := signer.Sign(ctx, payload)
 		if err != nil {
