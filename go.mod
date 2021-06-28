@@ -39,5 +39,3 @@ require (
 	google.golang.org/protobuf v1.26.0
 	gopkg.in/go-playground/assert.v1 v1.2.1 // indirect
 )
-
-replace github.com/sigstore/rekor => ../../rekor
