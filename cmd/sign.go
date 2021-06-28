@@ -16,9 +16,7 @@
 package cmd
 
 import (
-	"crypto/rand"
-	"crypto/x509"
-	"encoding/pem"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -27,6 +25,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
+	"github.com/sigstore/sigstore/pkg/cryptoutils"
 	"github.com/sigstore/sigstore/pkg/generated/client/operations"
 	"github.com/sigstore/sigstore/pkg/httpclients"
 	"github.com/sigstore/sigstore/pkg/oauthflow"
@@ -74,18 +73,17 @@ var signCmd = &cobra.Command{
 		}
 		fmt.Println("\nReceived OpenID Scope retrieved for account:", email)
 
-		signer, err := signature.NewDefaultECDSASignerVerifier()
+		signer, _, err := signature.NewDefaultECDSASignerVerifier()
 		if err != nil {
 			return err
 		}
 		pub := signer.Public()
-
-		pubBytes, err := x509.MarshalPKIXPublicKey(pub)
+		pubBytes, err := cryptoutils.MarshalPublicKeyToDER(pub)
 		if err != nil {
 			return err
 		}
 
-		proof, err := signer.Sign(rand.Reader, []byte(email), signature.SignerOpts{})
+		proof, err := signer.SignMessage([]byte(email))
 		if err != nil {
 			return err
 		}
@@ -103,26 +101,21 @@ var signCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		clientPEM, rootPEM := pem.Decode([]byte(certResp.Payload))
-		certPEM := pem.EncodeToMemory(clientPEM)
-
-		rootBlock, _ := pem.Decode([]byte(rootPEM))
-		if rootBlock == nil {
+		certs, err := cryptoutils.UnmarshalCertificatesFromPEM([]byte(certResp.Payload))
+		if err != nil {
 			return err
+		} else if len(certs) == 0 {
+			return errors.New("no certificates were found in response")
 		}
-
-		certBlock, _ := pem.Decode([]byte(certPEM))
-		if certBlock == nil {
-			return err
-		}
-
-		cert, err := x509.ParseCertificate(certBlock.Bytes)
+		signingCert := certs[0]
+		signingCertPEM, err := cryptoutils.MarshalCertificateToPEM(signingCert)
 		if err != nil {
 			return err
 		}
-		fmt.Printf("Received signing Cerificate: %+v\n", cert.Subject)
 
-		signature, err := signer.Sign(rand.Reader, payload, signature.SignerOpts{})
+		fmt.Printf("Received signing Cerificate: %+v\n", signingCert.Subject)
+
+		signature, err := signer.SignMessage(payload)
 		if err != nil {
 			panic(fmt.Sprintf("Error occurred while during artifact signing: %s", err))
 		}
@@ -133,7 +126,7 @@ var signCmd = &cobra.Command{
 			pub,
 			signature,
 			viper.GetString("rekor-server"),
-			certPEM,
+			signingCertPEM,
 			payload,
 		)
 		if err != nil {

@@ -18,12 +18,10 @@ package tlog
 import (
 	"crypto"
 	"crypto/x509"
-	"encoding/pem"
 	"fmt"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
-	"github.com/pkg/errors"
 	"github.com/sigstore/rekor/cmd/rekor-cli/app"
 	"github.com/sigstore/rekor/pkg/generated/client/entries"
 	"github.com/sigstore/rekor/pkg/generated/models"
@@ -64,21 +62,6 @@ func UploadToRekor(publicKey crypto.PublicKey, signedMsg []byte, rekorURL string
 	}
 	// UUID is at the end of location
 	return resp.Location.String(), nil
-}
-
-func MarshalPublicKey(pub crypto.PublicKey) ([]byte, error) {
-	if pub == nil {
-		return nil, errors.New("empty key")
-	}
-	pubKey, err := x509.MarshalPKIXPublicKey(pub)
-	if err != nil {
-		panic("failed to marshall public key")
-	}
-	pubBytes := pem.EncodeToMemory(&pem.Block{
-		Type:  "PUBLIC KEY",
-		Bytes: pubKey,
-	})
-	return pubBytes, nil
 }
 
 func RekorEntry(payload, signature, pubKey []byte) rekord_v001.V001Entry {

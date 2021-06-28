@@ -21,7 +21,6 @@ import (
 	"context"
 	"crypto"
 	"crypto/ecdsa"
-	"crypto/rand"
 	"fmt"
 	"os"
 	"testing"
@@ -30,8 +29,9 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/sigstore/sigstore/pkg/kms"
 	"github.com/sigstore/sigstore/pkg/signature"
+	"github.com/sigstore/sigstore/pkg/signature/kms"
+	"github.com/sigstore/sigstore/pkg/signature/kms/hashivault"
 
 	vault "github.com/hashicorp/vault/api"
 )
@@ -40,11 +40,11 @@ type VaultSuite struct {
 	suite.Suite
 }
 
-func (suite *VaultSuite) GetProvider(key string) kms.KMS {
-	provider, err := kms.Get(context.Background(), fmt.Sprintf("hashivault://%s", key))
+func (suite *VaultSuite) GetProvider(key string) *hashivault.SignerVerifier {
+	provider, err := kms.Get(context.Background(), fmt.Sprintf("hashivault://%s", key), crypto.SHA256)
 	require.NoError(suite.T(), err)
 	require.NotNil(suite.T(), provider)
-	return provider
+	return provider.(*hashivault.SignerVerifier)
 }
 
 func (suite *VaultSuite) SetupSuite() {
@@ -83,7 +83,7 @@ func (suite *VaultSuite) TestProvider() {
 func (suite *VaultSuite) TestCreateKey() {
 	provider := suite.GetProvider("createkey")
 
-	key, err := provider.CreateKey(context.Background())
+	key, err := provider.CreateKey(context.Background(), hashivault.Algorithm_ECDSA_P256)
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), key)
 }
@@ -91,29 +91,29 @@ func (suite *VaultSuite) TestCreateKey() {
 func (suite *VaultSuite) TestSign() {
 	provider := suite.GetProvider("testsign")
 
-	key, err := provider.CreateKey(context.Background())
+	key, err := provider.CreateKey(context.Background(), hashivault.Algorithm_ECDSA_P256)
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), key)
 
 	data := []byte("mydata")
-	sig, err := provider.Sign(rand.Reader, data, signature.SignerOpts{})
+	sig, err := provider.SignMessage(data)
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), sig)
 
-	verifier := signature.NewECDSASignerVerifier(nil, key, crypto.SHA256)
-	err = verifier.VerifySignature(data, sig)
+	verifier, _ := signature.LoadECDSAVerifier(key.(*ecdsa.PublicKey), crypto.SHA256)
+	err = verifier.VerifySignature(sig, data)
 	assert.Nil(suite.T(), err)
 }
 
 func (suite *VaultSuite) TestPubKeyVerify() {
 	provider := suite.GetProvider("testsign")
 
-	key, err := provider.CreateKey(context.Background())
+	key, err := provider.CreateKey(context.Background(), hashivault.Algorithm_ECDSA_P256)
 	require.Nil(suite.T(), err)
 	require.NotNil(suite.T(), key)
 
 	data := []byte("mydata")
-	sig, err := provider.Sign(rand.Reader, data, signature.SignerOpts{})
+	sig, err := provider.SignMessage(data)
 	require.Nil(suite.T(), err)
 	require.NotNil(suite.T(), sig)
 
@@ -123,29 +123,29 @@ func (suite *VaultSuite) TestPubKeyVerify() {
 	pubKey, ok := k.(*ecdsa.PublicKey)
 	require.True(suite.T(), ok)
 
-	verifier := signature.NewECDSASignerVerifier(nil, pubKey, crypto.SHA256)
-	err = verifier.VerifySignature(data, sig)
+	verifier, _ := signature.LoadECDSAVerifier(pubKey, crypto.SHA256)
+	err = verifier.VerifySignature(sig, data)
 	assert.Nil(suite.T(), err)
 }
 
 func (suite *VaultSuite) TestVerify() {
 	provider := suite.GetProvider("testverify")
 
-	key, err := provider.CreateKey(context.Background())
+	key, err := provider.CreateKey(context.Background(), hashivault.Algorithm_ECDSA_P256)
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), key)
 
 	data := []byte("mydata")
-	sig, err := provider.Sign(rand.Reader, data, signature.SignerOpts{})
+	sig, err := provider.SignMessage(data)
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), sig)
 
-	err = provider.VerifySignature(data, sig)
+	err = provider.VerifySignature(sig, data)
 	assert.Nil(suite.T(), err)
 }
 
 func (suite *VaultSuite) TestNoProvider() {
-	provider, err := kms.Get(context.Background(), "hashi://nonsense")
+	provider, err := kms.Get(context.Background(), "hashi://nonsense", crypto.Hash(0))
 	require.Error(suite.T(), err)
 	require.Nil(suite.T(), provider)
 }

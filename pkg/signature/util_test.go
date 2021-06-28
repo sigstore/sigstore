@@ -13,15 +13,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package signature_test
+package signature
 
 import (
 	"testing"
 
 	"github.com/go-test/deep"
 	"github.com/google/go-containerregistry/pkg/name"
-
-	"github.com/sigstore/sigstore/pkg/signature"
 )
 
 const validDigest = "sha256:d34db33fd34db33fd34db33fd34db33fd34db33fd34db33fd34db33fd34db33f"
@@ -36,18 +34,18 @@ func mustParseDigest(t *testing.T, digestStr string) name.Digest {
 }
 
 func TestProviderRoundtrip(t *testing.T) {
-	ecdsaSV, err := signature.NewDefaultECDSASignerVerifier()
+	ecdsaSV, _, err := NewDefaultECDSASignerVerifier()
 	if err != nil {
 		t.Fatalf("Could not generate ecdsa SignerVerifier for test: %v", err)
 	}
-	rsaSV, err := signature.NewDefaultRSASignerVerifier()
+	rsaSV, _, err := NewDefaultRSAPSSSignerVerifier()
 	if err != nil {
 		t.Fatalf("Could not generate rsa SignerVerifier for test: %v", err)
 	}
 
 	testCases := []struct {
 		desc   string
-		sv     signature.SignerVerifier
+		sv     SignerVerifier
 		digest name.Digest
 		claims map[string]interface{}
 	}{
@@ -73,12 +71,12 @@ func TestProviderRoundtrip(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.desc, func(t *testing.T) {
-			payload, sig, err := signature.SignImage(tc.sv, tc.digest, tc.claims)
+			payload, sig, err := SignImage(tc.sv, tc.digest, tc.claims)
 			if err != nil {
 				t.Fatalf("SignImage returned error: %v", err)
 			}
 
-			rtDigest, rtClaims, err := signature.VerifyImageSignature(tc.sv, payload, sig)
+			rtDigest, rtClaims, err := VerifyImageSignature(tc.sv, payload, sig)
 			if err != nil {
 				t.Fatalf("VerifyImageSignature returned error: %v", err)
 			}

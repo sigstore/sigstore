@@ -13,18 +13,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package keymgmt
+package cryptoutils
 
-import "testing"
+import (
+	"encoding/pem"
+)
 
-func TestGenerateKeys(t *testing.T) {
-	algs := []string{"ecdsaP224", "ecdsaP256", "ecdsaP384", "ecdsaP521"}
+type PEMType string
 
-	for _, alg := range algs {
-		_, _, err := GeneratePrivateKey(alg)
-
-		if err != nil {
-			t.Errorf("Key generation failed: %s\n", err)
-		}
-	}
+func PEMEncode(typeStr PEMType, bytes []byte) []byte {
+	return pem.EncodeToMemory(&pem.Block{
+		Type:  string(typeStr),
+		Bytes: bytes,
+	})
 }
