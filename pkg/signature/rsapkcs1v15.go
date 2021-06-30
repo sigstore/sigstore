@@ -16,13 +16,13 @@
 package signature
 
 import (
-	"context"
 	"crypto"
 	"crypto/rand"
 	"crypto/rsa"
 	"io"
 
 	"github.com/pkg/errors"
+	"github.com/sigstore/sigstore/pkg/signature/options"
 )
 
 type RSAPKCS1v15Signer struct {
@@ -58,68 +58,18 @@ func LoadRSAPKCS1v15Signer(priv *rsa.PrivateKey, hf crypto.Hash) (*RSAPKCS1v15Si
 //
 // - WithDigest()
 //
+// - WithCryptoSignerOpts()
+//
 // All other options are ignored if specified.
-func (r RSAPKCS1v15Signer) SignMessage(message []byte, opts ...SignerOption) ([]byte, error) {
-	req := &SignRequest{
-		Message:  message,
-		Rand:     rand.Reader,
-		HashFunc: r.hashFunc,
-	}
-
-	for _, opt := range opts {
-		opt.ApplySigner(req)
-	}
-
-	if err := r.validate(req); err != nil {
+func (r RSAPKCS1v15Signer) SignMessage(message io.Reader, opts ...SignOption) ([]byte, error) {
+	digest, hf, err := ComputeDigestForSigning(message, r.hashFunc, rsaSupportedHashFuncs, opts...)
+	if err != nil {
 		return nil, err
 	}
 
-	return r.computeSignature(req)
-}
+	rand := selectRandFromOpts(opts...)
 
-// validate ensures that the provided signRequest can be successfully processed
-// given internal fields as well as request-specific parameters (which take precedence).
-func (r RSAPKCS1v15Signer) validate(req *SignRequest) error {
-	// r.priv must be set
-	if r.priv == nil {
-		return errors.New("private key is not initialized")
-	}
-
-	// req.hashFunc must not be crypto.Hash(0)
-	if req.HashFunc == crypto.Hash(0) {
-		return errors.New("invalid hash function specified")
-	}
-
-	if req.Message == nil && req.Digest == nil {
-		return errors.New("digest or message is required to generate RSA signature")
-	}
-
-	if req.Rand == nil {
-		return errors.New("rand cannot be nil")
-	}
-
-	return nil
-}
-
-// computeSignature computes the signature for the specified signing request
-func (r RSAPKCS1v15Signer) computeSignature(req *SignRequest) ([]byte, error) {
-	hf := req.HashFunc
-	if hf == crypto.Hash(0) {
-		hf = r.hashFunc
-	}
-
-	digest := req.Digest
-	if digest == nil {
-		hasher := hf.New()
-		if _, err := hasher.Write(req.Message); err != nil {
-			return nil, errors.Wrap(err, "hashing during RSA signature")
-		}
-		digest = hasher.Sum(nil)
-	} else if hf.Size() != len(digest) {
-		return nil, errors.New("unexpected length of digest for hash functions specified")
-	}
-
-	return rsa.SignPKCS1v15(req.Rand, r.priv, hf, digest)
+	return rsa.SignPKCS1v15(rand, r.priv, hf, digest)
 }
 
 // Public returns the public key that can be used to verify signatures created by
@@ -132,9 +82,10 @@ func (r RSAPKCS1v15Signer) Public() crypto.PublicKey {
 	return r.priv.Public()
 }
 
-// PublicWithContext returns the public key that can be used to verify signatures created by
-// this signer. As this value is held in memory, the context argument to this method is ignored.
-func (r RSAPKCS1v15Signer) PublicWithContext(_ context.Context) (crypto.PublicKey, error) {
+// PublicKey returns the public key that can be used to verify signatures created by
+// this signer. As this value is held in memory, all options provided in arguments
+// to this method are ignored.
+func (r RSAPKCS1v15Signer) PublicKey(_ ...PublicKeyOption) (crypto.PublicKey, error) {
 	return r.Public(), nil
 }
 
@@ -147,15 +98,11 @@ func (r RSAPKCS1v15Signer) PublicWithContext(_ context.Context) (crypto.PublicKe
 // not specified, this function assumes the hash function provided when the signer was created was
 // used to create the value specified in digest.
 func (r RSAPKCS1v15Signer) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpts) ([]byte, error) {
-	rsaOpts := []SignerOption{}
-	if rand != nil {
-		rsaOpts = append(rsaOpts, WithRand(rand))
-	}
+	rsaOpts := []SignOption{options.WithDigest(digest), options.WithRand(rand)}
 	if opts != nil {
-		rsaOpts = append(rsaOpts, WithDigest(digest, opts.HashFunc()))
-	} else {
-		rsaOpts = append(rsaOpts, WithDigest(digest, r.hashFunc))
+		rsaOpts = append(rsaOpts, options.WithCryptoSignerOpts(opts))
 	}
+
 	return r.SignMessage(nil, rsaOpts...)
 }
 
@@ -193,70 +140,25 @@ func LoadRSAPKCS1v15Verifier(pub *rsa.PublicKey, hashFunc crypto.Hash) (*RSAPKCS
 //
 // - WithDigest()
 //
+// - WithCryptoSignerOpts()
+//
 // All other options are ignored if specified.
-func (r RSAPKCS1v15Verifier) VerifySignature(signature []byte, message []byte, opts ...VerifierOption) error {
-	req := &VerifyRequest{
-		Signature: signature,
-		Message:   message,
-		HashFunc:  r.hashFunc,
-	}
-
-	for _, opt := range opts {
-		opt.ApplyVerifier(req)
-	}
-
-	if err := r.validate(req); err != nil {
+func (r RSAPKCS1v15Verifier) VerifySignature(signature, message io.Reader, opts ...VerifyOption) error {
+	digest, hf, err := ComputeDigestForVerifying(message, r.hashFunc, rsaSupportedHashFuncs, opts...)
+	if err != nil {
 		return err
 	}
 
-	return r.verify(req)
-}
-
-// validate ensures that the provided verifyRequest can be successfully processed
-// given internal fields as well as request-specific parameters (which take precedence).
-func (r RSAPKCS1v15Verifier) validate(req *VerifyRequest) error {
-	if req == nil {
-		return errors.New("verifyRequest is nil")
-	}
-	// r.PublicKey must be set
-	if r.publicKey == nil {
-		return errors.New("public key is not initialized")
+	if signature == nil {
+		return errors.New("nil signature passed to VerifySignature")
 	}
 
-	if req.HashFunc == crypto.Hash(0) {
-		return errors.New("hash function is required to verify RSA signature")
+	sigBytes, err := io.ReadAll(signature)
+	if err != nil {
+		return errors.Wrap(err, "reading signature")
 	}
 
-	if req.Digest == nil && req.Message == nil {
-		return errors.New("digest or message is required to verify RSA signature")
-	}
-
-	return nil
-}
-
-// verify verifies the signature for the specified verify request
-func (r RSAPKCS1v15Verifier) verify(req *VerifyRequest) error {
-	if req == nil {
-		return errors.New("verifyRequest is nil")
-	}
-
-	hf := req.HashFunc
-	if hf == crypto.Hash(0) {
-		hf = r.hashFunc
-	}
-
-	digest := req.Digest
-	if digest == nil {
-		hasher := hf.New()
-		if _, err := hasher.Write(req.Message); err != nil {
-			return errors.Wrap(err, "hashing during RSA verification")
-		}
-		digest = hasher.Sum(nil)
-	} else if hf.Size() != len(digest) {
-		return errors.New("unexpected length of digest for hash function specified")
-	}
-
-	return rsa.VerifyPKCS1v15(r.publicKey, hf, digest, req.Signature)
+	return rsa.VerifyPKCS1v15(r.publicKey, hf, digest, sigBytes)
 }
 
 type RSAPKCS1v15SignerVerifier struct {

@@ -16,6 +16,7 @@
 package signature
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 
@@ -33,7 +34,7 @@ func SignImage(signer SignerVerifier, image name.Digest, optionalAnnotations map
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to marshal payload to JSON: %v", err)
 	}
-	signature, err = signer.SignMessage(payload)
+	signature, err = signer.SignMessage(bytes.NewReader(payload))
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to sign payload: %v", err)
 	}
@@ -41,7 +42,7 @@ func SignImage(signer SignerVerifier, image name.Digest, optionalAnnotations map
 }
 
 func VerifyImageSignature(signer SignerVerifier, payload, signature []byte) (image name.Digest, annotations map[string]interface{}, err error) {
-	if err := signer.VerifySignature(signature, payload); err != nil {
+	if err := signer.VerifySignature(bytes.NewReader(signature), bytes.NewReader(payload)); err != nil {
 		return name.Digest{}, nil, fmt.Errorf("signature verification failed: %v", err)
 	}
 	var imgPayload sigpayload.Cosign

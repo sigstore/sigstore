@@ -1,17 +1,17 @@
 //
 // Copyright 2021 The Sigstore Authors.
 //
-// Licensed undee the Apache License, Version 2.0 (the "License");
+// Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
 //     http://www.apache.org/licenses/LICENSE-2.0
 //
-// Unless required by applicable law oe agreed to in writing, software
-// distributed undee the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, eithee express oe implied.
-// See the License foe the specific language governing permissions and
-// limitations undee the License.
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 package gcp
 
@@ -21,6 +21,8 @@ import (
 	"crypto/ecdsa"
 	"crypto/rsa"
 	"fmt"
+	"hash/crc32"
+	"io"
 	"log"
 	"regexp"
 	"time"
@@ -33,6 +35,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
 	"github.com/sigstore/sigstore/pkg/signature"
+	"github.com/sigstore/sigstore/pkg/signature/options"
 )
 
 //nolint:golint
@@ -320,7 +323,7 @@ func (g *gcpClient) sign(ctx context.Context, digest []byte, alg crypto.Hash, cr
 	if crc != 0 && !resp.VerifiedDigestCrc32C {
 		return nil, fmt.Errorf("AsymmetricSign: request corrupted in-transit")
 	}
-	if int64(crc32c(resp.Signature)) != resp.SignatureCrc32C.Value {
+	if int64(crc32.Checksum(resp.Signature, crc32.MakeTable(crc32.Castagnoli))) != resp.SignatureCrc32C.Value {
 		return nil, fmt.Errorf("AsymmetricSign: response corrupted in-transit")
 	}
 
@@ -332,11 +335,11 @@ func (g *gcpClient) public(ctx context.Context) (crypto.PublicKey, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "transient error getting info from KMS")
 	}
-	return crv.SignerVerifier.PublicWithContext(ctx)
+	return crv.SignerVerifier.PublicKey(options.WithContext(ctx))
 
 }
 
-func (g *gcpClient) verify(sig, message []byte, opts ...signature.VerifierOption) error {
+func (g *gcpClient) verify(sig, message io.Reader, opts ...signature.VerifyOption) error {
 	crv, err := g.getCKV()
 	if err != nil {
 		return errors.Wrap(err, "transient error getting info from KMS")

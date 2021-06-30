@@ -16,11 +16,11 @@
 package signature
 
 import (
-	"context"
 	"crypto"
 	"crypto/ecdsa"
 	"crypto/ed25519"
 	"crypto/rsa"
+	"io"
 	"io/ioutil"
 	"path/filepath"
 
@@ -29,16 +29,7 @@ import (
 )
 
 type Verifier interface {
-	VerifySignature(signature []byte, message []byte, opts ...VerifierOption) error
-}
-
-type VerifyRequest struct {
-	Ctx       context.Context
-	HashFunc  crypto.Hash
-	PSSOpts   *rsa.PSSOptions
-	Digest    []byte
-	Message   []byte
-	Signature []byte
+	VerifySignature(signature, message io.Reader, opts ...VerifyOption) error
 }
 
 // LoadVerifier returns a signature.Verifier based on the algorithm of the public key

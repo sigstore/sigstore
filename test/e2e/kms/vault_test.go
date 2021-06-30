@@ -18,9 +18,11 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"crypto"
 	"crypto/ecdsa"
+	"crypto/rand"
 	"fmt"
 	"os"
 	"testing"
@@ -96,12 +98,12 @@ func (suite *VaultSuite) TestSign() {
 	assert.NotNil(suite.T(), key)
 
 	data := []byte("mydata")
-	sig, err := provider.SignMessage(data)
+	sig, err := provider.SignMessage(bytes.NewReader(data))
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), sig)
 
 	verifier, _ := signature.LoadECDSAVerifier(key.(*ecdsa.PublicKey), crypto.SHA256)
-	err = verifier.VerifySignature(sig, data)
+	err = verifier.VerifySignature(bytes.NewReader(sig), bytes.NewReader(data))
 	assert.Nil(suite.T(), err)
 }
 
@@ -113,18 +115,45 @@ func (suite *VaultSuite) TestPubKeyVerify() {
 	require.NotNil(suite.T(), key)
 
 	data := []byte("mydata")
-	sig, err := provider.SignMessage(data)
+	sig, err := provider.SignMessage(bytes.NewReader(data))
 	require.Nil(suite.T(), err)
 	require.NotNil(suite.T(), sig)
 
-	k := provider.Public()
-	require.NotNil(suite.T(), key)
+	k, err := provider.PublicKey()
+	require.NotNil(suite.T(), k)
+	require.Nil(suite.T(), err)
 
 	pubKey, ok := k.(*ecdsa.PublicKey)
 	require.True(suite.T(), ok)
 
 	verifier, _ := signature.LoadECDSAVerifier(pubKey, crypto.SHA256)
-	err = verifier.VerifySignature(sig, data)
+	err = verifier.VerifySignature(bytes.NewReader(sig), bytes.NewReader(data))
+	assert.Nil(suite.T(), err)
+}
+
+func (suite *VaultSuite) TestCryptoSigner() {
+	provider := suite.GetProvider("testsign")
+
+	key, err := provider.CreateKey(context.Background(), hashivault.Algorithm_ECDSA_P256)
+	require.Nil(suite.T(), err)
+	require.NotNil(suite.T(), key)
+
+	data := []byte("mydata")
+	cs, opts, err := provider.CryptoSigner(context.Background(), func(err error) { require.Nil(suite.T(), err) })
+	hasher := opts.HashFunc().New()
+	_, _ = hasher.Write(data)
+	sig, err := cs.Sign(rand.Reader, hasher.Sum(nil), opts)
+	require.Nil(suite.T(), err)
+	require.NotNil(suite.T(), sig)
+
+	k := cs.Public()
+	require.NotNil(suite.T(), k)
+
+	pubKey, ok := k.(*ecdsa.PublicKey)
+	require.True(suite.T(), ok)
+
+	verifier, _ := signature.LoadECDSAVerifier(pubKey, crypto.SHA256)
+	err = verifier.VerifySignature(bytes.NewReader(sig), bytes.NewReader(data))
 	assert.Nil(suite.T(), err)
 }
 
@@ -136,11 +165,11 @@ func (suite *VaultSuite) TestVerify() {
 	assert.NotNil(suite.T(), key)
 
 	data := []byte("mydata")
-	sig, err := provider.SignMessage(data)
+	sig, err := provider.SignMessage(bytes.NewReader(data))
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), sig)
 
-	err = provider.VerifySignature(sig, data)
+	err = provider.VerifySignature(bytes.NewReader(sig), bytes.NewReader(data))
 	assert.Nil(suite.T(), err)
 }
 

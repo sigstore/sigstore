@@ -43,7 +43,7 @@ func MarshalPublicKeyToDER(pub crypto.PublicKey) ([]byte, error) {
 	return x509.MarshalPKIXPublicKey(pub)
 }
 
-// MarshalPublicKeyToDER converts a crypto.PublicKey into a PEM-encoded byte slice
+// MarshalPublicKeyToPEM converts a crypto.PublicKey into a PEM-encoded byte slice
 func MarshalPublicKeyToPEM(pub crypto.PublicKey) ([]byte, error) {
 	derBytes, err := MarshalPublicKeyToDER(pub)
 	if err != nil {

@@ -16,15 +16,22 @@
 package signature
 
 import (
-	"context"
 	"crypto"
 	"crypto/rand"
 	"crypto/rsa"
-	"fmt"
 	"io"
 
 	"github.com/pkg/errors"
+	"github.com/sigstore/sigstore/pkg/signature/options"
 )
+
+var rsaSupportedHashFuncs = []crypto.Hash{
+	crypto.SHA256,
+	crypto.SHA512,
+	crypto.SHA224,
+	crypto.SHA384,
+	crypto.SHA1,
+}
 
 type RSAPSSSigner struct {
 	hashFunc crypto.Hash
@@ -43,7 +50,7 @@ func LoadRSAPSSSigner(priv *rsa.PrivateKey, hf crypto.Hash, opts *rsa.PSSOptions
 		return nil, errors.New("invalid RSA private key specified")
 	}
 
-	if hf == crypto.Hash(0) {
+	if !isSupportedAlg(hf, rsaSupportedHashFuncs) {
 		return nil, errors.New("invalid hash function specified")
 	}
 
@@ -64,77 +71,25 @@ func LoadRSAPSSSigner(priv *rsa.PrivateKey, hf crypto.Hash, opts *rsa.PSSOptions
 //
 // - WithDigest()
 //
+// - WithCryptoSignerOpts()
+//
 // All other options are ignored if specified.
-func (r RSAPSSSigner) SignMessage(message []byte, opts ...SignerOption) ([]byte, error) {
-	req := &SignRequest{
-		Message:  message,
-		Rand:     rand.Reader,
-		HashFunc: r.hashFunc,
-		PSSOpts:  r.pssOpts,
-	}
-
-	for _, opt := range opts {
-		opt.ApplySigner(req)
-	}
-
-	if err := r.validate(req); err != nil {
+func (r RSAPSSSigner) SignMessage(message io.Reader, opts ...SignOption) ([]byte, error) {
+	digest, hf, err := ComputeDigestForSigning(message, r.hashFunc, rsaSupportedHashFuncs, opts...)
+	if err != nil {
 		return nil, err
 	}
 
-	return r.computeSignature(req)
-}
-
-// validate ensures that the provided signRequest can be successfully processed
-// given internal fields as well as request-specific parameters (which take precedence).
-func (r RSAPSSSigner) validate(req *SignRequest) error {
-	// r.priv must be set
-	if r.priv == nil {
-		return errors.New("private key is not initialized")
-	}
-
-	if req.Message == nil && req.Digest == nil {
-		return errors.New("digest or message is required to generate RSA signature")
-	}
-
-	// req.HashFunc must not be crypto.Hash(0)
-	if req.HashFunc == crypto.Hash(0) {
-		return errors.New("invalid hash function specified")
-	} else if req.PSSOpts != nil && req.PSSOpts.Hash == crypto.Hash(0) {
-		return errors.New("invalid hash function specified in PSS options")
-	}
-
-	if req.Rand == nil {
-		return errors.New("rand cannot be nil")
-	}
-
-	return nil
-}
-
-// computeSignature computes the signature for the specified signing request
-func (r RSAPSSSigner) computeSignature(req *SignRequest) ([]byte, error) {
-	hf := req.HashFunc
-	if hf == crypto.Hash(0) {
-		if req.PSSOpts != nil {
-			hf = req.PSSOpts.Hash
-		}
-		if hf == crypto.Hash(0) {
-			hf = r.hashFunc
+	rand := selectRandFromOpts(opts...)
+	pssOpts := r.pssOpts
+	if pssOpts == nil {
+		pssOpts = &rsa.PSSOptions{
+			SaltLength: rsa.PSSSaltLengthAuto,
 		}
 	}
+	pssOpts.Hash = hf
 
-	digest := req.Digest
-	if digest == nil {
-		hasher := hf.New()
-		if _, err := hasher.Write(req.Message); err != nil {
-			return nil, errors.Wrap(err, "hashing during RSA signature")
-		}
-		digest = hasher.Sum(nil)
-	} else if hf.Size() != len(digest) {
-		fmt.Printf("hf.Size() = %v, len(digest) = %v\n", hf.Size(), len(digest))
-		return nil, errors.New("unexpected length of digest for hash functions specified")
-	}
-
-	return rsa.SignPSS(req.Rand, r.priv, hf, digest, req.PSSOpts)
+	return rsa.SignPSS(rand, r.priv, hf, digest, pssOpts)
 }
 
 // Public returns the public key that can be used to verify signatures created by
@@ -147,9 +102,10 @@ func (r RSAPSSSigner) Public() crypto.PublicKey {
 	return r.priv.Public()
 }
 
-// PublicWithContext returns the public key that can be used to verify signatures created by
-// this signer. As this value is held in memory, the context argument to this method is ignored.
-func (r RSAPSSSigner) PublicWithContext(_ context.Context) (crypto.PublicKey, error) {
+// PublicKey returns the public key that can be used to verify signatures created by
+// this signer. As this value is held in memory, all options provided in arguments
+// to this method are ignored.
+func (r RSAPSSSigner) PublicKey(_ ...PublicKeyOption) (crypto.PublicKey, error) {
 	return r.Public(), nil
 }
 
@@ -158,22 +114,14 @@ func (r RSAPSSSigner) PublicWithContext(_ context.Context) (crypto.PublicKey, er
 // If a source of entropy is given in rand, it will be used instead of the default value (rand.Reader
 // from crypto/rand).
 //
-// If opts are specified, they must be *rsa.PSSOptions. If opts are not specified, the value
-// provided when the signer was created will be used instead.
+// If opts are specified, they must be *rsa.PSSOptions. If opts are not specified, the hash function
+// provided when the signer was created will be assumed.
 func (r RSAPSSSigner) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpts) ([]byte, error) {
-	rsaOpts := []SignerOption{}
-	if rand != nil {
-		rsaOpts = append(rsaOpts, WithRand(rand))
-	}
+	rsaOpts := []SignOption{options.WithDigest(digest), options.WithRand(rand)}
 	if opts != nil {
-		if optsArg, ok := opts.(*rsa.PSSOptions); ok {
-			rsaOpts = append(rsaOpts, WithDigest(digest, optsArg.Hash), withPSSOptions(optsArg))
-		} else {
-			return nil, errors.New("opts must be nil or of type *rsa.PSSOptions")
-		}
-	} else {
-		rsaOpts = append(rsaOpts, WithDigest(digest, r.hashFunc))
+		rsaOpts = append(rsaOpts, options.WithCryptoSignerOpts(opts))
 	}
+
 	return r.SignMessage(nil, rsaOpts...)
 }
 
@@ -191,7 +139,7 @@ func LoadRSAPSSVerifier(pub *rsa.PublicKey, hashFunc crypto.Hash, opts *rsa.PSSO
 		return nil, errors.New("invalid RSA public key specified")
 	}
 
-	if hashFunc == crypto.Hash(0) {
+	if !isSupportedAlg(hashFunc, rsaSupportedHashFuncs) {
 		return nil, errors.New("invalid hash function specified")
 	}
 
@@ -212,71 +160,33 @@ func LoadRSAPSSVerifier(pub *rsa.PublicKey, hashFunc crypto.Hash, opts *rsa.PSSO
 //
 // - WithDigest()
 //
+// - WithCryptoSignerOpts()
+//
 // All other options are ignored if specified.
-func (r RSAPSSVerifier) VerifySignature(signature []byte, message []byte, opts ...VerifierOption) error {
-	req := &VerifyRequest{
-		Signature: signature,
-		Message:   message,
-		HashFunc:  r.hashFunc,
-		PSSOpts:   r.pssOpts,
-	}
-
-	for _, opt := range opts {
-		opt.ApplyVerifier(req)
-	}
-
-	if err := r.validate(req); err != nil {
+func (r RSAPSSVerifier) VerifySignature(signature, message io.Reader, opts ...VerifyOption) error {
+	digest, hf, err := ComputeDigestForVerifying(message, r.hashFunc, rsaSupportedHashFuncs, opts...)
+	if err != nil {
 		return err
 	}
 
-	return r.verify(req)
-}
-
-// validate ensures that the provided verifyRequest can be successfully processed
-// given internal fields as well as request-specific parameters (which take precedence).
-func (r RSAPSSVerifier) validate(req *VerifyRequest) error {
-	// r.PublicKey must be set
-	if r.publicKey == nil {
-		return errors.New("public key is not initialized")
+	if signature == nil {
+		return errors.New("nil signature passed to VerifySignature")
 	}
 
-	if req.Message == nil && req.Digest == nil {
-		return errors.New("digest or message is required to verify RSA signature")
+	sigBytes, err := io.ReadAll(signature)
+	if err != nil {
+		return errors.Wrap(err, "reading signature")
 	}
 
-	// pssOpts.Hash is ignored by VerifyPSS so we don't check it here
-	if req.HashFunc == crypto.Hash(0) {
-		return errors.New("hash function is required to verify RSA signature")
-	}
-
-	return nil
-}
-
-// verify verifies the signature for the specified verify request
-func (r RSAPSSVerifier) verify(req *VerifyRequest) error {
-	if req == nil {
-		return errors.New("verifyRequest is nil")
-	}
-
-	// we do not use req.pssOpts.Hash since it is ignored in VerifyPSS
-	hf := req.HashFunc
-	if hf == crypto.Hash(0) {
-		hf = r.hashFunc
-	}
-
-	digest := req.Digest
-	if digest == nil {
-		hasher := hf.New()
-		if _, err := hasher.Write(req.Message); err != nil {
-			return errors.Wrap(err, "hashing during RSA verification")
+	// rsa.VerifyPSS ignores pssOpts.Hash, so we don't set it
+	pssOpts := r.pssOpts
+	if pssOpts == nil {
+		pssOpts = &rsa.PSSOptions{
+			SaltLength: rsa.PSSSaltLengthAuto,
 		}
-		digest = hasher.Sum(nil)
-	} else if hf.Size() != len(digest) {
-		fmt.Printf("hf.Size() = %v, len(digest) = %v\n", hf.Size(), len(digest))
-		return errors.New("unexpected length of digest for hash function specified")
 	}
 
-	return rsa.VerifyPSS(r.publicKey, hf, digest, req.Signature, req.PSSOpts)
+	return rsa.VerifyPSS(r.publicKey, hf, digest, sigBytes, pssOpts)
 }
 
 type RSAPSSSignerVerifier struct {

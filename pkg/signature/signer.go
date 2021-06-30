@@ -16,7 +16,6 @@
 package signature
 
 import (
-	"context"
 	"crypto"
 	"crypto/ecdsa"
 	"crypto/ed25519"
@@ -37,30 +36,20 @@ import (
 )
 
 type Signer interface {
-	SignMessage(message []byte, opts ...SignerOption) ([]byte, error)
-	crypto.Signer
-	PublicWithContext(ctx context.Context) (crypto.PublicKey, error)
-}
-
-type SignRequest struct {
-	Ctx      context.Context
-	HashFunc crypto.Hash
-	PSSOpts  *rsa.PSSOptions
-	Rand     io.Reader
-	Digest   []byte
-	Message  []byte
+	SignMessage(message io.Reader, opts ...SignOption) ([]byte, error)
+	PublicKey(opts ...PublicKeyOption) (crypto.PublicKey, error)
 }
 
 // SignerOpts implements crypto.SignerOpts but also allows callers to specify
 // additional options that may be utilized in signing the digest provided.
 type SignerOpts struct {
 	Hash crypto.Hash
-	Opts []SignerOption
+	Opts []SignOption
 }
 
 // HashFunc returns the hash function for this object
-func (k SignerOpts) HashFunc() crypto.Hash {
-	return k.Hash
+func (s SignerOpts) HashFunc() crypto.Hash {
+	return s.Hash
 }
 
 // LoadSigner returns a signature.Signer based on the algorithm of the private key

@@ -19,10 +19,10 @@ import (
 	"context"
 	"crypto"
 	"io"
-	"log"
 
 	"github.com/pkg/errors"
 	"github.com/sigstore/sigstore/pkg/signature"
+	"github.com/sigstore/sigstore/pkg/signature/options"
 )
 
 // Taken from https://www.vaultproject.io/api/secret/transit
@@ -36,6 +36,14 @@ const (
 	Algorithm_RSA_3072   = "rsa-3072"
 	Algorithm_RSA_4096   = "rsa-4096"
 )
+
+var hvSupportedHashFuncs = []crypto.Hash{
+	crypto.SHA224,
+	crypto.SHA256,
+	crypto.SHA384,
+	crypto.SHA512,
+	crypto.Hash(0),
+}
 
 type SignerVerifier struct {
 	hashFunc crypto.Hash
@@ -74,98 +82,27 @@ func LoadSignerVerifier(referenceStr string, hashFunc crypto.Hash) (*SignerVerif
 // - WithDigest()
 //
 // All other options are ignored if specified.
-func (h SignerVerifier) SignMessage(message []byte, opts ...signature.SignerOption) ([]byte, error) {
-	req := &signature.SignRequest{
-		Message:  message,
-		HashFunc: h.hashFunc,
-	}
+func (h SignerVerifier) SignMessage(message io.Reader, opts ...signature.SignOption) ([]byte, error) {
+	var digest []byte
+	var signerOpts crypto.SignerOpts = h.hashFunc
 
 	for _, opt := range opts {
-		opt.ApplySigner(req)
+		opt.ApplyDigest(&digest)
+		opt.ApplyCryptoSignerOpts(&signerOpts)
 	}
 
-	if err := h.validate(req); err != nil {
+	digest, hf, err := signature.ComputeDigestForSigning(message, signerOpts.HashFunc(), hvSupportedHashFuncs, opts...)
+	if err != nil {
 		return nil, err
-	}
-
-	return h.computeSignature(req)
-}
-
-// validate ensures that the provided signRequest can be successfully processed
-// given internal fields as well as request-specific parameters (which take precedence).
-func (h SignerVerifier) validate(req *signature.SignRequest) error {
-	if req.Digest == nil && req.Message == nil {
-		return errors.New("digest or message must be specified to Hashivault KMS signer")
-	}
-
-	// crypto.Hash(0) is allowed because we may be signing with ED25519 which
-	// requires the actual message
-
-	return nil
-}
-
-// computeSignature computes the signature for the specified signing request
-func (h SignerVerifier) computeSignature(req *signature.SignRequest) ([]byte, error) {
-	hf := req.HashFunc
-	if hf == crypto.Hash(0) {
-		hf = h.hashFunc
-	}
-
-	digest := req.Digest
-	if digest == nil {
-		if hf == crypto.Hash(0) {
-			digest = req.Message
-		} else {
-			hasher := hf.New()
-			if _, err := hasher.Write(req.Message); err != nil {
-				return nil, errors.Wrap(err, "hashing during Hashivault signature")
-			}
-			digest = hasher.Sum(nil)
-		}
-	} else if len(digest) != hf.Size() {
-		return nil, errors.New("unexpected length of digest for hash function specified")
 	}
 
 	return h.client.sign(digest, hf)
 
 }
 
-// Sign uses Hashivault KMS to compute the signature for the specified digest.
-//
-// This will use the default context set when the SignerVerifier was created, unless
-// opts are passed to this method of type SignerOpts. If a context is
-// specified in opts, it will be used instead of the default context on the SignerVerifier.
-//
-// The first argument is ignored, and if opts is nil the hash function declared when the
-// signer was created will be assumed to be the one used to calculate digest.
-func (h SignerVerifier) Sign(_ io.Reader, digest []byte, opts crypto.SignerOpts) ([]byte, error) {
-	var hvOptions []signature.SignerOption
-	if opts != nil {
-		if signerOpts, ok := opts.(*signature.SignerOpts); ok {
-			hvOptions = append(hvOptions, signerOpts.Opts...)
-		}
-		hvOptions = append(hvOptions, signature.WithDigest(digest, opts.HashFunc()))
-	} else {
-		hvOptions = append(hvOptions, signature.WithDigest(digest, h.hashFunc))
-	}
-	return h.SignMessage(nil, hvOptions...)
-}
-
-// Public returns the current Public Key stored in KMS using the default context;
-// if there is an error, this method returns nil
-func (h SignerVerifier) Public() crypto.PublicKey {
-	pubKey, err := h.client.public()
-	if err != nil {
-		log.Println(err)
-		return nil
-	}
-	return pubKey
-}
-
-// PublicWithContext returns the current Public Key stored in KMS.
-//
-// The context argument is ignored.
-func (h SignerVerifier) PublicWithContext(_ context.Context) (crypto.PublicKey, error) {
+// PublicKey returns the public key that can be used to verify signatures created by
+// this signer. All options provided in arguments to this method are ignored.
+func (h SignerVerifier) PublicKey(_ ...signature.PublicKeyOption) (crypto.PublicKey, error) {
 	return h.client.public()
 }
 
@@ -179,69 +116,72 @@ func (h SignerVerifier) PublicWithContext(_ context.Context) (crypto.PublicKey, 
 //
 // - WithDigest()
 //
+// - WithCryptoSignerOpts()
+//
 // All other options are ignored if specified.
-func (h SignerVerifier) VerifySignature(sig []byte, message []byte, opts ...signature.VerifierOption) error {
-	req := &signature.VerifyRequest{
-		Signature: sig,
-		Message:   message,
-		HashFunc:  h.hashFunc,
-	}
+func (h SignerVerifier) VerifySignature(sig, message io.Reader, opts ...signature.VerifyOption) error {
+	var digest []byte
+	var signerOpts crypto.SignerOpts = h.hashFunc
 
 	for _, opt := range opts {
-		opt.ApplyVerifier(req)
+		opt.ApplyDigest(&digest)
+		opt.ApplyCryptoSignerOpts(&signerOpts)
 	}
 
-	if err := h.validateVerify(req); err != nil {
+	digest, hf, err := signature.ComputeDigestForVerifying(message, signerOpts.HashFunc(), hvSupportedHashFuncs, opts...)
+	if err != nil {
 		return err
 	}
 
-	return h.verify(req)
-}
-
-// validateVerify ensures that the provided verifyRequest can be successfully processed
-// given internal fields as well as request-specific parameters (which take precedence).
-func (h SignerVerifier) validateVerify(req *signature.VerifyRequest) error {
-	if req == nil {
-		return errors.New("verifyRequest is nil")
+	sigBytes, err := io.ReadAll(sig)
+	if err != nil {
+		return errors.Wrap(err, "reading signature")
 	}
 
-	if req.Digest == nil && req.Message == nil {
-		return errors.New("digest or message is required to verify signature")
-	}
-
-	return nil
-}
-
-// verify verifies the signature for the specified verify request
-func (h SignerVerifier) verify(req *signature.VerifyRequest) error {
-	if req == nil {
-		return errors.New("verifyRequest is nil")
-	}
-
-	hf := req.HashFunc
-	if hf == crypto.Hash(0) {
-		hf = h.hashFunc
-	}
-
-	digest := req.Digest
-	if digest == nil {
-		if hf == crypto.Hash(0) {
-			digest = req.Message
-		} else {
-			hasher := hf.New()
-			if _, err := hasher.Write(req.Message); err != nil {
-				return errors.Wrap(err, "hashing during verification")
-			}
-			digest = hasher.Sum(nil)
-		}
-	} else if hf.Size() != len(digest) {
-		return errors.New("unexpected length of digest for hash function specified")
-	}
-
-	return h.client.verify(req.Signature, digest, hf)
+	return h.client.verify(sigBytes, digest, hf)
 }
 
 // CreateKey attempts to create a new key in Vault with the specified algorithm.
 func (h SignerVerifier) CreateKey(_ context.Context, algorithm string) (crypto.PublicKey, error) {
 	return h.client.createKey(algorithm)
+}
+
+type cryptoSignerWrapper struct {
+	ctx      context.Context
+	hashFunc crypto.Hash
+	sv       *SignerVerifier
+	errFunc  func(error)
+}
+
+func (c cryptoSignerWrapper) Public() crypto.PublicKey {
+	pk, err := c.sv.PublicKey(options.WithContext(c.ctx))
+	if err != nil && c.errFunc != nil {
+		c.errFunc(err)
+	}
+	return pk
+}
+
+func (c cryptoSignerWrapper) Sign(_ io.Reader, digest []byte, opts crypto.SignerOpts) ([]byte, error) {
+	hashFunc := c.hashFunc
+	if opts != nil {
+		hashFunc = opts.HashFunc()
+	}
+	hvOptions := []signature.SignOption{
+		options.WithContext(c.ctx),
+		options.WithDigest(digest),
+		options.WithCryptoSignerOpts(hashFunc),
+	}
+
+	return c.sv.SignMessage(nil, hvOptions...)
+}
+
+func (h *SignerVerifier) CryptoSigner(ctx context.Context, errFunc func(error)) (crypto.Signer, crypto.SignerOpts, error) {
+	csw := &cryptoSignerWrapper{
+		ctx:      ctx,
+		sv:       h,
+		hashFunc: h.hashFunc,
+		errFunc:  errFunc,
+	}
+
+	return csw, h.hashFunc, nil
 }

@@ -1,22 +1,21 @@
 //
 // Copyright 2021 The Sigstore Authors.
 //
-// Licensed undee the Apache License, Version 2.0 (the "License");
+// Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
 //     http://www.apache.org/licenses/LICENSE-2.0
 //
-// Unless required by applicable law oe agreed to in writing, software
-// distributed undee the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, eithee express oe implied.
-// See the License foe the specific language governing permissions and
-// limitations undee the License.
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 package signature
 
 import (
-	"context"
 	"crypto"
 	"crypto/ecdsa"
 	"crypto/elliptic"
@@ -24,7 +23,16 @@ import (
 	"io"
 
 	"github.com/pkg/errors"
+	"github.com/sigstore/sigstore/pkg/signature/options"
 )
+
+var ecdsaSupportedHashFuncs = []crypto.Hash{
+	crypto.SHA256,
+	crypto.SHA512,
+	crypto.SHA384,
+	crypto.SHA224,
+	crypto.SHA1,
+}
 
 type ECDSASigner struct {
 	hashFunc crypto.Hash
@@ -59,76 +67,18 @@ func LoadECDSASigner(priv *ecdsa.PrivateKey, hf crypto.Hash) (*ECDSASigner, erro
 //
 // - WithDigest()
 //
+// - WithCryptoSignerOpts()
+//
 // All other options are ignored if specified.
-func (e ECDSASigner) SignMessage(message []byte, opts ...SignerOption) ([]byte, error) {
-	req := &SignRequest{
-		Message:  message,
-		Rand:     rand.Reader,
-		HashFunc: e.hashFunc,
-	}
-
-	for _, opt := range opts {
-		opt.ApplySigner(req)
-	}
-
-	if err := e.validate(req); err != nil {
+func (e ECDSASigner) SignMessage(message io.Reader, opts ...SignOption) ([]byte, error) {
+	digest, _, err := ComputeDigestForSigning(message, e.hashFunc, ecdsaSupportedHashFuncs, opts...)
+	if err != nil {
 		return nil, err
 	}
 
-	return e.computeSignature(req)
-}
+	rand := selectRandFromOpts(opts...)
 
-// validate ensures that the provided signRequest can be successfully processed
-// given internal fields as well as request-specific parameters (which take precedence).
-func (e ECDSASigner) validate(req *SignRequest) error {
-	if req == nil {
-		return errors.New("signRequest is nil")
-	}
-
-	// e.priv must be set
-	if e.priv == nil {
-		return errors.New("private key is not initialized")
-	}
-
-	// req.hashFunc must not be crypto.Hash(0)
-	if req.HashFunc == crypto.Hash(0) {
-		return errors.New("invalid hash function specified")
-	}
-
-	if req.Message == nil && req.Digest == nil {
-		return errors.New("either the message or digest must be provided")
-	}
-
-	if req.Rand == nil {
-		return errors.New("rand cannot be nil")
-	}
-
-	return nil
-}
-
-// computeSignature computes the signature for the specified signing request
-func (e ECDSASigner) computeSignature(req *SignRequest) ([]byte, error) {
-	if req == nil {
-		return nil, errors.New("signRequest is nil")
-	}
-
-	hf := req.HashFunc
-	if hf == crypto.Hash(0) {
-		hf = e.hashFunc
-	}
-
-	digest := req.Digest
-	if digest == nil {
-		hasher := hf.New()
-		if _, err := hasher.Write(req.Message); err != nil {
-			return nil, errors.Wrap(err, "hashing during ECDSA signature")
-		}
-		digest = hasher.Sum(nil)
-	} else if hf.Size() != len(digest) {
-		return nil, errors.New("unexpected length of digest for hash function specified")
-	}
-
-	return ecdsa.SignASN1(req.Rand, e.priv, digest)
+	return ecdsa.SignASN1(rand, e.priv, digest)
 }
 
 // Public returns the public key that can be used to verify signatures created by
@@ -141,9 +91,10 @@ func (e ECDSASigner) Public() crypto.PublicKey {
 	return e.priv.Public()
 }
 
-// PublicWithContext returns the public key that can be used to verify signatures created by
-// this signer. As this value is held in memory, the context argument to this method is ignored.
-func (e ECDSASigner) PublicWithContext(_ context.Context) (crypto.PublicKey, error) {
+// PublicKey returns the public key that can be used to verify signatures created by
+// this signer. As this value is held in memory, all options provided in arguments
+// to this method are ignored.
+func (e ECDSASigner) PublicKey(_ ...PublicKeyOption) (crypto.PublicKey, error) {
 	return e.Public(), nil
 }
 
@@ -153,15 +104,11 @@ func (e ECDSASigner) PublicWithContext(_ context.Context) (crypto.PublicKey, err
 // If opts are specified, the hash function in opts.Hash should be the one used to compute
 // digest. If opts are not specified, the value provided when the signer was created will be used instead.
 func (e ECDSASigner) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpts) ([]byte, error) {
-	ecdsaOpts := []SignerOption{}
-	if rand != nil {
-		ecdsaOpts = append(ecdsaOpts, WithRand(rand))
-	}
+	ecdsaOpts := []SignOption{options.WithDigest(digest), options.WithRand(rand)}
 	if opts != nil {
-		ecdsaOpts = append(ecdsaOpts, WithDigest(digest, opts.HashFunc()))
-	} else {
-		ecdsaOpts = append(ecdsaOpts, WithDigest(digest, e.hashFunc))
+		ecdsaOpts = append(ecdsaOpts, options.WithCryptoSignerOpts(opts))
 	}
+
 	return e.SignMessage(nil, ecdsaOpts...)
 }
 
@@ -196,70 +143,22 @@ func LoadECDSAVerifier(pub *ecdsa.PublicKey, hashFunc crypto.Hash) (*ECDSAVerifi
 // - WithDigest()
 //
 // All other options are ignored if specified.
-func (e ECDSAVerifier) VerifySignature(signature []byte, message []byte, opts ...VerifierOption) error {
-	req := &VerifyRequest{
-		Signature: signature,
-		Message:   message,
-		HashFunc:  e.hashFunc,
-	}
-
-	for _, opt := range opts {
-		opt.ApplyVerifier(req)
-	}
-
-	if err := e.validate(req); err != nil {
+func (e ECDSAVerifier) VerifySignature(signature, message io.Reader, opts ...VerifyOption) error {
+	digest, _, err := ComputeDigestForVerifying(message, e.hashFunc, ecdsaSupportedHashFuncs, opts...)
+	if err != nil {
 		return err
 	}
 
-	return e.verify(req)
-}
-
-// validate ensures that the provided verifyRequest can be successfully processed
-// given internal fields as well as request-specific parameters (which take precedence).
-func (e ECDSAVerifier) validate(req *VerifyRequest) error {
-	if req == nil {
-		return errors.New("verifyRequest is nil")
-	}
-	// e.publicKey must be set
-	if e.publicKey == nil {
-		return errors.New("public key is not initialized")
+	if signature == nil {
+		return errors.New("nil signature passed to VerifySignature")
 	}
 
-	// req.hashFunc must not be crypto.Hash(0)
-	if req.HashFunc == crypto.Hash(0) {
-		return errors.New("invalid hash function specified")
+	sigBytes, err := io.ReadAll(signature)
+	if err != nil {
+		return errors.Wrap(err, "reading signature")
 	}
 
-	if req.Digest == nil && req.Message == nil {
-		return errors.New("digest or message is required to verify ECDSA signature")
-	}
-
-	return nil
-}
-
-// verify verifies the signature for the specified verify request
-func (e ECDSAVerifier) verify(req *VerifyRequest) error {
-	if req == nil {
-		return errors.New("signRequest is nil")
-	}
-
-	hf := req.HashFunc
-	if hf == crypto.Hash(0) {
-		hf = e.hashFunc
-	}
-
-	digest := req.Digest
-	if digest == nil {
-		hasher := hf.New()
-		if _, err := hasher.Write(req.Message); err != nil {
-			return errors.Wrap(err, "hashing during ECDSA verification")
-		}
-		digest = hasher.Sum(nil)
-	} else if hf.Size() != len(digest) {
-		return errors.New("unexpected length of digest for hash function specified")
-	}
-
-	if !ecdsa.VerifyASN1(e.publicKey, digest, req.Signature) {
+	if !ecdsa.VerifyASN1(e.publicKey, digest, sigBytes) {
 		return errors.New("failed to verify signature")
 	}
 	return nil

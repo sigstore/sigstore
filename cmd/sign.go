@@ -16,6 +16,7 @@
 package cmd
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -83,7 +84,7 @@ var signCmd = &cobra.Command{
 			return err
 		}
 
-		proof, err := signer.SignMessage([]byte(email))
+		proof, err := signer.SignMessage(bytes.NewReader([]byte(email)))
 		if err != nil {
 			return err
 		}
@@ -115,7 +116,7 @@ var signCmd = &cobra.Command{
 
 		fmt.Printf("Received signing Cerificate: %+v\n", signingCert.Subject)
 
-		signature, err := signer.SignMessage(payload)
+		signature, err := signer.SignMessage(bytes.NewReader(payload))
 		if err != nil {
 			panic(fmt.Sprintf("Error occurred while during artifact signing: %s", err))
 		}
