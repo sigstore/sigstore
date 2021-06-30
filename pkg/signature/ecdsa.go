@@ -47,7 +47,7 @@ func LoadECDSASigner(priv *ecdsa.PrivateKey, hf crypto.Hash) (*ECDSASigner, erro
 		return nil, errors.New("invalid ECDSA private key specified")
 	}
 
-	if hf == crypto.Hash(0) {
+	if !isSupportedAlg(hf, ecdsaSupportedHashFuncs) {
 		return nil, errors.New("invalid hash function specified")
 	}
 
