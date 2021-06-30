@@ -33,9 +33,10 @@ import (
 )
 
 type hashivaultClient struct {
-	client   *vault.Client
-	keyPath  string
-	keyCache *ttlcache.Cache
+	client                  *vault.Client
+	keyPath                 string
+	transitSecretEnginePath string
+	keyCache                *ttlcache.Cache
 }
 
 var (
@@ -93,10 +94,16 @@ func newHashivaultClient(keyResourceID string) (*hashivaultClient, error) {
 		return nil, errors.Wrap(err, "new vault client")
 	}
 
+	transitSecretEnginePath := os.Getenv("TRANSIT_SECRET_ENGINE_PATH")
+	if transitSecretEnginePath == "" {
+		transitSecretEnginePath = "transit"
+	}
+
 	hvClient := &hashivaultClient{
-		client:   client,
-		keyPath:  keyPath,
-		keyCache: ttlcache.NewCache(),
+		client:                  client,
+		keyPath:                 keyPath,
+		transitSecretEnginePath: transitSecretEnginePath,
+		keyCache:                ttlcache.NewCache(),
 	}
 	hvClient.keyCache.SetLoaderFunction(hvClient.keyCacheLoaderFunction)
 	hvClient.keyCache.SkipTTLExtensionOnHit(true)
@@ -119,7 +126,7 @@ func (h *hashivaultClient) keyCacheLoaderFunction(key string) (data interface{},
 func (h *hashivaultClient) fetchPublicKey(_ context.Context) (crypto.PublicKey, error) {
 	client := h.client.Logical()
 
-	keyResult, err := client.Read(fmt.Sprintf("/transit/keys/%s", h.keyPath))
+	keyResult, err := client.Read(fmt.Sprintf("/%s/keys/%s", h.transitSecretEnginePath, h.keyPath))
 	if err != nil {
 		return nil, errors.Wrap(err, "public key")
 	}
@@ -177,7 +184,7 @@ func (h hashivaultClient) verify(sig, digest []byte, alg crypto.Hash) error {
 	client := h.client.Logical()
 	encodedSig := base64.StdEncoding.EncodeToString(sig)
 
-	result, err := client.Write(fmt.Sprintf("/transit/verify/%s/%s", h.keyPath, hashString(alg)), map[string]interface{}{
+	result, err := client.Write(fmt.Sprintf("/%s/verify/%s/%s", h.transitSecretEnginePath, h.keyPath, hashString(alg)), map[string]interface{}{
 		"input":     base64.StdEncoding.EncodeToString(digest),
 		"signature": fmt.Sprintf("%s%s", vaultV1DataPrefix, encodedSig),
 	})

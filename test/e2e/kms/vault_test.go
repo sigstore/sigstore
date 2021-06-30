@@ -34,6 +34,7 @@ import (
 	"github.com/sigstore/sigstore/pkg/signature"
 	"github.com/sigstore/sigstore/pkg/signature/kms"
 	"github.com/sigstore/sigstore/pkg/signature/kms/hashivault"
+	"github.com/sigstore/sigstore/pkg/signature/options"
 
 	vault "github.com/hashicorp/vault/api"
 )
@@ -57,6 +58,11 @@ func (suite *VaultSuite) SetupSuite() {
 	require.NotNil(suite.T(), client)
 
 	err = client.Sys().Mount("transit", &vault.MountInput{
+		Type: "transit",
+	})
+	require.Nil(suite.T(), err)
+
+	err = client.Sys().Mount("somerandompath", &vault.MountInput{
 		Type: "transit",
 	})
 	require.Nil(suite.T(), err)
@@ -104,6 +110,26 @@ func (suite *VaultSuite) TestSign() {
 
 	verifier, _ := signature.LoadECDSAVerifier(key.(*ecdsa.PublicKey), crypto.SHA256)
 	err = verifier.VerifySignature(bytes.NewReader(sig), bytes.NewReader(data))
+	assert.Nil(suite.T(), err)
+}
+
+func (suite *VaultSuite) TestSignWithDifferentTransitSecretEnginePath() {
+	provider := suite.GetProvider("testsign")
+	os.Setenv("TRANSIT_SECRET_ENGINE_PATH", "somerandompath")
+
+	key, err := provider.CreateKey(context.Background(), hashivault.Algorithm_ECDSA_P256)
+	assert.Nil(suite.T(), err)
+	assert.NotNil(suite.T(), key)
+
+	data := []byte("mydata")
+	sig, err := provider.SignMessage(bytes.NewReader(data), options.WithContext(context.Background()))
+	assert.Nil(suite.T(), err)
+	assert.NotNil(suite.T(), sig)
+
+	verifier, err := signature.LoadECDSAVerifier(key.(*ecdsa.PublicKey), crypto.SHA256)
+	assert.Nil(suite.T(), err)
+
+	err = verifier.VerifySignature(bytes.NewReader(sig), bytes.NewReader(data), options.WithContext(context.Background()))
 	assert.Nil(suite.T(), err)
 }
 

@@ -16,7 +16,6 @@
 package tlog
 
 import (
-	"crypto"
 	"crypto/x509"
 	"fmt"
 
@@ -35,13 +34,15 @@ type SignedPayload struct {
 	Chain           []*x509.Certificate
 }
 
-func UploadToRekor(publicKey crypto.PublicKey, signedMsg []byte, rekorURL string, certPEM []byte, payload []byte) (string, error) {
+func UploadToRekor(pemBytes []byte, signedMsg []byte, rekorURL string, payload []byte) (string, error) {
+
 	rekorClient, err := app.GetRekorClient(rekorURL)
 	if err != nil {
 		return "", err
 	}
 
-	re := RekorEntry(payload, signedMsg, certPEM)
+	re := RekorEntry(payload, signedMsg, pemBytes)
+
 	returnVal := models.Rekord{
 		APIVersion: swag.String(re.APIVersion()),
 		Spec:       re.RekordObj,

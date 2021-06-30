@@ -63,7 +63,7 @@ var signCmd = &cobra.Command{
 		}
 
 		// Retrieve idToken from oidc provider
-		idToken, email, err := oauthflow.OIDConnect(
+		idToken, err := oauthflow.OIDConnect(
 			viper.GetString("oidc-issuer"),
 			viper.GetString("oidc-client-id"),
 			viper.GetString("oidc-client-secret"),
@@ -72,19 +72,23 @@ var signCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		fmt.Println("\nReceived OpenID Scope retrieved for account:", email)
+		fmt.Println("\nReceived OpenID Scope retrieved for account:", idToken.Subject)
 
 		signer, _, err := signature.NewDefaultECDSASignerVerifier()
 		if err != nil {
 			return err
 		}
-		pub := signer.Public()
+
+		pub, err := signer.PublicKey()
+		if err != nil {
+			return err
+		}
 		pubBytes, err := cryptoutils.MarshalPublicKeyToDER(pub)
 		if err != nil {
 			return err
 		}
 
-		proof, err := signer.SignMessage(bytes.NewReader([]byte(email)))
+		proof, err := signer.SignMessage(bytes.NewReader([]byte(idToken.Subject)))
 		if err != nil {
 			return err
 		}
@@ -114,6 +118,8 @@ var signCmd = &cobra.Command{
 			return err
 		}
 
+		fmt.Println("Received signing cerificate with serial number: ", signingCert.SerialNumber)
+
 		fmt.Printf("Received signing Cerificate: %+v\n", signingCert.Subject)
 
 		signature, err := signer.SignMessage(bytes.NewReader(payload))
@@ -124,10 +130,9 @@ var signCmd = &cobra.Command{
 		// Send to rekor
 		fmt.Println("Sending entry to transparency log")
 		tlogEntry, err := tlog.UploadToRekor(
-			pub,
+			signingCertPEM,
 			signature,
 			viper.GetString("rekor-server"),
-			signingCertPEM,
 			payload,
 		)
 		if err != nil {

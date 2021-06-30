@@ -17,12 +17,14 @@ package oauthflow
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
 
 	"github.com/coreos/go-oidc/v3/oidc"
 	"golang.org/x/oauth2"
+	"gopkg.in/square/go-jose.v2"
 )
 
 const htmlPage = `<html>
@@ -39,8 +41,8 @@ type TokenGetter interface {
 }
 
 type OIDCIDToken struct {
-	RawString   string
-	ParsedToken *oidc.IDToken
+	RawString string
+	Subject   string
 }
 
 // DefaultIDTokenGetter is the default implementation.
@@ -50,10 +52,10 @@ var DefaultIDTokenGetter = &InteractiveIDTokenGetter{
 	HTMLPage:       htmlPage,
 }
 
-func OIDConnect(issuer string, id string, secret string, tg TokenGetter) (*OIDCIDToken, string, error) {
+func OIDConnect(issuer string, id string, secret string, tg TokenGetter) (*OIDCIDToken, error) {
 	provider, err := oidc.NewProvider(context.Background(), issuer)
 	if err != nil {
-		return nil, "", err
+		return nil, err
 	}
 	config := oauth2.Config{
 		ClientID:     id,
@@ -63,28 +65,63 @@ func OIDConnect(issuer string, id string, secret string, tg TokenGetter) (*OIDCI
 		Scopes:       []string{oidc.ScopeOpenID, "email"},
 	}
 
-	idToken, err := tg.GetIDToken(provider, config)
-	if err != nil {
-		return nil, "", err
-	}
-
-	email, err := emailFromIDToken(idToken.ParsedToken)
-	if err != nil {
-		return nil, "", err
-	}
-	return idToken, email, nil
+	return tg.GetIDToken(provider, config)
 }
 
-func emailFromIDToken(tok *oidc.IDToken) (string, error) {
-	var claims struct {
-		Email    string `json:"email"`
-		Verified bool   `json:"email_verified"`
-	}
+type claims struct {
+	Email    string `json:"email"`
+	Verified bool   `json:"email_verified"`
+	Subject  string `json:"sub"`
+}
+
+func SubjectFromToken(tok *oidc.IDToken) (string, error) {
+	claims := claims{}
 	if err := tok.Claims(&claims); err != nil {
 		return "", err
 	}
-	if !claims.Verified {
-		return "", errors.New("not verified by identity provider")
+	return subjectFromClaims(claims)
+}
+
+func subjectFromClaims(c claims) (string, error) {
+	if c.Email != "" {
+		if !c.Verified {
+			return "", errors.New("not verified by identity provider")
+		}
+		return c.Email, nil
 	}
-	return claims.Email, nil
+
+	if c.Subject == "" {
+		return "", errors.New("no subject found in claims")
+	}
+	return c.Subject, nil
+}
+
+type StaticTokenGetter struct {
+	RawToken string
+}
+
+func (stg *StaticTokenGetter) GetIDToken(_ *oidc.Provider, _ oauth2.Config) (*OIDCIDToken, error) {
+	unsafeTok, err := jose.ParseSigned(stg.RawToken)
+	if err != nil {
+		return nil, err
+	}
+	// THIS LOGIC IS GENERALLY UNSAFE BUT OK HERE
+	// We are only parsing the id-token passed directly to a command line tool by a user, so it is trusted locally.
+	// We need to extract the email address to attach an additional signed proof to the server.
+	// THE SERVER WILL DO REAL VERIFICATION HERE
+	unsafePayload := unsafeTok.UnsafePayloadWithoutVerification()
+	claims := claims{}
+	if err := json.Unmarshal(unsafePayload, &claims); err != nil {
+		return nil, err
+	}
+
+	subj, err := subjectFromClaims(claims)
+	if err != nil {
+		return nil, err
+	}
+
+	return &OIDCIDToken{
+		RawString: stg.RawToken,
+		Subject:   subj,
+	}, nil
 }
