@@ -19,6 +19,7 @@ import (
 	"bytes"
 	"crypto"
 	crand "crypto/rand"
+	"strings"
 	"testing"
 
 	"github.com/sigstore/sigstore/pkg/signature/options"
@@ -136,7 +137,7 @@ func testingVerifier(t *testing.T, v Verifier, alg string, hashFunc crypto.Hash,
 		t.Error("no error when passing nil as signature")
 	}
 
-	if err := v.VerifySignature(bytes.NewReader([]byte("not the sig")), bytes.NewReader(message)); err == nil {
+	if err := v.VerifySignature(strings.NewReader("not the sig"), bytes.NewReader(message)); err == nil {
 		t.Error("no error when passing incorrect signature")
 	}
 

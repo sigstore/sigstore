@@ -22,6 +22,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -88,7 +89,7 @@ var signCmd = &cobra.Command{
 			return err
 		}
 
-		proof, err := signer.SignMessage(bytes.NewReader([]byte(idToken.Subject)))
+		proof, err := signer.SignMessage(strings.NewReader(idToken.Subject))
 		if err != nil {
 			return err
 		}
