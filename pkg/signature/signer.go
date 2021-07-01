@@ -16,6 +16,7 @@
 package signature
 
 import (
+	"context"
 	"crypto"
 	"crypto/ecdsa"
 	"crypto/ed25519"
@@ -37,6 +38,8 @@ import (
 
 type Signer interface {
 	SignMessage(message io.Reader, opts ...SignOption) ([]byte, error)
+	// THIS WILL BE REMOVED AS SOON AS WE CAN UPDATE SIGSTORE DEPENDENCIES
+	Sign(context.Context, []byte) ([]byte, []byte, error)
 	PublicKey(opts ...PublicKeyOption) (crypto.PublicKey, error)
 }
 

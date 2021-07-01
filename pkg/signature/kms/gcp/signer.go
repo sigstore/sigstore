@@ -16,6 +16,7 @@
 package gcp
 
 import (
+	"bytes"
 	"context"
 	"crypto"
 	"hash/crc32"
@@ -52,6 +53,12 @@ func LoadSignerVerifier(defaultCtx context.Context, referenceStr string) (*Signe
 	}
 
 	return g, nil
+}
+
+// THIS WILL BE REMOVED ONCE ALL SIGSTORE PROJECTS NO LONGER USE IT
+func (g *SignerVerifier) Sign(ctx context.Context, payload []byte) ([]byte, []byte, error) {
+	sig, err := g.SignMessage(bytes.NewReader(payload), options.WithContext(ctx))
+	return sig, nil, err
 }
 
 // SignMessage signs the provided message using GCP KMS. If the message is provided,

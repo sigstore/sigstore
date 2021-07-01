@@ -116,6 +116,7 @@ func (suite *VaultSuite) TestSign() {
 func (suite *VaultSuite) TestSignWithDifferentTransitSecretEnginePath() {
 	provider := suite.GetProvider("testsign")
 	os.Setenv("TRANSIT_SECRET_ENGINE_PATH", "somerandompath")
+	defer os.Setenv("TRANSIT_SECRET_ENGINE_PATH", "transit")
 
 	key, err := provider.CreateKey(context.Background(), hashivault.Algorithm_ECDSA_P256)
 	assert.Nil(suite.T(), err)

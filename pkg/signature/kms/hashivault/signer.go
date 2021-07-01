@@ -16,6 +16,7 @@
 package hashivault
 
 import (
+	"bytes"
 	"context"
 	"crypto"
 	"io"
@@ -71,6 +72,12 @@ func LoadSignerVerifier(referenceStr string, hashFunc crypto.Hash) (*SignerVerif
 	}
 
 	return h, nil
+}
+
+// THIS WILL BE REMOVED ONCE ALL SIGSTORE PROJECTS NO LONGER USE IT
+func (h *SignerVerifier) Sign(ctx context.Context, payload []byte) ([]byte, []byte, error) {
+	sig, err := h.SignMessage(bytes.NewReader(payload), options.WithContext(ctx))
+	return sig, nil, err
 }
 
 // SignMessage signs the provided message using Hashivault KMS. If the message is provided,
