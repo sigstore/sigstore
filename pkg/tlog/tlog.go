@@ -21,7 +21,7 @@ import (
 
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
-	"github.com/sigstore/rekor/cmd/rekor-cli/app"
+	"github.com/sigstore/rekor/pkg/client"
 	"github.com/sigstore/rekor/pkg/generated/client/entries"
 	"github.com/sigstore/rekor/pkg/generated/models"
 	rekord_v001 "github.com/sigstore/rekor/pkg/types/rekord/v0.0.1"
@@ -36,7 +36,7 @@ type SignedPayload struct {
 
 func UploadToRekor(pemBytes []byte, signedMsg []byte, rekorURL string, payload []byte) (string, error) {
 
-	rekorClient, err := app.GetRekorClient(rekorURL)
+	rekorClient, err := client.GetRekorClient(rekorURL)
 	if err != nil {
 		return "", err
 	}
