@@ -17,40 +17,25 @@ package kms
 
 import (
 	"context"
-	"crypto/ecdsa"
+	"crypto"
 	"fmt"
 	"strings"
 
-	"github.com/sigstore/sigstore/pkg/kms/gcp"
-	"github.com/sigstore/sigstore/pkg/kms/hashivault"
 	"github.com/sigstore/sigstore/pkg/signature"
+	"github.com/sigstore/sigstore/pkg/signature/kms/gcp"
+	"github.com/sigstore/sigstore/pkg/signature/kms/hashivault"
 )
 
 func init() {
-	ProvidersMux().AddProvider(gcp.ReferenceScheme, func(ctx context.Context, keyResourceID string) (KMS, error) {
-		if err := gcp.ValidReference(keyResourceID); err != nil {
-			return nil, err
-		}
-		return gcp.NewGCP(ctx, keyResourceID)
+	ProvidersMux().AddProvider(gcp.ReferenceScheme, func(ctx context.Context, keyResourceID string, _ crypto.Hash) (SignerVerifier, error) {
+		return gcp.LoadSignerVerifier(ctx, keyResourceID)
 	})
-	ProvidersMux().AddProvider(hashivault.ReferenceScheme, func(ctx context.Context, keyResourceID string) (KMS, error) {
-		if err := hashivault.ValidReference(keyResourceID); err != nil {
-			return nil, err
-		}
-		return hashivault.NewVault(ctx, keyResourceID)
+	ProvidersMux().AddProvider(hashivault.ReferenceScheme, func(ctx context.Context, keyResourceID string, hashFunc crypto.Hash) (SignerVerifier, error) {
+		return hashivault.LoadSignerVerifier(keyResourceID, hashFunc)
 	})
 }
 
-type KMS interface {
-	signature.Signer
-	signature.Verifier
-
-	// CreateKey is responsible for creating an asymmetric key pair
-	// with the ECDSA algorithm on the P-256 Curve with a SHA-256 digest
-	CreateKey(context.Context) (*ecdsa.PublicKey, error)
-}
-
-type ProviderInit func(context.Context, string) (KMS, error)
+type ProviderInit func(context.Context, string, crypto.Hash) (SignerVerifier, error)
 
 type Providers struct {
 	providers map[string]ProviderInit
@@ -72,11 +57,17 @@ func ProvidersMux() *Providers {
 	return providersMux
 }
 
-func Get(ctx context.Context, keyResourceID string) (KMS, error) {
+func Get(ctx context.Context, keyResourceID string, hashFunc crypto.Hash) (SignerVerifier, error) {
 	for ref, providerInit := range providersMux.providers {
 		if strings.HasPrefix(keyResourceID, ref) {
-			return providerInit(ctx, keyResourceID)
+			return providerInit(ctx, keyResourceID, hashFunc)
 		}
 	}
 	return nil, fmt.Errorf("no provider found for that key reference")
+}
+
+type SignerVerifier interface {
+	signature.SignerVerifier
+	CreateKey(ctx context.Context, algorithm string) (crypto.PublicKey, error)
+	CryptoSigner(ctx context.Context, errFunc func(error)) (crypto.Signer, crypto.SignerOpts, error)
 }

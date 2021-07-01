@@ -13,29 +13,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package signature
+package options
 
 import (
 	"context"
-	"crypto"
 )
 
-type PublicKeyProvider interface {
-	PublicKey(context.Context) (crypto.PublicKey, error)
+type RequestContext struct {
+	NoOpOptionImpl
+	ctx context.Context
 }
 
-type Verifier interface {
-	Verify(ctx context.Context, rawPayload, signature []byte) error
+func (r RequestContext) ApplyContext(ctx *context.Context) {
+	*ctx = r.ctx
 }
 
-type Signer interface {
-	PublicKeyProvider
-
-	// Sign takes a raw payload, potentially creating a derivative (e.g. hashed) payload, and returns the signature as well as the actual payload that was signed.
-	Sign(ctx context.Context, rawPayload []byte) (signature, signed []byte, err error)
-}
-
-type SignerVerifier interface {
-	Signer
-	Verifier
+func WithContext(ctx context.Context) RequestContext {
+	return RequestContext{ctx: ctx}
 }

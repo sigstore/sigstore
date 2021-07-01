@@ -16,17 +16,18 @@
 package cmd
 
 import (
-	"context"
-	"crypto/x509"
-	"encoding/pem"
+	"bytes"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
+	"github.com/sigstore/sigstore/pkg/cryptoutils"
 	"github.com/sigstore/sigstore/pkg/generated/client/operations"
 	"github.com/sigstore/sigstore/pkg/httpclients"
 	"github.com/sigstore/sigstore/pkg/oauthflow"
@@ -46,8 +47,6 @@ var signCmd = &cobra.Command{
 		}
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
-		ctx := context.Background()
-
 		payload, err := ioutil.ReadFile(viper.GetString("artifact"))
 		if err != nil {
 			return err
@@ -76,23 +75,21 @@ var signCmd = &cobra.Command{
 		}
 		fmt.Println("\nReceived OpenID Scope retrieved for account:", idToken.Subject)
 
-		signer, err := signature.NewDefaultECDSASignerVerifier()
+		signer, _, err := signature.NewDefaultECDSASignerVerifier()
 		if err != nil {
 			return err
 		}
 
-		pub, err := signer.PublicKey(ctx)
+		pub, err := signer.PublicKey()
+		if err != nil {
+			return err
+		}
+		pubBytes, err := cryptoutils.MarshalPublicKeyToDER(pub)
 		if err != nil {
 			return err
 		}
 
-		pubBytes, err := x509.MarshalPKIXPublicKey(pub)
-
-		if err != nil {
-			return err
-		}
-
-		proof, _, err := signer.Sign(ctx, []byte(idToken.Subject))
+		proof, err := signer.SignMessage(strings.NewReader(idToken.Subject))
 		if err != nil {
 			return err
 		}
@@ -110,27 +107,23 @@ var signCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		clientPEM, rootPEM := pem.Decode([]byte(certResp.Payload))
-		certPEM := pem.EncodeToMemory(clientPEM)
-
-		rootBlock, _ := pem.Decode([]byte(rootPEM))
-		if rootBlock == nil {
+		certs, err := cryptoutils.UnmarshalCertificatesFromPEM([]byte(certResp.Payload))
+		if err != nil {
 			return err
+		} else if len(certs) == 0 {
+			return errors.New("no certificates were found in response")
 		}
-
-		certBlock, _ := pem.Decode([]byte(certPEM))
-		if certBlock == nil {
-			return err
-		}
-
-		cert, err := x509.ParseCertificate(certBlock.Bytes)
+		signingCert := certs[0]
+		signingCertPEM, err := cryptoutils.MarshalCertificateToPEM(signingCert)
 		if err != nil {
 			return err
 		}
 
-		fmt.Println("Received signing cerificate with serial number: ", cert.SerialNumber)
+		fmt.Println("Received signing cerificate with serial number: ", signingCert.SerialNumber)
 
-		signature, signedVal, err := signer.Sign(ctx, payload)
+		fmt.Printf("Received signing Cerificate: %+v\n", signingCert.Subject)
+
+		signature, err := signer.SignMessage(bytes.NewReader(payload))
 		if err != nil {
 			panic(fmt.Sprintf("Error occurred while during artifact signing: %s", err))
 		}
@@ -138,8 +131,7 @@ var signCmd = &cobra.Command{
 		// Send to rekor
 		fmt.Println("Sending entry to transparency log")
 		tlogEntry, err := tlog.UploadToRekor(
-			certPEM,
-			signedVal,
+			signingCertPEM,
 			signature,
 			viper.GetString("rekor-server"),
 			payload,
@@ -147,7 +139,7 @@ var signCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		fmt.Println("Rekor entry successful. Index number: :", tlogEntry)
+		fmt.Println("Rekor entry successful. URL: ", tlogEntry)
 		return nil
 	},
 }

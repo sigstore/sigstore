@@ -16,71 +16,205 @@
 package signature
 
 import (
+	"bytes"
 	"context"
 	"crypto"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
-	_ "crypto/sha256" // To ensure `crypto.SHA256` is implemented.
-	"errors"
-	"fmt"
+	"io"
+
+	"github.com/pkg/errors"
+	"github.com/sigstore/sigstore/pkg/signature/options"
 )
 
-type ECDSAVerifier struct {
-	Key     *ecdsa.PublicKey
-	HashAlg crypto.Hash
+var ecdsaSupportedHashFuncs = []crypto.Hash{
+	crypto.SHA256,
+	crypto.SHA512,
+	crypto.SHA384,
+	crypto.SHA224,
+	crypto.SHA1,
 }
 
-type ECDSASignerVerifier struct {
-	ECDSAVerifier
-	Key *ecdsa.PrivateKey
+type ECDSASigner struct {
+	hashFunc crypto.Hash
+	priv     *ecdsa.PrivateKey
 }
 
-func (s ECDSASignerVerifier) Sign(_ context.Context, rawPayload []byte) (signature, signed []byte, err error) {
-	h := s.HashAlg.New()
-	if _, err := h.Write(rawPayload); err != nil {
-		return nil, nil, fmt.Errorf("failed to create hash: %v", err)
+// LoadECDSASigner calculates signatures using the specified private key and hash algorithm.
+//
+// hf must not be crypto.Hash(0).
+func LoadECDSASigner(priv *ecdsa.PrivateKey, hf crypto.Hash) (*ECDSASigner, error) {
+	if priv == nil {
+		return nil, errors.New("invalid ECDSA private key specified")
 	}
-	signed = h.Sum(nil)
-	signature, err = ecdsa.SignASN1(rand.Reader, s.Key, signed)
+
+	if !isSupportedAlg(hf, ecdsaSupportedHashFuncs) {
+		return nil, errors.New("invalid hash function specified")
+	}
+
+	return &ECDSASigner{
+		priv:     priv,
+		hashFunc: hf,
+	}, nil
+}
+
+// SignMessage signs the provided message. If the message is provided,
+// this method will compute the digest according to the hash function specified
+// when the ECDSASigner was created.
+//
+// This function recognizes the following Options listed in order of preference:
+//
+// - WithRand()
+//
+// - WithDigest()
+//
+// - WithCryptoSignerOpts()
+//
+// All other options are ignored if specified.
+func (e ECDSASigner) SignMessage(message io.Reader, opts ...SignOption) ([]byte, error) {
+	digest, _, err := ComputeDigestForSigning(message, e.hashFunc, ecdsaSupportedHashFuncs, opts...)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-	return signature, signed, nil
+
+	rand := selectRandFromOpts(opts...)
+
+	return ecdsa.SignASN1(rand, e.priv, digest)
 }
 
-func (v ECDSAVerifier) Verify(_ context.Context, rawPayload, signature []byte) error {
-	h := v.HashAlg.New()
-	if _, err := h.Write(rawPayload); err != nil {
-		return fmt.Errorf("failed to create hash: %v", err)
+// Public returns the public key that can be used to verify signatures created by
+// this signer.
+func (e ECDSASigner) Public() crypto.PublicKey {
+	if e.priv == nil {
+		return nil
 	}
-	if !ecdsa.VerifyASN1(v.Key, h.Sum(nil), signature) {
-		return errors.New("unable to verify signature")
+
+	return e.priv.Public()
+}
+
+// PublicKey returns the public key that can be used to verify signatures created by
+// this signer. As this value is held in memory, all options provided in arguments
+// to this method are ignored.
+func (e ECDSASigner) PublicKey(_ ...PublicKeyOption) (crypto.PublicKey, error) {
+	return e.Public(), nil
+}
+
+// TEMPORARY UNTIL WE CAN REMOVE ALL REFERENCES TO THIS
+func (e ECDSASigner) Sign(ctx context.Context, payload []byte) ([]byte, []byte, error) {
+	sig, err := e.SignMessage(bytes.NewReader(payload), options.WithContext(ctx))
+	return sig, nil, err
+}
+
+// Sign computes the signature for the specified digest. If a source of entropy is
+// given in rand, it will be used instead of the default value (rand.Reader from crypto/rand).
+//
+// If opts are specified, the hash function in opts.Hash should be the one used to compute
+// digest. If opts are not specified, the value provided when the signer was created will be used instead.
+func (e ECDSASigner) CSign(rand io.Reader, digest []byte, opts crypto.SignerOpts) ([]byte, error) {
+	ecdsaOpts := []SignOption{options.WithDigest(digest), options.WithRand(rand)}
+	if opts != nil {
+		ecdsaOpts = append(ecdsaOpts, options.WithCryptoSignerOpts(opts))
+	}
+
+	return e.SignMessage(nil, ecdsaOpts...)
+}
+
+type ECDSAVerifier struct {
+	publicKey *ecdsa.PublicKey
+	hashFunc  crypto.Hash
+}
+
+// LoadECDSAVerifier returns a Verifier that verifies signatures using the specified
+// ECDSA public key and hash algorithm.
+//
+// hf must not be crypto.Hash(0).
+func LoadECDSAVerifier(pub *ecdsa.PublicKey, hashFunc crypto.Hash) (*ECDSAVerifier, error) {
+	if pub == nil {
+		return nil, errors.New("invalid ECDSA public key specified")
+	}
+
+	return &ECDSAVerifier{
+		publicKey: pub,
+		hashFunc:  hashFunc,
+	}, nil
+}
+
+// VerifySignature verifies the signature for the given message. Unless provided
+// in an option, the digest of the message will be computed using the hash function specified
+// when the ECDSAVerifier was created.
+//
+// This function returns nil if the verification succeeded, and an error message otherwise.
+//
+// This function recognizes the following Options listed in order of preference:
+//
+// - WithDigest()
+//
+// All other options are ignored if specified.
+func (e ECDSAVerifier) VerifySignature(signature, message io.Reader, opts ...VerifyOption) error {
+	digest, _, err := ComputeDigestForVerifying(message, e.hashFunc, ecdsaSupportedHashFuncs, opts...)
+	if err != nil {
+		return err
+	}
+
+	if signature == nil {
+		return errors.New("nil signature passed to VerifySignature")
+	}
+
+	sigBytes, err := io.ReadAll(signature)
+	if err != nil {
+		return errors.Wrap(err, "reading signature")
+	}
+
+	if !ecdsa.VerifyASN1(e.publicKey, digest, sigBytes) {
+		return errors.New("failed to verify signature")
 	}
 	return nil
 }
 
-func (v ECDSAVerifier) PublicKey(_ context.Context) (crypto.PublicKey, error) {
-	return v.Key, nil
+type ECDSASignerVerifier struct {
+	*ECDSASigner
+	*ECDSAVerifier
 }
 
-var _ SignerVerifier = ECDSASignerVerifier{}
-var _ Verifier = ECDSAVerifier{}
-
-func NewECDSASignerVerifier(key *ecdsa.PrivateKey, hashAlg crypto.Hash) ECDSASignerVerifier {
-	return ECDSASignerVerifier{
-		ECDSAVerifier: ECDSAVerifier{
-			Key:     &key.PublicKey,
-			HashAlg: hashAlg,
-		},
-		Key: key,
-	}
-}
-
-func NewDefaultECDSASignerVerifier() (ECDSASignerVerifier, error) {
-	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+// LoadECDSASignerVerifier creates a combined signer and verifier. This is a convenience object
+// that simply wraps an instance of ECDSASigner and ECDSAVerifier.
+func LoadECDSASignerVerifier(priv *ecdsa.PrivateKey, hf crypto.Hash) (*ECDSASignerVerifier, error) {
+	signer, err := LoadECDSASigner(priv, hf)
 	if err != nil {
-		return ECDSASignerVerifier{}, fmt.Errorf("could not generate ecdsa keypair: %v", err)
+		return nil, errors.Wrap(err, "initializing signer")
 	}
-	return NewECDSASignerVerifier(key, crypto.SHA256), nil
+	verifier, err := LoadECDSAVerifier(&priv.PublicKey, hf)
+	if err != nil {
+		return nil, errors.Wrap(err, "initializing verifier")
+	}
+
+	return &ECDSASignerVerifier{
+		ECDSASigner:   signer,
+		ECDSAVerifier: verifier,
+	}, nil
+}
+
+// NewDefaultECDSASignerVerifier creates a combined signer and verifier using ECDSA.
+//
+// This creates a new ECDSA key using the P256 curve and uses the SHA256 hashing algorithm.
+func NewDefaultECDSASignerVerifier() (*ECDSASignerVerifier, *ecdsa.PrivateKey, error) {
+	return NewECDSASignerVerifier(elliptic.P384(), rand.Reader, crypto.SHA256)
+}
+
+// NewECDSASignerVerifier creates a combined signer and verifier using ECDSA.
+//
+// This creates a new ECDSA key using the specified elliptic curve, entropy source, and hashing function.
+func NewECDSASignerVerifier(curve elliptic.Curve, rand io.Reader, hashFunc crypto.Hash) (*ECDSASignerVerifier, *ecdsa.PrivateKey, error) {
+	priv, err := ecdsa.GenerateKey(curve, rand)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	sv, err := LoadECDSASignerVerifier(priv, hashFunc)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return sv, priv, nil
 }

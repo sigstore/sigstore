@@ -13,18 +13,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package keymgmt
+package options
 
-import "testing"
+import (
+	"context"
+	"crypto"
+	"io"
+)
 
-func TestGenerateKeys(t *testing.T) {
-	algs := []string{"ecdsaP224", "ecdsaP256", "ecdsaP384", "ecdsaP521"}
+// NoOpOptionImpl implements the RPCOption, SignOption, VerifyOption interfaces as no-ops.
+type NoOpOptionImpl struct{}
 
-	for _, alg := range algs {
-		_, _, err := GeneratePrivateKey(alg)
-
-		if err != nil {
-			t.Errorf("Key generation failed: %s\n", err)
-		}
-	}
-}
+func (NoOpOptionImpl) ApplyContext(ctx *context.Context)             {}
+func (NoOpOptionImpl) ApplyCryptoSignerOpts(opts *crypto.SignerOpts) {}
+func (NoOpOptionImpl) ApplyDigest(digest *[]byte)                    {}
+func (NoOpOptionImpl) ApplyRand(rand *io.Reader)                     {}

@@ -18,25 +18,25 @@ package hashivault
 import (
 	"context"
 	"crypto"
-	"crypto/ecdsa"
-	"crypto/sha256"
-	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
-	"encoding/pem"
 	"fmt"
 	"os"
 	"regexp"
 	"strings"
+	"time"
 
+	"github.com/ReneKroon/ttlcache/v2"
 	vault "github.com/hashicorp/vault/api"
 	"github.com/pkg/errors"
+	"github.com/sigstore/sigstore/pkg/cryptoutils"
 )
 
-type KMS struct {
+type hashivaultClient struct {
 	client                  *vault.Client
 	keyPath                 string
 	transitSecretEnginePath string
+	keyCache                *ttlcache.Cache
 }
 
 var (
@@ -45,13 +45,13 @@ var (
 )
 
 const (
-	hashAlg = "sha2-256"
-	signAlg = "sha2-256"
-
 	vaultV1DataPrefix = "vault:v1:"
-)
 
-const ReferenceScheme = "hashivault://"
+	// use a consistent key for cache lookups
+	CacheKey = "signer"
+
+	ReferenceScheme = "hashivault://"
+)
 
 func ValidReference(ref string) error {
 	if !referenceRegex.MatchString(ref) {
@@ -71,7 +71,7 @@ func parseReference(resourceID string) (keyPath string, err error) {
 	return
 }
 
-func NewVault(ctx context.Context, keyResourceID string) (*KMS, error) {
+func newHashivaultClient(keyResourceID string) (*hashivaultClient, error) {
 	keyPath, err := parseReference(keyResourceID)
 	if err != nil {
 		return nil, err
@@ -99,68 +99,34 @@ func NewVault(ctx context.Context, keyResourceID string) (*KMS, error) {
 		transitSecretEnginePath = "transit"
 	}
 
-	return &KMS{
+	hvClient := &hashivaultClient{
 		client:                  client,
 		keyPath:                 keyPath,
 		transitSecretEnginePath: transitSecretEnginePath,
-	}, nil
+		keyCache:                ttlcache.NewCache(),
+	}
+	hvClient.keyCache.SetLoaderFunction(hvClient.keyCacheLoaderFunction)
+	hvClient.keyCache.SkipTTLExtensionOnHit(true)
+
+	return hvClient, nil
 }
 
-func (g *KMS) Sign(ctx context.Context, rawPayload []byte) (signature, signed []byte, err error) {
-	client := g.client.Logical()
-
-	hash := sha256.Sum256(rawPayload)
-	signed = hash[:]
-
-	signResult, err := client.Write(fmt.Sprintf("/%s/sign/%s/%s", g.transitSecretEnginePath, g.keyPath, signAlg), map[string]interface{}{
-		"input":     base64.StdEncoding.Strict().EncodeToString(signed),
-		"prehashed": true,
-	})
+func (h *hashivaultClient) keyCacheLoaderFunction(key string) (data interface{}, ttl time.Duration, err error) {
+	ttl = time.Second * 300
+	var pubKey crypto.PublicKey
+	pubKey, err = h.fetchPublicKey(context.Background())
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "Transit: failed to sign payload")
+		data = nil
+		return
 	}
-
-	encodedSignature, ok := signResult.Data["signature"]
-	if !ok {
-		return nil, nil, errors.New("Transit: response corrupted in-transit")
-	}
-
-	signature, err = vaultDecode(encodedSignature)
-	if err != nil {
-		return nil, nil, errors.Wrap(err, "Transit: response corrupted in-transit")
-	}
-	return
+	data = pubKey
+	return data, ttl, err
 }
 
-func (g *KMS) CreateKey(ctx context.Context) (*ecdsa.PublicKey, error) {
-	client := g.client.Logical()
+func (h *hashivaultClient) fetchPublicKey(_ context.Context) (crypto.PublicKey, error) {
+	client := h.client.Logical()
 
-	if _, err := client.Write(fmt.Sprintf("/%s/keys/%s", g.transitSecretEnginePath, g.keyPath), map[string]interface{}{
-		"type": "ecdsa-p256",
-	}); err != nil {
-		return nil, errors.Wrap(err, "Failed to create transit key")
-	}
-	return g.ECDSAPublicKey(ctx)
-}
-
-func (g *KMS) ECDSAPublicKey(ctx context.Context) (*ecdsa.PublicKey, error) {
-	k, err := g.PublicKey(ctx)
-	if err != nil {
-		return nil, err
-	}
-	pub, ok := k.(*ecdsa.PublicKey)
-	if !ok {
-		if err != nil {
-			return nil, errors.Errorf("public key was not ECDSA: %#v", k)
-		}
-	}
-	return pub, nil
-}
-
-func (g *KMS) PublicKey(ctx context.Context) (crypto.PublicKey, error) {
-	client := g.client.Logical()
-
-	keyResult, err := client.Read(fmt.Sprintf("/%s/keys/%s", g.transitSecretEnginePath, g.keyPath))
+	keyResult, err := client.Read(fmt.Sprintf("/%s/keys/%s", h.transitSecretEnginePath, h.keyPath))
 	if err != nil {
 		return nil, errors.Wrap(err, "public key")
 	}
@@ -187,26 +153,39 @@ func (g *KMS) PublicKey(ctx context.Context) (crypto.PublicKey, error) {
 		return nil, errors.New("Failed to read transit key keys: corrupted response")
 	}
 
-	publicKeyData, _ := pem.Decode([]byte(publicKeyPem.(string)))
-	if publicKeyData == nil {
-		return nil, errors.New("pem.Decode failed")
-	}
-
-	publicKey, err := x509.ParsePKIXPublicKey(publicKeyData.Bytes)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to parse public key")
-	}
-	return publicKey, nil
+	return cryptoutils.UnmarshalPEMToPublicKey([]byte(publicKeyPem.(string)))
 }
 
-func (g *KMS) Verify(ctx context.Context, payload, signature []byte) error {
-	client := g.client.Logical()
-	encodedSig := base64.StdEncoding.EncodeToString(signature)
+func (h *hashivaultClient) public() (crypto.PublicKey, error) {
+	return h.keyCache.Get(CacheKey)
+}
 
-	signed := sha256.Sum256(payload)
+func (h hashivaultClient) sign(digest []byte, alg crypto.Hash) ([]byte, error) {
+	client := h.client.Logical()
 
-	result, err := client.Write(fmt.Sprintf("/%s/verify/%s/%s", g.transitSecretEnginePath, g.keyPath, hashAlg), map[string]interface{}{
-		"input":     base64.StdEncoding.EncodeToString(signed[:]),
+	signResult, err := client.Write(fmt.Sprintf("/transit/sign/%s%s", h.keyPath, hashString(alg)), map[string]interface{}{
+		"input":     base64.StdEncoding.Strict().EncodeToString(digest),
+		"prehashed": alg != crypto.Hash(0),
+	})
+	if err != nil {
+		return nil, errors.Wrap(err, "Transit: failed to sign payload")
+	}
+
+	encodedSignature, ok := signResult.Data["signature"]
+	if !ok {
+		return nil, errors.New("Transit: response corrupted in-transit")
+	}
+
+	return vaultDecode(encodedSignature)
+
+}
+
+func (h hashivaultClient) verify(sig, digest []byte, alg crypto.Hash) error {
+	client := h.client.Logical()
+	encodedSig := base64.StdEncoding.EncodeToString(sig)
+
+	result, err := client.Write(fmt.Sprintf("/%s/verify/%s/%s", h.transitSecretEnginePath, h.keyPath, hashString(alg)), map[string]interface{}{
+		"input":     base64.StdEncoding.EncodeToString(digest),
 		"signature": fmt.Sprintf("%s%s", vaultV1DataPrefix, encodedSig),
 	})
 
@@ -232,4 +211,32 @@ func vaultDecode(data interface{}) ([]byte, error) {
 		return nil, errors.New("Received non-string data")
 	}
 	return base64.StdEncoding.DecodeString(strings.TrimPrefix(encoded, vaultV1DataPrefix))
+}
+
+func hashString(h crypto.Hash) string {
+	var hashStr string
+	switch h {
+	case crypto.SHA224:
+		hashStr = "/sha2-224"
+	case crypto.SHA256:
+		hashStr = "/sha2-256"
+	case crypto.SHA384:
+		hashStr = "/sha2-384"
+	case crypto.SHA512:
+		hashStr = "/sha2-512"
+	default:
+		hashStr = ""
+	}
+	return hashStr
+}
+
+func (h hashivaultClient) createKey(typeStr string) (crypto.PublicKey, error) {
+	client := h.client.Logical()
+
+	if _, err := client.Write(fmt.Sprintf("/transit/keys/%s", h.keyPath), map[string]interface{}{
+		"type": typeStr,
+	}); err != nil {
+		return nil, errors.Wrap(err, "Failed to create transit key")
+	}
+	return h.public()
 }

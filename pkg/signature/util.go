@@ -16,7 +16,7 @@
 package signature
 
 import (
-	"context"
+	"bytes"
 	"encoding/json"
 	"fmt"
 
@@ -25,24 +25,24 @@ import (
 	sigpayload "github.com/sigstore/sigstore/pkg/signature/payload"
 )
 
-func SignImage(ctx context.Context, signer Signer, image name.Digest, optionalAnnotations map[string]interface{}) (payload, signature, prehashed []byte, err error) {
+func SignImage(signer SignerVerifier, image name.Digest, optionalAnnotations map[string]interface{}) (payload, signature []byte, err error) {
 	imgPayload := sigpayload.Cosign{
 		Image:       image,
 		Annotations: optionalAnnotations,
 	}
 	payload, err = json.Marshal(imgPayload)
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("failed to marshal payload to JSON: %v", err)
+		return nil, nil, fmt.Errorf("failed to marshal payload to JSON: %v", err)
 	}
-	signature, prehashed, err = signer.Sign(ctx, payload)
+	signature, err = signer.SignMessage(bytes.NewReader(payload))
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("failed to sign payload: %v", err)
+		return nil, nil, fmt.Errorf("failed to sign payload: %v", err)
 	}
-	return payload, signature, prehashed, nil
+	return payload, signature, nil
 }
 
-func VerifyImageSignature(ctx context.Context, verifier Verifier, payload, signature []byte) (image name.Digest, annotations map[string]interface{}, err error) {
-	if err := verifier.Verify(ctx, payload, signature); err != nil {
+func VerifyImageSignature(signer SignerVerifier, payload, signature []byte) (image name.Digest, annotations map[string]interface{}, err error) {
+	if err := signer.VerifySignature(bytes.NewReader(signature), bytes.NewReader(payload)); err != nil {
 		return name.Digest{}, nil, fmt.Errorf("signature verification failed: %v", err)
 	}
 	var imgPayload sigpayload.Cosign

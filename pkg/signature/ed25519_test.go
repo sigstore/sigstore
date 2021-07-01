@@ -15,18 +15,51 @@
 
 package signature
 
-import "testing"
+import (
+	"crypto"
+	"crypto/ed25519"
+	"encoding/base64"
+	"testing"
 
-func newTestED25519SignerVerifier(t *testing.T) ED25519SignerVerifier {
-	t.Helper()
-	sv, err := NewDefaultED25519SignerVerifier()
+	"github.com/sigstore/sigstore/pkg/cryptoutils"
+)
+
+// Generated with:
+// openssl genpkey -algorithm ed25519 -outform PEM -out -
+const ed25519Priv = `-----BEGIN PRIVATE KEY-----
+MC4CAQAwBQYDK2VwBCIEIFP9CZb6J1DiOLfdIkPfy1bwBOCjEG6KR/cIdhw90J1H
+-----END PRIVATE KEY-----`
+
+// Extracted from above with:
+// openssl ec -in ec_private.pem -pubout
+const ed25519Pub = `-----BEGIN PUBLIC KEY-----
+MCowBQYDK2VwAyEA9wy4umF4RHQ8UQXo8fzEQNBWE4GsBMkCzQPAfHvkf/s=
+-----END PUBLIC KEY-----`
+
+func TestED25519SignerVerifier(t *testing.T) {
+	privateKey, err := cryptoutils.UnmarshalPEMToPrivateKey([]byte(ed25519Priv), cryptoutils.SkipPassword)
 	if err != nil {
-		t.Fatalf("NewDefaultED25519SignerVerifier() failed with error: %v", err)
+		t.Errorf("unexpected error unmarshalling public key: %v", err)
 	}
-	return sv
-}
+	edPriv, _ := privateKey.(ed25519.PrivateKey)
+	sv, err := LoadED25519SignerVerifier(&edPriv)
+	if err != nil {
+		t.Errorf("unexpected error creating signer/verifier: %v", err)
+	}
 
-func TestDefaultED25519SignerVerifier(t *testing.T) {
-	sv := newTestED25519SignerVerifier(t)
-	smokeTestSignerVerifier(t, sv)
+	message := []byte("sign me")
+	sig, _ := base64.StdEncoding.DecodeString("cnafwd8DKq2nQ564eN66ckYV8anVFGFi5vaYiQg2aal7ej/J0/OE0PPdKHLHe9wdzWRMFy5MpurRD/2cGXGLBQ==")
+	testingSigner(t, sv, "ed25519", crypto.SHA256, message)
+	testingVerifier(t, sv, "ed25519", crypto.SHA256, sig, message)
+
+	publicKey, err := cryptoutils.UnmarshalPEMToPublicKey([]byte(ed25519Pub))
+	if err != nil {
+		t.Errorf("unexpected error unmarshalling public key: %v", err)
+	}
+	edPub, _ := publicKey.(ed25519.PublicKey)
+	v, err := LoadED25519Verifier(edPub)
+	if err != nil {
+		t.Errorf("unexpected error creating verifier: %v", err)
+	}
+	testingVerifier(t, v, "ed25519", crypto.SHA256, sig, message)
 }

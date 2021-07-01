@@ -13,21 +13,26 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package signature
+package options
 
-import "testing"
+import (
+	crand "crypto/rand"
+	"io"
+)
 
-func newTestRSASignerVerifier(t *testing.T) RSASignerVerifier {
-	t.Helper()
-	sv, err := NewDefaultRSASignerVerifier()
-	if err != nil {
-		t.Fatalf("NewDefaultRSASignerVerifier() failed with error: %v", err)
-	}
-
-	return sv
+type RequestRand struct {
+	NoOpOptionImpl
+	rand io.Reader
 }
 
-func TestDefaultRSASignerVerifier(t *testing.T) {
-	sv := newTestRSASignerVerifier(t)
-	smokeTestSignerVerifier(t, sv)
+func (r RequestRand) ApplyRand(rand *io.Reader) {
+	*rand = r.rand
+}
+
+func WithRand(rand io.Reader) RequestRand {
+	r := rand
+	if r == nil {
+		r = crand.Reader
+	}
+	return RequestRand{rand: r}
 }
