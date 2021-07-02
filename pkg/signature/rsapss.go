@@ -158,6 +158,13 @@ func LoadRSAPSSVerifier(pub *rsa.PublicKey, hashFunc crypto.Hash, opts *rsa.PSSO
 	}, nil
 }
 
+// PublicKey returns the public key that is used to verify signatures by
+// this verifier. As this value is held in memory, all options provided in arguments
+// to this method are ignored.
+func (r RSAPSSVerifier) PublicKey(_ ...PublicKeyOption) (crypto.PublicKey, error) {
+	return r.publicKey, nil
+}
+
 // VerifySignature verifies the signature for the given message using PSS. Unless provided
 // in an option, the digest of the message will be computed using the hash function specified
 // when the RSAPSSVerifier was created.
@@ -240,4 +247,11 @@ func NewRSAPSSSignerVerifier(rand io.Reader, bits int, hashFunc crypto.Hash) (*R
 	}
 
 	return sv, priv, nil
+}
+
+// PublicKey returns the public key that is used to verify signatures by
+// this verifier. As this value is held in memory, all options provided in arguments
+// to this method are ignored.
+func (r RSAPSSSignerVerifier) PublicKey(_ ...PublicKeyOption) (crypto.PublicKey, error) {
+	return r.publicKey, nil
 }

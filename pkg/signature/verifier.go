@@ -29,6 +29,7 @@ import (
 )
 
 type Verifier interface {
+	PublicKeyProvider
 	VerifySignature(signature, message io.Reader, opts ...VerifyOption) error
 }
 
@@ -43,8 +44,8 @@ func LoadVerifier(publicKey crypto.PublicKey, hashFunc crypto.Hash) (Verifier, e
 		return LoadRSAPKCS1v15Verifier(pk, hashFunc)
 	case *ecdsa.PublicKey:
 		return LoadECDSAVerifier(pk, hashFunc)
-	case *ed25519.PublicKey:
-		return LoadED25519Verifier(*pk)
+	case ed25519.PublicKey:
+		return LoadED25519Verifier(pk)
 	}
 	return nil, errors.New("unsupported public key type")
 }

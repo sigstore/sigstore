@@ -140,6 +140,13 @@ func LoadECDSAVerifier(pub *ecdsa.PublicKey, hashFunc crypto.Hash) (*ECDSAVerifi
 	}, nil
 }
 
+// PublicKey returns the public key that is used to verify signatures by
+// this verifier. As this value is held in memory, all options provided in arguments
+// to this method are ignored.
+func (e ECDSAVerifier) PublicKey(_ ...PublicKeyOption) (crypto.PublicKey, error) {
+	return e.publicKey, nil
+}
+
 // VerifySignature verifies the signature for the given message. Unless provided
 // in an option, the digest of the message will be computed using the hash function specified
 // when the ECDSAVerifier was created.
@@ -217,4 +224,11 @@ func NewECDSASignerVerifier(curve elliptic.Curve, rand io.Reader, hashFunc crypt
 	}
 
 	return sv, priv, nil
+}
+
+// PublicKey returns the public key that is used to verify signatures by
+// this verifier. As this value is held in memory, all options provided in arguments
+// to this method are ignored.
+func (e ECDSASignerVerifier) PublicKey(_ ...PublicKeyOption) (crypto.PublicKey, error) {
+	return e.publicKey, nil
 }

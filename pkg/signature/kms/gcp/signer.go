@@ -180,3 +180,14 @@ func (g *SignerVerifier) CryptoSigner(ctx context.Context, errFunc func(error)) 
 
 	return csw, defaultHf, nil
 }
+
+func (g *SignerVerifier) SupportedAlgorithms() (result []string) {
+	for k := range algorithmMap {
+		result = append(result, k)
+	}
+	return
+}
+
+func (g *SignerVerifier) DefaultAlgorithm() string {
+	return Algorithm_ECDSA_P256_SHA256
+}

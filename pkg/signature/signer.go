@@ -37,10 +37,10 @@ import (
 )
 
 type Signer interface {
+	PublicKeyProvider
 	SignMessage(message io.Reader, opts ...SignOption) ([]byte, error)
 	// THIS WILL BE REMOVED AS SOON AS WE CAN UPDATE SIGSTORE DEPENDENCIES
 	Sign(context.Context, []byte) ([]byte, []byte, error)
-	PublicKey(opts ...PublicKeyOption) (crypto.PublicKey, error)
 }
 
 // SignerOpts implements crypto.SignerOpts but also allows callers to specify
@@ -66,7 +66,7 @@ func LoadSigner(privateKey crypto.PrivateKey, hashFunc crypto.Hash) (Signer, err
 		return LoadRSAPKCS1v15Signer(pk, hashFunc)
 	case *ecdsa.PrivateKey:
 		return LoadECDSASigner(pk, hashFunc)
-	case *ed25519.PrivateKey:
+	case ed25519.PrivateKey:
 		return LoadED25519Signer(pk)
 	}
 	return nil, errors.New("unsupported public key type")

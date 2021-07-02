@@ -138,6 +138,13 @@ func LoadRSAPKCS1v15Verifier(pub *rsa.PublicKey, hashFunc crypto.Hash) (*RSAPKCS
 	}, nil
 }
 
+// PublicKey returns the public key that is used to verify signatures by
+// this verifier. As this value is held in memory, all options provided in arguments
+// to this method are ignored.
+func (r RSAPKCS1v15Verifier) PublicKey(_ ...PublicKeyOption) (crypto.PublicKey, error) {
+	return r.publicKey, nil
+}
+
 // VerifySignature verifies the signature for the given message using PKCS1v15. Unless provided
 // in an option, the digest of the message will be computed using the hash function specified
 // when the RSAPKCS1v15Verifier was created.
@@ -212,4 +219,11 @@ func NewRSAPKCS1v15SignerVerifier(rand io.Reader, bits int, hashFunc crypto.Hash
 	}
 
 	return sv, priv, nil
+}
+
+// PublicKey returns the public key that is used to verify signatures by
+// this verifier. As this value is held in memory, all options provided in arguments
+// to this method are ignored.
+func (r RSAPKCS1v15SignerVerifier) PublicKey(_ ...PublicKeyOption) (crypto.PublicKey, error) {
+	return r.publicKey, nil
 }
