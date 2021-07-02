@@ -24,16 +24,16 @@ require (
 	github.com/pierrec/lz4 v2.6.0+incompatible // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/segmentio/ksuid v1.0.3
-	github.com/sigstore/rekor v0.2.0
+	github.com/sigstore/rekor v0.2.1-0.20210701170443-6c013a583403
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966
 	github.com/spf13/cobra v1.1.3
-	github.com/spf13/viper v1.8.0
+	github.com/spf13/viper v1.8.1
 	github.com/stretchr/testify v1.7.0
 	github.com/theupdateframework/go-tuf v0.0.0-20201230183259-aee6270feb55
 	golang.org/x/crypto v0.0.0-20210506145944-38f3c27a63bf
 	golang.org/x/oauth2 v0.0.0-20210427180440-81ed05c6b58c
 	golang.org/x/term v0.0.0-20201210144234-2321bbc49cbf
 	google.golang.org/genproto v0.0.0-20210602131652-f16073e35f0c
-	google.golang.org/protobuf v1.26.0
+	google.golang.org/protobuf v1.27.1
 	gopkg.in/square/go-jose.v2 v2.5.1
 )
