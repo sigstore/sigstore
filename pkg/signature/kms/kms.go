@@ -23,6 +23,7 @@ import (
 
 	"github.com/sigstore/sigstore/pkg/signature"
 	"github.com/sigstore/sigstore/pkg/signature/kms/aws"
+	"github.com/sigstore/sigstore/pkg/signature/kms/azure"
 	"github.com/sigstore/sigstore/pkg/signature/kms/gcp"
 	"github.com/sigstore/sigstore/pkg/signature/kms/hashivault"
 )
@@ -30,6 +31,9 @@ import (
 func init() {
 	ProvidersMux().AddProvider(aws.ReferenceScheme, func(ctx context.Context, keyResourceID string, hashFunc crypto.Hash) (SignerVerifier, error) {
 		return aws.LoadSignerVerifier(keyResourceID)
+	})
+	ProvidersMux().AddProvider(azure.ReferenceScheme, func(ctx context.Context, keyResourceID string, hashFunc crypto.Hash) (SignerVerifier, error) {
+		return azure.LoadSignerVerifier(ctx, keyResourceID, hashFunc)
 	})
 	ProvidersMux().AddProvider(gcp.ReferenceScheme, func(ctx context.Context, keyResourceID string, _ crypto.Hash) (SignerVerifier, error) {
 		return gcp.LoadSignerVerifier(ctx, keyResourceID)
