@@ -24,9 +24,9 @@ require (
 	github.com/pierrec/lz4 v2.6.0+incompatible // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/segmentio/ksuid v1.0.3
-	github.com/sigstore/rekor v0.2.1-0.20210701170443-6c013a583403
+	github.com/sigstore/rekor v0.2.1-0.20210705133645-dbbbff597bc2
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966
-	github.com/spf13/cobra v1.1.3
+	github.com/spf13/cobra v1.2.1
 	github.com/spf13/viper v1.8.1
 	github.com/stretchr/testify v1.7.0
 	github.com/theupdateframework/go-tuf v0.0.0-20201230183259-aee6270feb55
