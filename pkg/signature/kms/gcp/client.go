@@ -52,6 +52,19 @@ const (
 	Algorithm_RSA_PSS_4096_SHA512      = "rsa-pss-4096-sha512"
 )
 
+var algorithmMap = map[string]kmspb.CryptoKeyVersion_CryptoKeyVersionAlgorithm{
+	Algorithm_ECDSA_P256_SHA256:        kmspb.CryptoKeyVersion_EC_SIGN_P256_SHA256,
+	Algorithm_ECDSA_P384_SHA384:        kmspb.CryptoKeyVersion_EC_SIGN_P384_SHA384,
+	Algorithm_RSA_PKCS1v15_2048_SHA256: kmspb.CryptoKeyVersion_RSA_SIGN_PKCS1_2048_SHA256,
+	Algorithm_RSA_PKCS1v15_3072_SHA256: kmspb.CryptoKeyVersion_RSA_SIGN_PKCS1_3072_SHA256,
+	Algorithm_RSA_PKCS1v15_4096_SHA256: kmspb.CryptoKeyVersion_RSA_SIGN_PKCS1_4096_SHA256,
+	Algorithm_RSA_PKCS1v15_4096_SHA512: kmspb.CryptoKeyVersion_RSA_SIGN_PKCS1_4096_SHA512,
+	Algorithm_RSA_PSS_2048_SHA256:      kmspb.CryptoKeyVersion_RSA_SIGN_PSS_2048_SHA256,
+	Algorithm_RSA_PSS_3072_SHA256:      kmspb.CryptoKeyVersion_RSA_SIGN_PSS_3072_SHA256,
+	Algorithm_RSA_PSS_4096_SHA256:      kmspb.CryptoKeyVersion_RSA_SIGN_PSS_4096_SHA256,
+	Algorithm_RSA_PSS_4096_SHA512:      kmspb.CryptoKeyVersion_RSA_SIGN_PSS_4096_SHA512,
+}
+
 type gcpClient struct {
 	defaultCtx context.Context
 	refString  string
@@ -369,19 +382,6 @@ func (g *gcpClient) createKey(ctx context.Context, algorithm string) (crypto.Pub
 	}
 	if _, err := g.kmsClient.GetCryptoKey(ctx, getKeyRequest); err == nil {
 		return g.public(ctx)
-	}
-
-	var algorithmMap = map[string]kmspb.CryptoKeyVersion_CryptoKeyVersionAlgorithm{
-		Algorithm_ECDSA_P256_SHA256:        kmspb.CryptoKeyVersion_EC_SIGN_P256_SHA256,
-		Algorithm_ECDSA_P384_SHA384:        kmspb.CryptoKeyVersion_EC_SIGN_P384_SHA384,
-		Algorithm_RSA_PKCS1v15_2048_SHA256: kmspb.CryptoKeyVersion_RSA_SIGN_PKCS1_2048_SHA256,
-		Algorithm_RSA_PKCS1v15_3072_SHA256: kmspb.CryptoKeyVersion_RSA_SIGN_PKCS1_3072_SHA256,
-		Algorithm_RSA_PKCS1v15_4096_SHA256: kmspb.CryptoKeyVersion_RSA_SIGN_PKCS1_4096_SHA256,
-		Algorithm_RSA_PKCS1v15_4096_SHA512: kmspb.CryptoKeyVersion_RSA_SIGN_PKCS1_4096_SHA512,
-		Algorithm_RSA_PSS_2048_SHA256:      kmspb.CryptoKeyVersion_RSA_SIGN_PSS_2048_SHA256,
-		Algorithm_RSA_PSS_3072_SHA256:      kmspb.CryptoKeyVersion_RSA_SIGN_PSS_3072_SHA256,
-		Algorithm_RSA_PSS_4096_SHA256:      kmspb.CryptoKeyVersion_RSA_SIGN_PSS_4096_SHA256,
-		Algorithm_RSA_PSS_4096_SHA512:      kmspb.CryptoKeyVersion_RSA_SIGN_PSS_4096_SHA512,
 	}
 
 	if _, ok := algorithmMap[algorithm]; !ok {

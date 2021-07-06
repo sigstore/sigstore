@@ -70,4 +70,6 @@ type SignerVerifier interface {
 	signature.SignerVerifier
 	CreateKey(ctx context.Context, algorithm string) (crypto.PublicKey, error)
 	CryptoSigner(ctx context.Context, errFunc func(error)) (crypto.Signer, crypto.SignerOpts, error)
+	SupportedAlgorithms() []string
+	DefaultAlgorithm() string
 }

@@ -38,6 +38,16 @@ const (
 	Algorithm_RSA_4096   = "rsa-4096"
 )
 
+var hvSupportedAlgorithms []string = []string{
+	Algorithm_ECDSA_P256,
+	Algorithm_ECDSA_P384,
+	Algorithm_ECDSA_P521,
+	Algorithm_ED25519,
+	Algorithm_RSA_2048,
+	Algorithm_RSA_3072,
+	Algorithm_RSA_4096,
+}
+
 var hvSupportedHashFuncs = []crypto.Hash{
 	crypto.SHA224,
 	crypto.SHA256,
@@ -191,4 +201,12 @@ func (h *SignerVerifier) CryptoSigner(ctx context.Context, errFunc func(error)) 
 	}
 
 	return csw, h.hashFunc, nil
+}
+
+func (h *SignerVerifier) SupportedAlgorithms() []string {
+	return hvSupportedAlgorithms
+}
+
+func (h *SignerVerifier) DefaultAlgorithm() string {
+	return Algorithm_ECDSA_P256
 }

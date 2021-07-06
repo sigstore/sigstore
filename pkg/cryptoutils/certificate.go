@@ -16,12 +16,12 @@
 package cryptoutils
 
 import (
+	"bytes"
 	"crypto/x509"
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"io/ioutil"
-	"path/filepath"
+	"io"
 	"time"
 )
 
@@ -38,6 +38,22 @@ func MarshalCertificateToPEM(cert *x509.Certificate) ([]byte, error) {
 		Type:  string(CertificatePEMType),
 		Bytes: cert.Raw,
 	}), nil
+}
+
+// MarshalCertificatesToPEM converts the provided X509 certificates into PEM format
+func MarshalCertificatesToPEM(certs []*x509.Certificate) ([]byte, error) {
+	buf := bytes.Buffer{}
+	for i, cert := range certs {
+		if i != 0 {
+			_, _ = buf.WriteRune('\n')
+		}
+		pemBytes := pem.EncodeToMemory(&pem.Block{
+			Type:  string(CertificatePEMType),
+			Bytes: cert.Raw,
+		})
+		_, _ = buf.Write(pemBytes)
+	}
+	return buf.Bytes(), nil
 }
 
 // UnmarshalCertificatesFromPEM extracts one or more X509 certificates from the provided
@@ -67,9 +83,9 @@ func UnmarshalCertificatesFromPEM(pemBytes []byte) ([]*x509.Certificate, error) 
 }
 
 // LoadCertificatesFromPEMFile extracts one or more X509 certificates from the provided
-// path to a file.
-func LoadCertificatesFromPEMFile(path string) ([]*x509.Certificate, error) {
-	fileBytes, err := ioutil.ReadFile(filepath.Clean(path))
+// io.Reader.
+func LoadCertificatesFromPEM(pem io.Reader) ([]*x509.Certificate, error) {
+	fileBytes, err := io.ReadAll(pem)
 	if err != nil {
 		return nil, err
 	}

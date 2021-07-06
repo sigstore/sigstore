@@ -43,7 +43,7 @@ func LoadSignerVerifier(privateKey crypto.PrivateKey, hashFunc crypto.Hash) (Sig
 		return LoadRSAPKCS1v15SignerVerifier(pk, hashFunc)
 	case *ecdsa.PrivateKey:
 		return LoadECDSASignerVerifier(pk, hashFunc)
-	case *ed25519.PrivateKey:
+	case ed25519.PrivateKey:
 		return LoadED25519SignerVerifier(pk)
 	}
 	return nil, errors.New("unsupported public key type")

@@ -42,7 +42,7 @@ func TestED25519SignerVerifier(t *testing.T) {
 		t.Errorf("unexpected error unmarshalling public key: %v", err)
 	}
 	edPriv, _ := privateKey.(ed25519.PrivateKey)
-	sv, err := LoadED25519SignerVerifier(&edPriv)
+	sv, err := LoadED25519SignerVerifier(edPriv)
 	if err != nil {
 		t.Errorf("unexpected error creating signer/verifier: %v", err)
 	}
