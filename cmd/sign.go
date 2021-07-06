@@ -137,9 +137,14 @@ var signCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-
 		fmt.Printf("Rekor entry successful. URL: %v%v\n", viper.GetString("rekor-server"), tlogEntry)
 
+		if viper.IsSet("output") {
+			err = ioutil.WriteFile(viper.GetString("output"), signingCertPEM, 0600)
+			if err != nil {
+				return err
+			}
+		}
 		return nil
 	},
 }
