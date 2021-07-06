@@ -119,7 +119,7 @@ var signCmd = &cobra.Command{
 			return err
 		}
 
-		fmt.Println("Received signing cerificate with serial number: ", signingCert.SerialNumber)
+		fmt.Println("Received signing certificate with serial number: ", signingCert.SerialNumber)
 
 		signature, err := signer.SignMessage(bytes.NewReader(payload))
 		if err != nil {
