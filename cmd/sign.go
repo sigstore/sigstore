@@ -119,9 +119,7 @@ var signCmd = &cobra.Command{
 			return err
 		}
 
-		fmt.Println("Received signing cerificate with serial number: ", signingCert.SerialNumber)
-
-		fmt.Printf("Received signing Cerificate: %+v\n", signingCert.Subject)
+		fmt.Println("Received signing certificate with serial number: ", signingCert.SerialNumber)
 
 		signature, err := signer.SignMessage(bytes.NewReader(payload))
 		if err != nil {
@@ -139,7 +137,7 @@ var signCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		fmt.Println("Rekor entry successful. URL: ", tlogEntry)
+		fmt.Printf("Rekor entry successful. URL: %v%v\n", viper.GetString("rekor-server"), tlogEntry)
 
 		if viper.IsSet("output") {
 			err = ioutil.WriteFile(viper.GetString("output"), signingCertPEM, 0600)
