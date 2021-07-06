@@ -120,7 +120,6 @@ var signCmd = &cobra.Command{
 			return err
 		}
 
-
 		fmt.Println("Received signing cerificate with serial number: ", signingCert.SerialNumber)
 
 		fmt.Printf("Received signing Cerificate: %+v\n", signingCert.Subject)
