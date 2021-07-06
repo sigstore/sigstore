@@ -17,6 +17,7 @@ package cmd
 
 import (
 	"bytes"
+	"encoding/pem"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -119,6 +120,7 @@ var signCmd = &cobra.Command{
 			return err
 		}
 
+
 		fmt.Println("Received signing cerificate with serial number: ", signingCert.SerialNumber)
 
 		fmt.Printf("Received signing Cerificate: %+v\n", signingCert.Subject)
@@ -140,6 +142,15 @@ var signCmd = &cobra.Command{
 			return err
 		}
 		fmt.Println("Rekor entry successful. URL: ", tlogEntry)
+
+		if viper.IsSet("output") {
+			clientPEM, _ := pem.Decode([]byte(certResp.Payload))
+			certPEM := pem.EncodeToMemory(clientPEM)
+			err = ioutil.WriteFile(viper.GetString("output"), certPEM, 0600)
+			if err != nil {
+				return err
+			}
+		}
 		return nil
 	},
 }
