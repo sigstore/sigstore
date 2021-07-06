@@ -121,8 +121,6 @@ var signCmd = &cobra.Command{
 
 		fmt.Println("Received signing cerificate with serial number: ", signingCert.SerialNumber)
 
-		fmt.Printf("Received signing Cerificate: %+v\n", signingCert.Subject)
-
 		signature, err := signer.SignMessage(bytes.NewReader(payload))
 		if err != nil {
 			panic(fmt.Sprintf("Error occurred while during artifact signing: %s", err))
@@ -139,7 +137,9 @@ var signCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		fmt.Println("Rekor entry successful. URL: ", tlogEntry)
+
+		fmt.Printf("Rekor entry successful. URL: %v%v\n", viper.GetString("rekor-server"), tlogEntry)
+
 		return nil
 	},
 }
