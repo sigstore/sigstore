@@ -144,7 +144,7 @@ var signCmd = &cobra.Command{
 
 		if viper.IsSet("output") {
 			certPEM := pem.EncodeToMemory(clientPEM)
-			err = ioutil.WriteFile(viper.GetString("output"), certPEM, 0600)
+			err = ioutil.WriteFile(viper.GetString("output"), signingCertPEM, 0600)
 			if err != nil {
 				return err
 			}
