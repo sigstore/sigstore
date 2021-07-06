@@ -55,6 +55,7 @@ func UnmarshalCertificatesFromPEM(pemBytes []byte) ([]*x509.Certificate, error) 
 		if certDer == nil {
 			return nil, errors.New("error during PEM decoding")
 		}
+
 		cert, err := x509.ParseCertificate(certDer.Bytes)
 		if err != nil {
 			return nil, err

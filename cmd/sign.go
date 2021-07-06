@@ -17,7 +17,6 @@ package cmd
 
 import (
 	"bytes"
-	"encoding/pem"
 	"errors"
 	"fmt"
 	"io/ioutil"
