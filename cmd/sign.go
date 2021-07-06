@@ -143,7 +143,6 @@ var signCmd = &cobra.Command{
 		fmt.Println("Rekor entry successful. URL: ", tlogEntry)
 
 		if viper.IsSet("output") {
-			certPEM := pem.EncodeToMemory(clientPEM)
 			err = ioutil.WriteFile(viper.GetString("output"), signingCertPEM, 0600)
 			if err != nil {
 				return err
