@@ -20,6 +20,7 @@ import "github.com/gabriel-vasile/mimetype"
 var SupportedFileTypes = map[string]struct{}{
 	"text/plain; charset=utf-8":     {},
 	"application/jar":               {},
+	"application/x-executable":      {},
 	"application/x-bzip2":           {},
 	"application/x-tar":             {},
 	"application/x-gzip":            {},
