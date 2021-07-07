@@ -139,8 +139,17 @@ var signCmd = &cobra.Command{
 		}
 		fmt.Printf("Rekor entry successful. URL: %v%v\n", viper.GetString("rekor-server"), tlogEntry)
 
-		if viper.IsSet("output") {
-			err = ioutil.WriteFile(viper.GetString("output"), signingCertPEM, 0600)
+		// If cert-out path is passed, save the signing certificate to file
+		if viper.IsSet("cert-out") {
+			err = ioutil.WriteFile(viper.GetString("cert-out"), signingCertPEM, 0600)
+			if err != nil {
+				return err
+			}
+		}
+
+		// If sig-out path is passed, save the signature to file
+		if viper.IsSet("sig-out") {
+			err = ioutil.WriteFile(viper.GetString("sig-out"), signature, 0600)
 			if err != nil {
 				return err
 			}
@@ -154,7 +163,8 @@ func init() {
 	signCmd.PersistentFlags().String("oidc-issuer", "https://oauth2.sigstore.dev/auth", "OIDC provider to be used to issue ID token")
 	signCmd.PersistentFlags().String("oidc-client-id", "sigstore", "client ID for application")
 	signCmd.PersistentFlags().String("oidc-client-secret", "", "client secret for application")
-	signCmd.PersistentFlags().StringP("output", "o", "-", "output file to write certificate chain to")
+	signCmd.PersistentFlags().StringP("cert-out", "c", "-", "output file to write signing certificate")
+	signCmd.PersistentFlags().StringP("sig-out", "s", "-", "output file to write signature")
 	signCmd.PersistentFlags().StringP("artifact", "a", "", "artifact to sign")
 	if err := viper.BindPFlags(signCmd.PersistentFlags()); err != nil {
 		fmt.Println(err)
