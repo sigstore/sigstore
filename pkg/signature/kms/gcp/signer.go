@@ -91,10 +91,13 @@ func (g *SignerVerifier) SignMessage(message io.Reader, opts ...signature.SignOp
 		opt.ApplyCryptoSignerOpts(&signerOpts)
 	}
 
-	crc32cHasher := crc32.New(crc32.MakeTable(crc32.Castagnoli))
-	messageAndCRC32CReader := io.TeeReader(message, crc32cHasher)
+	digest, hf, err := signature.ComputeDigestForSigning(message, signerOpts.HashFunc(), gcpSupportedHashFuncs, opts...)
+	if err != nil {
+		return nil, err
+	}
 
-	digest, hf, err := signature.ComputeDigestForSigning(messageAndCRC32CReader, signerOpts.HashFunc(), gcpSupportedHashFuncs, opts...)
+	crc32cHasher := crc32.New(crc32.MakeTable(crc32.Castagnoli))
+	_, err = crc32cHasher.Write(digest)
 	if err != nil {
 		return nil, err
 	}
