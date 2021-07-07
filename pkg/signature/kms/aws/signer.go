@@ -21,10 +21,20 @@ import (
 	"crypto"
 	"io"
 
+	"github.com/aws/aws-sdk-go/service/kms"
 	"github.com/pkg/errors"
 	"github.com/sigstore/sigstore/pkg/signature"
 	"github.com/sigstore/sigstore/pkg/signature/options"
 )
+
+var awsSupportedAlgorithms []string = []string{
+	kms.CustomerMasterKeySpecRsa2048,
+	kms.CustomerMasterKeySpecRsa3072,
+	kms.CustomerMasterKeySpecRsa4096,
+	kms.CustomerMasterKeySpecEccNistP256,
+	kms.CustomerMasterKeySpecEccNistP384,
+	kms.CustomerMasterKeySpecEccNistP521,
+}
 
 var awsSupportedHashFuncs = []crypto.Hash{
 	crypto.SHA256,
@@ -233,4 +243,12 @@ func (a *SignerVerifier) CryptoSigner(ctx context.Context, errFunc func(error)) 
 	}
 
 	return csw, defaultHf, nil
+}
+
+func (a *SignerVerifier) SupportedAlgorithms() []string {
+	return awsSupportedAlgorithms
+}
+
+func (g *SignerVerifier) DefaultAlgorithm() string {
+	return kms.CustomerMasterKeySpecEccNistP256
 }
