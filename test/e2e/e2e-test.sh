@@ -22,7 +22,7 @@ docker-compose up -d
 count=0
 
 echo -n "waiting up to 60 sec for system to start"
-until [ $(docker-compose ps | grep -c "Up") == 1 ];
+until [ $(docker-compose ps vault | grep -c "Up") == 1 -a $(docker-compose logs localstack | grep -c Ready) == 1 ];
 do
     if [ $count -eq 12 ]; then
        echo "! timeout reached"
@@ -41,6 +41,10 @@ echo "running tests"
 
 export VAULT_TOKEN=testtoken
 export VAULT_ADDR=http://localhost:8200/
+
+export AWS_ACCESS_KEY_ID=test
+export AWS_SECRET_ACCESS_KEY=test
+export AWS_ENDPOINT=localhost:4566
 
 go test -tags e2e -count=1 ./...
 
