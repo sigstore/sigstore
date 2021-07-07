@@ -140,7 +140,7 @@ func parseReference(resourceID string) (projectID, locationID, keyRing, keyName,
 
 type cryptoKeyVersion struct {
 	CryptoKeyVersion *kmspb.CryptoKeyVersion
-	SignerVerifier   signature.SignerVerifier
+	Verifier         signature.Verifier
 	HashFunc         crypto.Hash
 }
 
@@ -208,50 +208,30 @@ func (g *gcpClient) keyVersionName(ctx context.Context) (*cryptoKeyVersion, erro
 		return nil, errors.Wrap(err, "unable to fetch public key while creating signer")
 	}
 
-	var rsaPriv *rsa.PrivateKey
-	var ecPriv *ecdsa.PrivateKey
-
-	switch kv.Algorithm {
-	case kmspb.CryptoKeyVersion_EC_SIGN_P256_SHA256:
-	case kmspb.CryptoKeyVersion_EC_SIGN_P384_SHA384:
-		ecPub := pubKey.(*ecdsa.PublicKey)
-		ecPriv = &ecdsa.PrivateKey{PublicKey: *ecPub}
-	case kmspb.CryptoKeyVersion_RSA_SIGN_PKCS1_2048_SHA256, kmspb.CryptoKeyVersion_RSA_SIGN_PKCS1_3072_SHA256,
-		kmspb.CryptoKeyVersion_RSA_SIGN_PKCS1_4096_SHA256, kmspb.CryptoKeyVersion_RSA_SIGN_PKCS1_4096_SHA512,
-		kmspb.CryptoKeyVersion_RSA_SIGN_PSS_2048_SHA256, kmspb.CryptoKeyVersion_RSA_SIGN_PSS_3072_SHA256,
-		kmspb.CryptoKeyVersion_RSA_SIGN_PSS_4096_SHA256, kmspb.CryptoKeyVersion_RSA_SIGN_PSS_4096_SHA512:
-		rsaPub := pubKey.(*rsa.PublicKey)
-		rsaPriv = &rsa.PrivateKey{PublicKey: *rsaPub}
-	default:
-		return nil, errors.New("unknown algorithm specified by KMS")
-	}
-
-	// crv.SignerVerifier is set here to enable storing the public key & hash algorithm together,
+	// crv.Verifier is set here to enable storing the public key & hash algorithm together,
 	// as well as using the in memory Verifier to perform the verify operations.
-	// crv.SignerVerifier.Sign() or crv.SignerVerifier.SignMessage() should NEVER be used since the private
-	// key is stored in GCP KMS, not in memory
 	switch kv.Algorithm {
 	case kmspb.CryptoKeyVersion_EC_SIGN_P256_SHA256:
-		crv.SignerVerifier, err = signature.LoadECDSASignerVerifier(ecPriv, crypto.SHA256)
+		crv.Verifier, err = signature.LoadECDSAVerifier(pubKey.(*ecdsa.PublicKey), crypto.SHA256)
 		crv.HashFunc = crypto.SHA256
 	case kmspb.CryptoKeyVersion_EC_SIGN_P384_SHA384:
-		crv.SignerVerifier, err = signature.LoadECDSASignerVerifier(ecPriv, crypto.SHA384)
+		crv.Verifier, err = signature.LoadECDSAVerifier(pubKey.(*ecdsa.PublicKey), crypto.SHA384)
 		crv.HashFunc = crypto.SHA384
 	case kmspb.CryptoKeyVersion_RSA_SIGN_PKCS1_2048_SHA256,
 		kmspb.CryptoKeyVersion_RSA_SIGN_PKCS1_3072_SHA256,
 		kmspb.CryptoKeyVersion_RSA_SIGN_PKCS1_4096_SHA256:
-		crv.SignerVerifier, err = signature.LoadRSAPKCS1v15SignerVerifier(rsaPriv, crypto.SHA256)
+		crv.Verifier, err = signature.LoadRSAPKCS1v15Verifier(pubKey.(*rsa.PublicKey), crypto.SHA256)
 		crv.HashFunc = crypto.SHA256
 	case kmspb.CryptoKeyVersion_RSA_SIGN_PKCS1_4096_SHA512:
-		crv.SignerVerifier, err = signature.LoadRSAPKCS1v15SignerVerifier(rsaPriv, crypto.SHA512)
+		crv.Verifier, err = signature.LoadRSAPKCS1v15Verifier(pubKey.(*rsa.PublicKey), crypto.SHA512)
 		crv.HashFunc = crypto.SHA512
 	case kmspb.CryptoKeyVersion_RSA_SIGN_PSS_2048_SHA256,
 		kmspb.CryptoKeyVersion_RSA_SIGN_PSS_3072_SHA256,
 		kmspb.CryptoKeyVersion_RSA_SIGN_PSS_4096_SHA256:
-		crv.SignerVerifier, err = signature.LoadRSAPSSSignerVerifier(rsaPriv, crypto.SHA256, nil)
+		crv.Verifier, err = signature.LoadRSAPSSVerifier(pubKey.(*rsa.PublicKey), crypto.SHA256, nil)
 		crv.HashFunc = crypto.SHA256
 	case kmspb.CryptoKeyVersion_RSA_SIGN_PSS_4096_SHA512:
-		crv.SignerVerifier, err = signature.LoadRSAPSSSignerVerifier(rsaPriv, crypto.SHA512, nil)
+		crv.Verifier, err = signature.LoadRSAPSSVerifier(pubKey.(*rsa.PublicKey), crypto.SHA512, nil)
 		crv.HashFunc = crypto.SHA512
 	default:
 		return nil, errors.New("unknown algorithm specified by KMS")
@@ -348,7 +328,7 @@ func (g *gcpClient) public(ctx context.Context) (crypto.PublicKey, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "transient error getting info from KMS")
 	}
-	return crv.SignerVerifier.PublicKey(options.WithContext(ctx))
+	return crv.Verifier.PublicKey(options.WithContext(ctx))
 
 }
 
@@ -357,7 +337,7 @@ func (g *gcpClient) verify(sig, message io.Reader, opts ...signature.VerifyOptio
 	if err != nil {
 		return errors.Wrap(err, "transient error getting info from KMS")
 	}
-	if err := crv.SignerVerifier.VerifySignature(sig, message, opts...); err != nil {
+	if err := crv.Verifier.VerifySignature(sig, message, opts...); err != nil {
 		// key could have been rotated, clear cache and try again if we're not pinned to a version
 		if g.version == "" {
 			_ = g.kvCache.Remove(CacheKey)
@@ -365,7 +345,7 @@ func (g *gcpClient) verify(sig, message io.Reader, opts ...signature.VerifyOptio
 			if err != nil {
 				return errors.Wrap(err, "transient error getting info from KMS")
 			}
-			return crv.SignerVerifier.VerifySignature(sig, message, opts...)
+			return crv.Verifier.VerifySignature(sig, message, opts...)
 		}
 		return errors.Wrap(err, "failed to verify for fixed version")
 	}
