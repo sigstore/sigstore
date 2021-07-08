@@ -32,7 +32,7 @@ var ed25519SupportedHashFuncs = []crypto.Hash{
 }
 
 type ED25519Signer struct {
-	priv *ed25519.PrivateKey
+	priv ed25519.PrivateKey
 }
 
 // LoadED25519Signer calculates signatures using the specified private key.
@@ -47,7 +47,7 @@ func LoadED25519Signer(priv ed25519.PrivateKey) (*ED25519Signer, error) {
 	}
 
 	return &ED25519Signer{
-		priv: &priv,
+		priv: priv,
 	}, nil
 }
 
@@ -62,7 +62,7 @@ func (e ED25519Signer) SignMessage(message io.Reader, _ ...SignOption) ([]byte, 
 		return nil, err
 	}
 
-	return ed25519.Sign(*e.priv, messageBytes), nil
+	return ed25519.Sign(e.priv, messageBytes), nil
 }
 
 // Public returns the public key that can be used to verify signatures created by
@@ -98,7 +98,7 @@ func (e ED25519Signer) CSign(_ io.Reader, message []byte, _ crypto.SignerOpts) (
 }
 
 type ED25519Verifier struct {
-	publicKey *ed25519.PublicKey
+	publicKey ed25519.PublicKey
 }
 
 // LoadED25519Verifier returns a Verifier that verifies signatures using the specified ED25519 public key.
@@ -108,7 +108,7 @@ func LoadED25519Verifier(pub ed25519.PublicKey) (*ED25519Verifier, error) {
 	}
 
 	return &ED25519Verifier{
-		publicKey: &pub,
+		publicKey: pub,
 	}, nil
 }
 
@@ -139,7 +139,7 @@ func (e *ED25519Verifier) VerifySignature(signature, message io.Reader, _ ...Ver
 		return errors.Wrap(err, "reading signature")
 	}
 
-	if !ed25519.Verify(*e.publicKey, messageBytes, sigBytes) {
+	if !ed25519.Verify(e.publicKey, messageBytes, sigBytes) {
 		return errors.New("failed to verify signature")
 	}
 	return nil
@@ -171,13 +171,13 @@ func LoadED25519SignerVerifier(priv ed25519.PrivateKey) (*ED25519SignerVerifier,
 
 // NewDefaultED25519SignerVerifier creates a combined signer and verifier using ED25519.
 // This creates a new ED25519 key using crypto/rand as an entropy source.
-func NewDefaultED25519SignerVerifierE() (*ED25519SignerVerifier, *ed25519.PrivateKey, error) {
+func NewDefaultED25519SignerVerifierE() (*ED25519SignerVerifier, ed25519.PrivateKey, error) {
 	return NewED25519SignerVerifier(rand.Reader)
 }
 
 // NewED25519SignerVerifier creates a combined signer and verifier using ED25519.
 // This creates a new ED25519 key using the specified entropy source.
-func NewED25519SignerVerifier(rand io.Reader) (*ED25519SignerVerifier, *ed25519.PrivateKey, error) {
+func NewED25519SignerVerifier(rand io.Reader) (*ED25519SignerVerifier, ed25519.PrivateKey, error) {
 	_, priv, err := ed25519.GenerateKey(rand)
 	if err != nil {
 		return nil, nil, err
@@ -188,7 +188,7 @@ func NewED25519SignerVerifier(rand io.Reader) (*ED25519SignerVerifier, *ed25519.
 		return nil, nil, err
 	}
 
-	return sv, &priv, nil
+	return sv, priv, nil
 }
 
 // PublicKey returns the public key that is used to verify signatures by

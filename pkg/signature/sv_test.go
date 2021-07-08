@@ -19,6 +19,7 @@ import (
 	"bytes"
 	"crypto"
 	crand "crypto/rand"
+	"crypto/x509"
 	"strings"
 	"testing"
 
@@ -115,6 +116,14 @@ func testingSigner(t *testing.T, s Signer, alg string, hashFunc crypto.Hash, mes
 			t.Errorf("PublicKey(context.Background()) returned empty key or err: %v", err)
 		}
 	*/
+}
+
+func assertPublicKeyIsx509Marshalable(t *testing.T, pub crypto.PublicKey) {
+	t.Helper()
+
+	if _, err := x509.MarshalPKIXPublicKey(pub); err != nil {
+		t.Errorf("x509.MarshalPKIXPublicKey(%T) returned error: %v", pub, err)
+	}
 }
 
 func testingVerifier(t *testing.T, v Verifier, alg string, hashFunc crypto.Hash, signature, message []byte) {
