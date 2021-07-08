@@ -27,7 +27,6 @@ import (
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/segmentio/ksuid"
 	"github.com/skratchdot/open-golang/open"
-	"github.com/spf13/viper"
 	"golang.org/x/oauth2"
 )
 
@@ -84,7 +83,7 @@ func (i *InteractiveIDTokenGetter) GetIDToken(p *oidc.Provider, cfg oauth2.Confi
 	}
 
 	// verify nonce, client ID, access token hash before using it
-	verifier := p.Verifier(&oidc.Config{ClientID: viper.GetString("oidc-client-id")})
+	verifier := p.Verifier(&oidc.Config{ClientID: cfg.ClientID})
 	parsedIDToken, err := verifier.Verify(context.Background(), idToken)
 	if err != nil {
 		return nil, err
