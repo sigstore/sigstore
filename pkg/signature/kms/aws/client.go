@@ -20,9 +20,12 @@ import (
 	"crypto"
 	"crypto/ecdsa"
 	"crypto/rsa"
+	"crypto/tls"
 	"crypto/x509"
 	"fmt"
 	"io"
+	"net/http"
+	"os"
 	"regexp"
 	"time"
 
@@ -40,12 +43,11 @@ const (
 )
 
 type awsClient struct {
-	client        *kms.KMS
-	keyResourceID string
-	endpoint      string
-	keyID         string
-	alias         string
-	keyCache      *ttlcache.Cache
+	client   *kms.KMS
+	endpoint string
+	keyID    string
+	alias    string
+	keyCache *ttlcache.Cache
 }
 
 var (
@@ -62,7 +64,6 @@ var (
 	// Alias ARN: awskms:///arn:aws:kms:us-east-2:111122223333:alias/ExampleAlias
 	// Alias ARN with endpoint: awskms://localhost:4566/arn:aws:kms:us-east-2:111122223333:alias/ExampleAlias
 	uuidRE      = `m?r?k?-?[A-Fa-f0-9]{8}-?[A-Fa-f0-9]{4}-?[A-Fa-f0-9]{4}-?[A-Fa-f0-9]{4}-?[A-Fa-f0-9]{12}`
-	aliasRE     = `alias/(.*)`
 	arnRE       = `arn:aws:kms:[a-z0-9-]+:\d{12}:`
 	hostRE      = `([^/]*)/`
 	keyIDRE     = regexp.MustCompile(`^awskms://` + hostRE + `(` + uuidRE + `)$`)
@@ -117,13 +118,17 @@ func newAWSClient(keyResourceID string) (a *awsClient, err error) {
 
 func (a *awsClient) setupClient() (err error) {
 	var sess *session.Session
-	if a.endpoint == "" {
-		sess, err = session.NewSession()
-	} else {
-		sess, err = session.NewSession(&aws.Config{
-			Endpoint: aws.String("http://" + a.endpoint),
-		})
+	config := &aws.Config{}
+	if a.endpoint != "" {
+		config.Endpoint = aws.String("https://" + a.endpoint)
 	}
+	if os.Getenv("AWS_TLS_INSECURE_SKIP_VERIFY") == "1" {
+		config.HTTPClient = &http.Client{
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}} // nolint: gosec
+
+	}
+	sess, err = session.NewSession(config)
 	if err != nil {
 		return errors.Wrap(err, "new aws session")
 	}
@@ -208,14 +213,10 @@ func (a *awsClient) createKey(ctx context.Context, algorithm string) (crypto.Pub
 	out, err := a.public(ctx)
 	if err == nil {
 		return out, nil
-	} else {
-		switch err := errors.Cause(err).(type) {
-		case *kms.NotFoundException:
-			// continue with creation
-		default:
-			// unknown error
-			return nil, errors.Wrap(err, "looking up key")
-		}
+	}
+	// return error if not *kms.NotFoundException
+	if _, ok := errors.Cause(err).(*kms.NotFoundException); !ok {
+		return nil, errors.Wrap(err, "looking up key")
 	}
 
 	usage := kms.KeyUsageTypeSignVerify
@@ -270,9 +271,8 @@ func (a *awsClient) public(ctx context.Context) (crypto.PublicKey, error) {
 	key, err := a.keyCache.GetByLoader(CacheKey, a.keyCacheLoaderFunctionWithContext(ctx))
 	if err != nil {
 		return nil, err
-	} else {
-		return key.(*cmk).PublicKey, nil
 	}
+	return key.(*cmk).PublicKey, nil
 }
 func (a *awsClient) sign(ctx context.Context, digest []byte, algorithm crypto.Hash) ([]byte, error) {
 	cmk, err := a.getCMK(ctx)

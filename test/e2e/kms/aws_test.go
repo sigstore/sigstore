@@ -68,12 +68,12 @@ func (suite *AWSSuite) TestCreateKey() {
 	provider := suite.GetProvider("alias/provider")
 
 	key, err := provider.CreateKey(context.Background(), awskms.CustomerMasterKeySpecEccNistP256)
-	assert.Nil(suite.T(), err)
-	assert.NotNil(suite.T(), key)
+	require.Nil(suite.T(), err)
+	require.NotNil(suite.T(), key)
 
 	key2, err := provider.CreateKey(context.Background(), awskms.CustomerMasterKeySpecEccNistP256)
-	assert.Nil(suite.T(), err)
-	assert.NotNil(suite.T(), key)
+	require.Nil(suite.T(), err)
+	require.NotNil(suite.T(), key)
 
 	// Subsequent call should produce same key
 	assert.Equal(suite.T(), key, key2)
@@ -84,21 +84,21 @@ func (suite *AWSSuite) TestCreateKeyByID() {
 
 	// CreateKey can only work with aliases, not IDs
 	key, err := provider.CreateKey(context.Background(), awskms.CustomerMasterKeySpecEccNistP256)
-	assert.Error(suite.T(), err)
-	assert.Nil(suite.T(), key)
+	require.Error(suite.T(), err)
+	require.Nil(suite.T(), key)
 }
 
 func (suite *AWSSuite) TestSign() {
 	provider := suite.GetProvider("alias/TestSign")
 
 	key, err := provider.CreateKey(context.Background(), awskms.CustomerMasterKeySpecEccNistP256)
-	assert.Nil(suite.T(), err)
-	assert.NotNil(suite.T(), key)
+	require.Nil(suite.T(), err)
+	require.NotNil(suite.T(), key)
 
 	data := []byte("mydata")
 	sig, err := provider.SignMessage(bytes.NewReader(data))
-	assert.Nil(suite.T(), err)
-	assert.NotNil(suite.T(), sig)
+	require.Nil(suite.T(), err)
+	require.NotNil(suite.T(), sig)
 
 	verifier, _ := signature.LoadECDSAVerifier(key.(*ecdsa.PublicKey), crypto.SHA256)
 	err = verifier.VerifySignature(bytes.NewReader(sig), bytes.NewReader(data))
@@ -157,19 +157,19 @@ func (suite *AWSSuite) TestVerify() {
 	provider := suite.GetProvider("alias/TestVerify")
 
 	key, err := provider.CreateKey(context.Background(), awskms.CustomerMasterKeySpecEccNistP256)
-	assert.Nil(suite.T(), err)
-	assert.NotNil(suite.T(), key)
+	require.Nil(suite.T(), err)
+	require.NotNil(suite.T(), key)
 
 	data := []byte("mydata")
 	sig, err := provider.SignMessage(bytes.NewReader(data))
-	assert.Nil(suite.T(), err)
-	assert.NotNil(suite.T(), sig)
+	require.Nil(suite.T(), err)
+	require.NotNil(suite.T(), sig)
 
 	err = provider.VerifySignature(bytes.NewReader(sig), bytes.NewReader(data))
-	require.Nil(suite.T(), err)
+	assert.Nil(suite.T(), err)
 
-	err = provider.VerifySignatureRemotely(bytes.NewReader(sig), bytes.NewReader(data))
-	require.Nil(suite.T(), err)
+	err = provider.VerifySignature(bytes.NewReader(sig), bytes.NewReader(data), options.WithRemoteVerification(true))
+	assert.Nil(suite.T(), err)
 }
 
 func (suite *AWSSuite) TestTwoProviders() {
@@ -177,16 +177,40 @@ func (suite *AWSSuite) TestTwoProviders() {
 	provider2 := suite.GetProvider("alias/TestTwoProviders")
 
 	key, err := provider1.CreateKey(context.Background(), awskms.CustomerMasterKeySpecEccNistP256)
-	assert.Nil(suite.T(), err)
-	assert.NotNil(suite.T(), key)
+	require.Nil(suite.T(), err)
+	require.NotNil(suite.T(), key)
 
 	data := []byte("mydata")
 	sig, err := provider1.SignMessage(bytes.NewReader(data))
-	assert.Nil(suite.T(), err)
-	assert.NotNil(suite.T(), sig)
+	require.Nil(suite.T(), err)
+	require.NotNil(suite.T(), sig)
 
 	err = provider2.VerifySignature(bytes.NewReader(sig), bytes.NewReader(data))
+	assert.Nil(suite.T(), err)
+}
+
+func (suite *AWSSuite) TestBadSignature() {
+	provider1 := suite.GetProvider("alias/TestBadSignature1")
+	provider2 := suite.GetProvider("alias/TestBadSignature2")
+
+	key1, err := provider1.CreateKey(context.Background(), awskms.CustomerMasterKeySpecEccNistP256)
 	require.Nil(suite.T(), err)
+	require.NotNil(suite.T(), key1)
+
+	key2, err := provider2.CreateKey(context.Background(), awskms.CustomerMasterKeySpecEccNistP256)
+	require.Nil(suite.T(), err)
+	require.NotNil(suite.T(), key2)
+
+	data := []byte("mydata")
+	sig, err := provider1.SignMessage(bytes.NewReader(data))
+	require.Nil(suite.T(), err)
+	require.NotNil(suite.T(), sig)
+
+	err = provider2.VerifySignature(bytes.NewReader(sig), bytes.NewReader(data))
+	assert.Contains(suite.T(), err.Error(), "failed to verify signature")
+
+	err = provider2.VerifySignature(bytes.NewReader(sig), bytes.NewReader(data), options.WithRemoteVerification(true))
+	assert.Contains(suite.T(), err.Error(), "KMSInvalidSignatureException")
 }
 
 func (suite *AWSSuite) TestKeyTypes() {
@@ -202,16 +226,16 @@ func (suite *AWSSuite) TestKeyTypes() {
 		suite.T().Run(fmt.Sprintf("KeyType-%s", cmkSpec), func(t *testing.T) {
 			provider := suite.GetProvider("alias/" + cmkSpec)
 			key, err := provider.CreateKey(context.Background(), cmkSpec)
-			assert.Nil(suite.T(), err)
-			assert.NotNil(suite.T(), key)
+			require.Nil(suite.T(), err)
+			require.NotNil(suite.T(), key)
 
 			data := []byte("mydata")
 			sig, err := provider.SignMessage(bytes.NewReader(data))
-			assert.Nil(suite.T(), err)
-			assert.NotNil(suite.T(), sig)
+			require.Nil(suite.T(), err)
+			require.NotNil(suite.T(), sig)
 
 			err = provider.VerifySignature(bytes.NewReader(sig), bytes.NewReader(data))
-			require.Nil(suite.T(), err)
+			assert.Nil(suite.T(), err)
 		})
 	}
 }
@@ -223,18 +247,18 @@ func (suite *AWSSuite) TestCancelContext() {
 	provider := suite.GetProvider("alias/TestCancelContext")
 	key, err := provider.CreateKey(ctx, awskms.CustomerMasterKeySpecEccNistP256)
 	assert.Error(suite.T(), err)
-	require.Contains(suite.T(), err.Error(), context.Canceled.Error())
-	require.Nil(suite.T(), key)
+	assert.Contains(suite.T(), err.Error(), context.Canceled.Error())
+	assert.Nil(suite.T(), key)
 
 	data := []byte("mydata")
 	sig, err := provider.SignMessage(bytes.NewReader(data), options.WithContext(ctx))
 	assert.Error(suite.T(), err)
-	require.Contains(suite.T(), err.Error(), context.Canceled.Error())
-	require.Nil(suite.T(), sig)
+	assert.Contains(suite.T(), err.Error(), context.Canceled.Error())
+	assert.Nil(suite.T(), sig)
 
 	err = provider.VerifySignature(bytes.NewReader(sig), bytes.NewReader(data), options.WithContext(ctx))
 	assert.Error(suite.T(), err)
-	require.Contains(suite.T(), err.Error(), context.Canceled.Error())
+	assert.Contains(suite.T(), err.Error(), context.Canceled.Error())
 }
 
 func TestAWS(t *testing.T) {

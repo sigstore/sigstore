@@ -21,9 +21,10 @@ import (
 	"io"
 )
 
-// RPCOption configures a context to be used when performing RPC
+// RPCOption specifies options to be used when performing RPC
 type RPCOption interface {
 	ApplyContext(*context.Context)
+	ApplyRemoteVerification(*bool)
 }
 
 // PublicKeyOption specifies options to be used when obtaining a public key

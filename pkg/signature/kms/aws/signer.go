@@ -133,56 +133,42 @@ func (a *SignerVerifier) PublicKey(opts ...signature.PublicKeyOption) (crypto.Pu
 //
 // This function recognizes the following Options listed in order of preference:
 //
+// - WithContext()
+//
 // - WithDigest()
 //
-// - WithCryptoSignerOpts()
+// - WithRemoteVerification()
 //
-// - WithContext()
+// - WithCryptoSignerOpts()
 //
 // All other options are ignored if specified.
 func (a *SignerVerifier) VerifySignature(sig, message io.Reader, opts ...signature.VerifyOption) (err error) {
 	ctx := context.Background()
+	var digest []byte
+	var remoteVerification bool
 
 	for _, opt := range opts {
 		opt.ApplyContext(&ctx)
+		opt.ApplyDigest(&digest)
+		opt.ApplyRemoteVerification(&remoteVerification)
 	}
 
-	return a.client.verify(ctx, sig, message, opts...)
-}
-
-// VerifySignatureRemotely verifies the signature for the given message via KMS
-// API call. Unless provided in an option, the digest of the message will be
-// computed using the hash function specified when the SignerVerifier was created.
-//
-// This function returns nil if the verification succeeded, and an error message otherwise.
-//
-// This function recognizes the following Options listed in order of preference:
-//
-// - WithDigest()
-//
-// - WithCryptoSignerOpts()
-//
-// - WithContext()
-//
-// All other options are ignored if specified.
-func (a *SignerVerifier) VerifySignatureRemotely(sig, message io.Reader, opts ...signature.VerifyOption) (err error) {
-	var digest []byte
-	ctx := context.Background()
-
-	for _, opt := range opts {
-		opt.ApplyDigest(&digest)
-		opt.ApplyContext(&ctx)
+	if !remoteVerification {
+		return a.client.verify(ctx, sig, message, opts...)
 	}
 
 	var signerOpts crypto.SignerOpts
 	signerOpts, err = a.client.getHashFunc(ctx)
+	if err != nil {
+		return errors.Wrap(err, "getting hash func")
+	}
 	for _, opt := range opts {
 		opt.ApplyCryptoSignerOpts(&signerOpts)
 	}
 	hf := signerOpts.HashFunc()
 
 	if len(digest) == 0 {
-		digest, hf, err = signature.ComputeDigestForVerifying(message, hf, awsSupportedHashFuncs, opts...)
+		digest, _, err = signature.ComputeDigestForVerifying(message, hf, awsSupportedHashFuncs, opts...)
 		if err != nil {
 			return err
 		}
@@ -190,7 +176,7 @@ func (a *SignerVerifier) VerifySignatureRemotely(sig, message io.Reader, opts ..
 
 	sigBytes, err := io.ReadAll(sig)
 	if err != nil {
-		err = errors.Wrap(err, "reading signature")
+		return errors.Wrap(err, "reading signature")
 	}
 	return a.client.verifyRemotely(ctx, sigBytes, digest)
 }
@@ -245,10 +231,10 @@ func (a *SignerVerifier) CryptoSigner(ctx context.Context, errFunc func(error)) 
 	return csw, defaultHf, nil
 }
 
-func (a *SignerVerifier) SupportedAlgorithms() []string {
+func (*SignerVerifier) SupportedAlgorithms() []string {
 	return awsSupportedAlgorithms
 }
 
-func (g *SignerVerifier) DefaultAlgorithm() string {
+func (*SignerVerifier) DefaultAlgorithm() string {
 	return kms.CustomerMasterKeySpecEccNistP256
 }

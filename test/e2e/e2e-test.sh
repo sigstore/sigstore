@@ -45,6 +45,7 @@ export VAULT_ADDR=http://localhost:8200/
 export AWS_ACCESS_KEY_ID=test
 export AWS_SECRET_ACCESS_KEY=test
 export AWS_ENDPOINT=localhost:4566
+export AWS_TLS_INSECURE_SKIP_VERIFY=1
 
 go test -tags e2e -count=1 ./...
 
