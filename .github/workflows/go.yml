@@ -71,6 +71,10 @@ jobs:
           VAULT_DEV_ROOT_TOKEN_ID: testtoken
         ports:
         - 8200/tcp
+      localstack:
+        image: localstack/localstack:latest
+        ports:
+        - 4566/tcp
     steps:
     - uses: actions/checkout@v2
 
@@ -90,4 +94,9 @@ jobs:
       env:
         VAULT_ADDR: http://localhost:${{ job.services.vault.ports[8200] }}
         VAULT_TOKEN: testtoken
+        AWS_ACCESS_KEY_ID: test
+        AWS_SECRET_ACCESS_KEY: test
+        AWS_REGION: us-east-1
+        AWS_ENDPOINT: localhost:${{ job.services.localstack.ports[4566] }}
+        AWS_TLS_INSECURE_SKIP_VERIFY: 1
       run: go test -tags e2e -v ./test/e2e/...

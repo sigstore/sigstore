@@ -23,11 +23,8 @@ services:
       - 8200:8200
     privileged: true
   localstack:
-    image: localstack/localstack
+    image: localstack/localstack:latest
     ports:
       - 4566:4566
     environment:
       - SERVICES=kms
-      - DOCKER_HOST=unix:///var/run/docker.sock
-    volumes:
-      - "/var/run/docker.sock:/var/run/docker.sock"
