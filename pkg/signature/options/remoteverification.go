@@ -15,17 +15,15 @@
 
 package options
 
-import (
-	"context"
-	"crypto"
-	"io"
-)
+type RequestRemoteVerification struct {
+	NoOpOptionImpl
+	remoteVerification bool
+}
 
-// NoOpOptionImpl implements the RPCOption, SignOption, VerifyOption interfaces as no-ops.
-type NoOpOptionImpl struct{}
+func (r RequestRemoteVerification) ApplyRemoteVerification(remoteVerification *bool) {
+	*remoteVerification = r.remoteVerification
+}
 
-func (NoOpOptionImpl) ApplyContext(ctx *context.Context)                {}
-func (NoOpOptionImpl) ApplyCryptoSignerOpts(opts *crypto.SignerOpts)    {}
-func (NoOpOptionImpl) ApplyDigest(digest *[]byte)                       {}
-func (NoOpOptionImpl) ApplyRand(rand *io.Reader)                        {}
-func (NoOpOptionImpl) ApplyRemoteVerification(remoteVerification *bool) {}
+func WithRemoteVerification(remoteVerification bool) RequestRemoteVerification {
+	return RequestRemoteVerification{remoteVerification: remoteVerification}
+}

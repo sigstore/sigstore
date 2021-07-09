@@ -81,7 +81,7 @@ func (suite *VaultSuite) TearDownSuite() {
 
 func (suite *VaultSuite) TestProviders() {
 	providers := kms.ProvidersMux().Providers()
-	assert.Len(suite.T(), providers, 2)
+	assert.Len(suite.T(), providers, 3)
 }
 
 func (suite *VaultSuite) TestProvider() {
