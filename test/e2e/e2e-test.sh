@@ -16,7 +16,18 @@
 
 set -ex
 
+cleanup() {
+  echo "cleanup"
+  docker-compose down
+}
+
+trap cleanup ERR
+
+export VAULT_TOKEN=testtoken
+export VAULT_ADDR=http://localhost:8200/
+
 echo "starting services"
+docker-compose config
 docker-compose up -d
 
 count=0
@@ -50,5 +61,4 @@ export AWS_TLS_INSECURE_SKIP_VERIFY=1
 
 go test -tags e2e -count=1 ./...
 
-echo "cleanup"
-docker-compose down
+cleanup
