@@ -16,8 +16,6 @@
 package signature
 
 import (
-	"bytes"
-	"context"
 	"crypto"
 	"crypto/rand"
 	"crypto/rsa"
@@ -91,12 +89,6 @@ func (r RSAPKCS1v15Signer) PublicKey(_ ...PublicKeyOption) (crypto.PublicKey, er
 	return r.Public(), nil
 }
 
-// TEMPORARY UNTIL WE CAN REMOVE ALL REFERENCES TO THIS
-func (r RSAPKCS1v15Signer) Sign(ctx context.Context, payload []byte) ([]byte, []byte, error) {
-	sig, err := r.SignMessage(bytes.NewReader(payload), options.WithContext(ctx))
-	return sig, nil, err
-}
-
 // Sign computes the signature for the specified digest using PKCS1v15.
 //
 // If a source of entropy is given in rand, it will be used instead of the default value (rand.Reader
@@ -105,7 +97,7 @@ func (r RSAPKCS1v15Signer) Sign(ctx context.Context, payload []byte) ([]byte, []
 // If opts are specified, they should specify the hash function used to compute digest. If opts are
 // not specified, this function assumes the hash function provided when the signer was created was
 // used to create the value specified in digest.
-func (r RSAPKCS1v15Signer) CSign(rand io.Reader, digest []byte, opts crypto.SignerOpts) ([]byte, error) {
+func (r RSAPKCS1v15Signer) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpts) ([]byte, error) {
 	rsaOpts := []SignOption{options.WithDigest(digest), options.WithRand(rand)}
 	if opts != nil {
 		rsaOpts = append(rsaOpts, options.WithCryptoSignerOpts(opts))
