@@ -9,9 +9,6 @@ and tektoncd/chains (Supply Chain Security in Tekton Pipelines).
 sigstore is also good candidate for anyone wanting to develop go based clients / systems
 and utilise exiting go modules for common sigstore functionality.
 
-It also  used as a general CLI signing tool for certificate requests from Fulcio
-and storing of artifacts into rekor.
-
 ## Security
 
 Should you discover any security issues, please refer to sigstores [security
