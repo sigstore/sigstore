@@ -25,7 +25,7 @@ on:
     branches: [ main ]
 
 env:
-  GO_VERSION: 1.16.3
+  GO_VERSION: 1.16.6
 
 jobs:
   build:
@@ -52,9 +52,9 @@ jobs:
       run: go test -v ./...
 
     - name: golangci-lint
-      uses: golangci/golangci-lint-action@v2.5.1
+      uses: golangci/golangci-lint-action@v2.5.2
       with:
-        version: v1.39.0
+        version: latest
         skip-go-installation: true
         skip-pkg-cache: true
 
