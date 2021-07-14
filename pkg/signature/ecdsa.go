@@ -16,8 +16,6 @@
 package signature
 
 import (
-	"bytes"
-	"context"
 	"crypto"
 	"crypto/ecdsa"
 	"crypto/elliptic"
@@ -100,18 +98,12 @@ func (e ECDSASigner) PublicKey(_ ...PublicKeyOption) (crypto.PublicKey, error) {
 	return e.Public(), nil
 }
 
-// TEMPORARY UNTIL WE CAN REMOVE ALL REFERENCES TO THIS
-func (e ECDSASigner) Sign(ctx context.Context, payload []byte) ([]byte, []byte, error) {
-	sig, err := e.SignMessage(bytes.NewReader(payload), options.WithContext(ctx))
-	return sig, nil, err
-}
-
 // Sign computes the signature for the specified digest. If a source of entropy is
 // given in rand, it will be used instead of the default value (rand.Reader from crypto/rand).
 //
 // If opts are specified, the hash function in opts.Hash should be the one used to compute
 // digest. If opts are not specified, the value provided when the signer was created will be used instead.
-func (e ECDSASigner) CSign(rand io.Reader, digest []byte, opts crypto.SignerOpts) ([]byte, error) {
+func (e ECDSASigner) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpts) ([]byte, error) {
 	ecdsaOpts := []SignOption{options.WithDigest(digest), options.WithRand(rand)}
 	if opts != nil {
 		ecdsaOpts = append(ecdsaOpts, options.WithCryptoSignerOpts(opts))

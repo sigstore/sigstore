@@ -17,14 +17,12 @@ package signature
 
 import (
 	"bytes"
-	"context"
 	"crypto"
 	"crypto/ed25519"
 	"crypto/rand"
 	"io"
 
 	"github.com/pkg/errors"
-	"github.com/sigstore/sigstore/pkg/signature/options"
 )
 
 var ed25519SupportedHashFuncs = []crypto.Hash{
@@ -82,15 +80,9 @@ func (e ED25519Signer) PublicKey(_ ...PublicKeyOption) (crypto.PublicKey, error)
 	return e.Public(), nil
 }
 
-// TEMPORARY UNTIL WE CAN REMOVE ALL REFERENCES TO THIS
-func (e ED25519Signer) Sign(ctx context.Context, payload []byte) ([]byte, []byte, error) {
-	sig, err := e.SignMessage(bytes.NewReader(payload), options.WithContext(ctx))
-	return sig, nil, err
-}
-
 // Sign computes the signature for the specified message; the first and third arguments to this
 // function are ignored as they are not used by the ED25519 algorithm.
-func (e ED25519Signer) CSign(_ io.Reader, message []byte, _ crypto.SignerOpts) ([]byte, error) {
+func (e ED25519Signer) Sign(_ io.Reader, message []byte, _ crypto.SignerOpts) ([]byte, error) {
 	if message == nil {
 		return nil, errors.New("message must not be nil")
 	}
