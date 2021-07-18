@@ -81,8 +81,8 @@ func newAzureKMS(ctx context.Context, keyResourceID string) (*azureVaultClient, 
 		return nil, err
 	}
 
-	azureTentatID := os.Getenv("AZURE_TENANT_ID")
-	if azureTentatID == "" {
+	azureTenantID := os.Getenv("AZURE_TENANT_ID")
+	if azureTenantID == "" {
 		return nil, errors.New("AZURE_TENANT_ID is not set")
 	}
 
@@ -174,7 +174,7 @@ func (a *azureVaultClient) fetchPublicKey(ctx context.Context) (crypto.PublicKey
 }
 
 func (a *azureVaultClient) getKey(ctx context.Context) (keyvault.KeyBundle, error) {
-	key, err := a.client.GetKey(ctx, a.vaultURL, a.vaultName, "")
+	key, err := a.client.GetKey(ctx, a.vaultURL, a.keyName, "")
 	if err != nil {
 		return keyvault.KeyBundle{}, errors.Wrap(err, "public key")
 	}
@@ -239,12 +239,13 @@ func (a *azureVaultClient) sign(ctx context.Context, rawPayload []byte) ([]byte,
 	return decResult, nil
 }
 
-func (a *azureVaultClient) verify(ctx context.Context, payload, signature []byte) error {
+func (a *azureVaultClient) verify(ctx context.Context, signature, payload []byte) error {
 	hash := sha256.Sum256(payload)
+	signed := hash[:]
 
 	params := keyvault.KeyVerifyParameters{
 		Algorithm: keyvault.ES256,
-		Digest:    to.StringPtr(base64.RawURLEncoding.EncodeToString(hash[:])),
+		Digest:    to.StringPtr(base64.RawURLEncoding.EncodeToString(signed)),
 		Signature: to.StringPtr(base64.RawURLEncoding.EncodeToString(signature)),
 	}
 

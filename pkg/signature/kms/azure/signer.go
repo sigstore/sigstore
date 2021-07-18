@@ -22,12 +22,22 @@ import (
 	"io"
 
 	"github.com/pkg/errors"
+
 	"github.com/sigstore/sigstore/pkg/signature"
 	"github.com/sigstore/sigstore/pkg/signature/options"
 )
 
 var azureSupportedHashFuncs = []crypto.Hash{
 	crypto.SHA256,
+}
+
+//nolint:golint
+const (
+	Algorithm_ES256 = "ES256"
+)
+
+var azureSupportedAlgorithms []string = []string{
+	Algorithm_ES256,
 }
 
 type SignerVerifier struct {
@@ -178,4 +188,12 @@ func (a *SignerVerifier) CryptoSigner(ctx context.Context, errFunc func(error)) 
 	}
 
 	return csw, a.hashFunc, nil
+}
+
+func (*SignerVerifier) SupportedAlgorithms() []string {
+	return azureSupportedAlgorithms
+}
+
+func (*SignerVerifier) DefaultAlgorithm() string {
+	return Algorithm_ES256
 }
