@@ -34,10 +34,7 @@ func MarshalCertificateToPEM(cert *x509.Certificate) ([]byte, error) {
 	if cert == nil {
 		return nil, errors.New("nil certificate provided")
 	}
-	return pem.EncodeToMemory(&pem.Block{
-		Type:  string(CertificatePEMType),
-		Bytes: cert.Raw,
-	}), nil
+	return PEMEncode(CertificatePEMType, cert.Raw), nil
 }
 
 // MarshalCertificatesToPEM converts the provided X509 certificates into PEM format
