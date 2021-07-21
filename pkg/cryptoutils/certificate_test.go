@@ -17,7 +17,9 @@ package cryptoutils
 import (
 	"bytes"
 	"crypto/x509"
+	"errors"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 )
@@ -104,7 +106,6 @@ func assertCertsEqual(t *testing.T, wanted, got []*x509.Certificate) {
 }
 
 func TestCertificatesFromPEM(t *testing.T) {
-	t.Parallel()
 	testCases := []struct {
 		name     string
 		pemBytes []byte
@@ -166,7 +167,6 @@ func TestCertificatesFromPEM(t *testing.T) {
 }
 
 func TestMarshalCertificateToPEM(t *testing.T) {
-	t.Parallel()
 	testCases := []struct {
 		name string
 		cert *x509.Certificate
@@ -208,7 +208,6 @@ func TestMarshalCertificateToPEM(t *testing.T) {
 }
 
 func TestMarshalCertificatesToPEM(t *testing.T) {
-	t.Parallel()
 	testCases := []struct {
 		name  string
 		certs []*x509.Certificate
@@ -244,6 +243,64 @@ func TestMarshalCertificatesToPEM(t *testing.T) {
 			}
 			if d := cmp.Diff(tc.expected, got); d != "" {
 				t.Errorf("MarshalCertificatesToPEM() returned unexpected PEM (-want +got): %s", d)
+			}
+		})
+	}
+}
+
+func errorsEqual(a, b error) bool {
+	if a == b {
+		// both are nil
+		return true
+	}
+	return a != nil && b != nil && a.Error() == b.Error()
+}
+
+func TestCheckExpiration(t *testing.T) {
+	testCases := []struct {
+		name  string
+		cert  *x509.Certificate
+		epoch time.Time
+
+		expected error
+	}{
+		{
+			name: "valid",
+			cert: &x509.Certificate{
+				NotAfter:  time.Unix(4444, 0),
+				NotBefore: time.Unix(2222, 0),
+			},
+			epoch:    time.Unix(3333, 0),
+			expected: nil,
+		},
+		{
+			name: "expired",
+			cert: &x509.Certificate{
+				NotAfter:  time.Unix(4444, 0),
+				NotBefore: time.Unix(2222, 0),
+			},
+			epoch:    time.Unix(5555, 0),
+			expected: errors.New("certificate expiration time 1970-01-01T01:14:04Z is before 1970-01-01T01:32:35Z"),
+		},
+		{
+			name: "not valid yet",
+			cert: &x509.Certificate{
+				NotAfter:  time.Unix(4444, 0),
+				NotBefore: time.Unix(2222, 0),
+			},
+			epoch:    time.Unix(1111, 0),
+			expected: errors.New("certificate issued time 1970-01-01T00:37:02Z is before 1970-01-01T00:18:31Z"),
+		},
+		{
+			name:     "nil",
+			cert:     nil,
+			expected: errors.New("certificate is nil"),
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			if err := CheckExpiration(tc.cert, tc.epoch); !errorsEqual(err, tc.expected) {
+				t.Errorf("CheckExpiration() should have returned: %v, got: %v", tc.expected, err)
 			}
 		})
 	}

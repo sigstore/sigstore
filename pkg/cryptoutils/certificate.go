@@ -86,17 +86,17 @@ func LoadCertificatesFromPEM(pem io.Reader) ([]*x509.Certificate, error) {
 	return UnmarshalCertificatesFromPEM(fileBytes)
 }
 
+func formatTime(t time.Time) string {
+	return t.UTC().Format(time.RFC3339)
+}
+
 // CheckExpiration verifies that epoch is during the validity period of
 // the certificate provided.
 //
 // It returns nil if issueTime < epoch < expirationTime, and error otherwise.
 func CheckExpiration(cert *x509.Certificate, epoch time.Time) error {
-	formatTime := func(t time.Time) string {
-		return t.Format(time.RFC3339)
-	}
-
 	if cert == nil {
-		return errors.New("invalid certificate")
+		return errors.New("certificate is nil")
 	}
 	if cert.NotAfter.Before(epoch) {
 		return fmt.Errorf("certificate expiration time %s is before %s", formatTime(cert.NotAfter), formatTime(epoch))
