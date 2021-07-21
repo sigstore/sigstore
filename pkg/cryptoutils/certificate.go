@@ -34,23 +34,17 @@ func MarshalCertificateToPEM(cert *x509.Certificate) ([]byte, error) {
 	if cert == nil {
 		return nil, errors.New("nil certificate provided")
 	}
-	return pem.EncodeToMemory(&pem.Block{
-		Type:  string(CertificatePEMType),
-		Bytes: cert.Raw,
-	}), nil
+	return PEMEncode(CertificatePEMType, cert.Raw), nil
 }
 
 // MarshalCertificatesToPEM converts the provided X509 certificates into PEM format
 func MarshalCertificatesToPEM(certs []*x509.Certificate) ([]byte, error) {
 	buf := bytes.Buffer{}
-	for i, cert := range certs {
-		if i != 0 {
-			_, _ = buf.WriteRune('\n')
+	for _, cert := range certs {
+		pemBytes, err := MarshalCertificateToPEM(cert)
+		if err != nil {
+			return nil, err
 		}
-		pemBytes := pem.EncodeToMemory(&pem.Block{
-			Type:  string(CertificatePEMType),
-			Bytes: cert.Raw,
-		})
 		_, _ = buf.Write(pemBytes)
 	}
 	return buf.Bytes(), nil
@@ -62,11 +56,9 @@ func UnmarshalCertificatesFromPEM(pemBytes []byte) ([]*x509.Certificate, error) 
 	result := []*x509.Certificate{}
 	remaining := pemBytes
 
-	for {
-		if len(remaining) == 0 {
-			break
-		}
-		certDer, restBytes := pem.Decode(remaining)
+	for len(remaining) > 0 {
+		var certDer *pem.Block
+		certDer, remaining = pem.Decode(remaining)
 
 		if certDer == nil {
 			return nil, errors.New("error during PEM decoding")
@@ -77,7 +69,6 @@ func UnmarshalCertificatesFromPEM(pemBytes []byte) ([]*x509.Certificate, error) 
 			return nil, err
 		}
 		result = append(result, cert)
-		remaining = restBytes
 	}
 	return result, nil
 }
@@ -92,17 +83,17 @@ func LoadCertificatesFromPEM(pem io.Reader) ([]*x509.Certificate, error) {
 	return UnmarshalCertificatesFromPEM(fileBytes)
 }
 
+func formatTime(t time.Time) string {
+	return t.UTC().Format(time.RFC3339)
+}
+
 // CheckExpiration verifies that epoch is during the validity period of
 // the certificate provided.
 //
 // It returns nil if issueTime < epoch < expirationTime, and error otherwise.
 func CheckExpiration(cert *x509.Certificate, epoch time.Time) error {
-	formatTime := func(t time.Time) string {
-		return t.Format(time.RFC3339)
-	}
-
 	if cert == nil {
-		return errors.New("invalid certificate")
+		return errors.New("certificate is nil")
 	}
 	if cert.NotAfter.Before(epoch) {
 		return fmt.Errorf("certificate expiration time %s is before %s", formatTime(cert.NotAfter), formatTime(epoch))
