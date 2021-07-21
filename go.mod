@@ -13,7 +13,6 @@ require (
 	github.com/ReneKroon/ttlcache/v2 v2.7.0
 	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d // indirect
 	github.com/aws/aws-sdk-go v1.40.4
-	github.com/cenkalti/backoff/v3 v3.2.2 // indirect
 	github.com/coreos/go-oidc/v3 v3.0.0
 	github.com/fatih/color v1.12.0 // indirect
 	github.com/form3tech-oss/jwt-go v3.2.3+incompatible // indirect
@@ -33,7 +32,9 @@ require (
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/hashicorp/go-retryablehttp v0.7.0 // indirect
-	github.com/hashicorp/vault/api v1.1.1
+	github.com/hashicorp/vault/api v1.1.0
+	github.com/hashicorp/vault/sdk v0.2.0 // indirect
+	github.com/in-toto/in-toto-golang v0.2.1-0.20210627200632-886210ae2ab9
 	github.com/kr/pretty v0.2.1 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/pierrec/lz4 v2.6.1+incompatible // indirect
