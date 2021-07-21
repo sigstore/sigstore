@@ -62,11 +62,9 @@ func UnmarshalCertificatesFromPEM(pemBytes []byte) ([]*x509.Certificate, error) 
 	result := []*x509.Certificate{}
 	remaining := pemBytes
 
-	for {
-		if len(remaining) == 0 {
-			break
-		}
-		certDer, restBytes := pem.Decode(remaining)
+	for len(remaining) > 0 {
+		var certDer *pem.Block
+		certDer, remaining = pem.Decode(remaining)
 
 		if certDer == nil {
 			return nil, errors.New("error during PEM decoding")
@@ -77,7 +75,6 @@ func UnmarshalCertificatesFromPEM(pemBytes []byte) ([]*x509.Certificate, error) 
 			return nil, err
 		}
 		result = append(result, cert)
-		remaining = restBytes
 	}
 	return result, nil
 }
