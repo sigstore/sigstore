@@ -43,14 +43,11 @@ func MarshalCertificateToPEM(cert *x509.Certificate) ([]byte, error) {
 // MarshalCertificatesToPEM converts the provided X509 certificates into PEM format
 func MarshalCertificatesToPEM(certs []*x509.Certificate) ([]byte, error) {
 	buf := bytes.Buffer{}
-	for i, cert := range certs {
-		if i != 0 {
-			_, _ = buf.WriteRune('\n')
+	for _, cert := range certs {
+		pemBytes, err := MarshalCertificateToPEM(cert)
+		if err != nil {
+			return nil, err
 		}
-		pemBytes := pem.EncodeToMemory(&pem.Block{
-			Type:  string(CertificatePEMType),
-			Bytes: cert.Raw,
-		})
 		_, _ = buf.Write(pemBytes)
 	}
 	return buf.Bytes(), nil

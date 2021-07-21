@@ -164,3 +164,87 @@ func TestCertificatesFromPEM(t *testing.T) {
 		})
 	}
 }
+
+func TestMarshalCertificateToPEM(t *testing.T) {
+	t.Parallel()
+	testCases := []struct {
+		name string
+		cert *x509.Certificate
+
+		expected  []byte
+		expectErr bool
+	}{
+		{
+			name:     "cert1",
+			cert:     cert1,
+			expected: []byte(cert1PEM),
+		},
+		{
+			name:     "cert2",
+			cert:     cert2,
+			expected: []byte(cert2PEM),
+		},
+		{
+			name:      "nil",
+			cert:      nil,
+			expectErr: true,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := MarshalCertificateToPEM(tc.cert)
+			if err != nil {
+				if !tc.expectErr {
+					t.Fatalf("MarshalCertificateToPEM() returned unexpected error: %v", err)
+				}
+			} else if tc.expectErr {
+				t.Fatalf("MarshalCertificateToPEM() should have returned an error, got: %v", got)
+			}
+			if d := cmp.Diff(tc.expected, got); d != "" {
+				t.Errorf("MarshalCertificateToPEM() returned unexpected PEM (-want +got): %s", d)
+			}
+		})
+	}
+}
+
+func TestMarshalCertificatesToPEM(t *testing.T) {
+	t.Parallel()
+	testCases := []struct {
+		name  string
+		certs []*x509.Certificate
+
+		expected  []byte
+		expectErr bool
+	}{
+		{
+			name:     "one cert",
+			certs:    []*x509.Certificate{cert1},
+			expected: []byte(cert1PEM),
+		},
+		{
+			name:     "two certs",
+			certs:    []*x509.Certificate{cert1, cert2},
+			expected: []byte(cert1PEM + cert2PEM),
+		},
+		{
+			name:      "nil cert",
+			certs:     []*x509.Certificate{cert1, nil},
+			expectErr: true,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := MarshalCertificatesToPEM(tc.certs)
+			if err != nil {
+				if !tc.expectErr {
+					t.Fatalf("MarshalCertificatesToPEM() returned unexpected error: %v", err)
+				}
+			} else if tc.expectErr {
+				t.Fatalf("MarshalCertificatesToPEM() should have returned an error, got: %v", got)
+			}
+			if d := cmp.Diff(tc.expected, got); d != "" {
+				t.Errorf("MarshalCertificatesToPEM() returned unexpected PEM (-want +got): %s", d)
+			}
+		})
+	}
+}
