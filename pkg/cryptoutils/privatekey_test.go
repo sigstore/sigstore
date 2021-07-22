@@ -15,10 +15,15 @@
 package cryptoutils
 
 import (
+	"crypto"
 	"crypto/ecdsa"
+	"crypto/ed25519"
 	"crypto/elliptic"
+	"crypto/rand"
 	"crypto/rsa"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
 )
 
 func verifyRSAKeyPEMs(t *testing.T, privPEM, pubPEM []byte, expectedKeyLengthBits int, testPassFunc PassFunc) {
@@ -163,3 +168,44 @@ func TestGeneratePEMEncodedECDSAKeyPair(t *testing.T) {
 	}
 }
 
+func verifyPrivateKeyPEMRoundtrip(t *testing.T, pub crypto.PrivateKey) {
+	t.Helper()
+	pemBytes, err := MarshalPrivateKeyToPEM(pub)
+	if err != nil {
+		t.Fatalf("MarshalPrivateKeyToPEM returned error: %v", err)
+	}
+	rtPub, err := UnmarshalPEMToPrivateKey(pemBytes, nil)
+	if err != nil {
+		t.Fatalf("UnmarshalPEMToPrivateKey returned error: %v", err)
+	}
+	if d := cmp.Diff(pub, rtPub); d != "" {
+		t.Errorf("round-tripped public key was malformed (-before +after): %s", d)
+	}
+}
+
+func TestECDSAPrivateKeyPEMRoundtrip(t *testing.T) {
+	t.Parallel()
+	priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		t.Fatalf("ecdsa.GenerateKey failed: %v", err)
+	}
+	verifyPrivateKeyPEMRoundtrip(t, priv)
+}
+
+func TestEd25519PrivateKeyPEMRoundtrip(t *testing.T) {
+	t.Parallel()
+	_, priv, err := ed25519.GenerateKey(rand.Reader)
+	if err != nil {
+		t.Fatalf("ed25519.GenerateKey failed: %v", err)
+	}
+	verifyPrivateKeyPEMRoundtrip(t, priv)
+}
+
+func TestRSAPrivateKeyPEMRoundtrip(t *testing.T) {
+	t.Parallel()
+	priv, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatalf("rsa.GenerateKey failed: %v", err)
+	}
+	verifyPrivateKeyPEMRoundtrip(t, priv)
+}
