@@ -30,8 +30,9 @@ import (
 )
 
 const (
-	PrivateKeyPEMType                PEMType = "PRIVATE KEY"
-	EncryptedCosignPrivateKeyPEMType PEMType = "ENCRYPTED COSIGN PRIVATE KEY"
+	PrivateKeyPEMType                  PEMType = "PRIVATE KEY"
+	encryptedCosignPrivateKeyPEMType   PEMType = "ENCRYPTED COSIGN PRIVATE KEY"
+	EncryptedSigstorePrivateKeyPEMType PEMType = "ENCRYPTED SIGSTORE PRIVATE KEY"
 )
 
 func pemEncodeKeyPair(priv crypto.PrivateKey, pub crypto.PublicKey, pf PassFunc) (privPEM, pubPEM []byte, err error) {
@@ -57,7 +58,7 @@ func pemEncodeKeyPair(priv crypto.PrivateKey, pub crypto.PublicKey, pf PassFunc)
 	if derBytes, err = encrypted.Encrypt(derBytes, password); err != nil {
 		return nil, nil, err
 	}
-	return PEMEncode(EncryptedCosignPrivateKeyPEMType, derBytes), pubPEM, nil
+	return PEMEncode(EncryptedSigstorePrivateKeyPEMType, derBytes), pubPEM, nil
 }
 
 // GeneratePEMEncodedECDSAKeyPair generates an ECDSA keypair, optionally password encrypted using a provided PassFunc, and PEM encoded.
@@ -102,7 +103,7 @@ func UnmarshalPEMToPrivateKey(pemBytes []byte, pf PassFunc) (crypto.PrivateKey, 
 	switch derBlock.Type {
 	case string(PrivateKeyPEMType):
 		return x509.ParsePKCS8PrivateKey(derBlock.Bytes)
-	case string(EncryptedCosignPrivateKeyPEMType):
+	case string(EncryptedSigstorePrivateKeyPEMType), string(encryptedCosignPrivateKeyPEMType):
 		derBytes := derBlock.Bytes
 		if pf != nil {
 			password, err := pf(false)
