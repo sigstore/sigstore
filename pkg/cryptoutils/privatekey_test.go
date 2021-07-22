@@ -15,57 +15,150 @@
 package cryptoutils
 
 import (
+	"crypto/ecdsa"
+	"crypto/elliptic"
 	"crypto/rsa"
 	"testing"
 )
 
 func verifyRSAKeyPEMs(t *testing.T, privPEM, pubPEM []byte, expectedKeyLengthBits int, testPassFunc PassFunc) {
-	priv, err := UnmarshalPEMToPrivateKey(privPEM, testPassFunc)
-	if err != nil {
-		t.Fatalf("UnmarshalPEMToPrivateKey returned error: %v", err)
+	t.Helper()
+
+	if priv, err := UnmarshalPEMToPrivateKey(privPEM, testPassFunc); err != nil {
+		t.Errorf("UnmarshalPEMToPrivateKey returned error: %v", err)
 	} else if rsaPriv, ok := priv.(*rsa.PrivateKey); !ok {
 		t.Errorf("expected unmarshaled key to be of type *rsa.PrivateKey, was %T", priv)
 	} else if rsaPriv.Size() != expectedKeyLengthBits/8 {
 		t.Errorf("private key size was %d, expected %d", rsaPriv.Size(), expectedKeyLengthBits/8)
 	}
 
-	pub, err := UnmarshalPEMToPublicKey(pubPEM)
-	if err != nil {
-		t.Fatalf("UnmarshalPEMToPublicKey returned error: %v", err)
+	if pub, err := UnmarshalPEMToPublicKey(pubPEM); err != nil {
+		t.Errorf("UnmarshalPEMToPublicKey returned error: %v", err)
 	} else if rsaPub, ok := pub.(*rsa.PublicKey); !ok {
-		t.Errorf("expected unmarshaled public key to be of type *rsa.PublicKey, was %T", priv)
+		t.Errorf("expected unmarshaled public key to be of type *rsa.PublicKey, was %T", pub)
 	} else if rsaPub.Size() != expectedKeyLengthBits/8 {
 		t.Errorf("public key size was %d, expected %d", rsaPub.Size(), expectedKeyLengthBits/8)
 	}
 }
 
-func TestGenerateEncryptedRSAKeyPair(t *testing.T) {
+func TestGeneratePEMEncodedRSAKeyPair(t *testing.T) {
 	t.Parallel()
 
 	const testKeyBits = 2048
-	testPassFunc := StaticPasswordFunc([]byte("TestGenerateEncryptedRSAKeyPair password"))
-	privPEM, pubPEM, err := GenerateRSAKeyPair(testKeyBits, testPassFunc)
-	if err != nil {
-		t.Fatalf("GenerateRSAKeyPair returned error: %v", err)
-	}
 
-	if priv, err := UnmarshalPEMToPrivateKey(privPEM, SkipPassword); err == nil {
-		t.Errorf("should have failed to unmarshal private key without password, got %v", priv)
+	testCases := []struct {
+		name            string
+		initialPassFunc PassFunc
+		goodPFs         []PassFunc
+		badPFs          []PassFunc
+	}{
+		{
+			name:            "encrypted",
+			initialPassFunc: StaticPasswordFunc([]byte("TestGenerateEncryptedRSAKeyPair password")),
+			badPFs:          []PassFunc{SkipPassword, nil},
+		},
+		{
+			name:            "nil pass func",
+			initialPassFunc: nil,
+			goodPFs:         []PassFunc{SkipPassword, nil},
+		},
+		{
+			name:            "SkipPassword func",
+			initialPassFunc: SkipPassword,
+			goodPFs:         []PassFunc{SkipPassword, nil},
+		},
 	}
-	verifyRSAKeyPEMs(t, privPEM, pubPEM, testKeyBits, testPassFunc)
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			privPEM, pubPEM, err := GeneratePEMEncodedRSAKeyPair(testKeyBits, tc.initialPassFunc)
+			if err != nil {
+				t.Fatalf("GeneratePEMEncodedRSAKeyPair returned error: %v", err)
+			}
+
+			for _, badPF := range tc.badPFs {
+				if priv, err := UnmarshalPEMToPrivateKey(privPEM, SkipPassword); err == nil {
+					t.Errorf("UnmarshalPEMToPrivateKey(pf=%v) should have returned error, got: %v", badPF, priv)
+				}
+			}
+			for _, goodPF := range tc.goodPFs {
+				if _, err := UnmarshalPEMToPrivateKey(privPEM, goodPF); err != nil {
+					t.Errorf("UnmarshalPEMToPrivateKey(pf=%v) returned error: %v", goodPF, err)
+				}
+			}
+			verifyRSAKeyPEMs(t, privPEM, pubPEM, testKeyBits, tc.initialPassFunc)
+		})
+	}
 }
 
-func TestGenerateUnencryptedRSAKeyPair(t *testing.T) {
+func verifyECDSAKeyPEMs(t *testing.T, privPEM, pubPEM []byte, expectedCurve elliptic.Curve, testPassFunc PassFunc) {
+	t.Helper()
+
+	if priv, err := UnmarshalPEMToPrivateKey(privPEM, testPassFunc); err != nil {
+		t.Errorf("UnmarshalPEMToPrivateKey returned error: %v", err)
+	} else if ecdsaPriv, ok := priv.(*ecdsa.PrivateKey); !ok {
+		t.Errorf("expected unmarshaled key to be of type *ecdsa.PrivateKey, was %T", priv)
+	} else if ecdsaPriv.Curve != expectedCurve {
+		t.Errorf("expected elliptic curve %v, got %d", expectedCurve, ecdsaPriv.Curve)
+	}
+
+	if pub, err := UnmarshalPEMToPublicKey(pubPEM); err != nil {
+		t.Errorf("UnmarshalPEMToPublicKey returned error: %v", err)
+	} else if ecdsaPub, ok := pub.(*ecdsa.PublicKey); !ok {
+		t.Errorf("expected unmarshaled key to be of type *ecdsa.PublicKey, was %T", pub)
+	} else if ecdsaPub.Curve != expectedCurve {
+		t.Errorf("expected elliptic curve %v, got %d", expectedCurve, ecdsaPub.Curve)
+	}
+}
+
+func TestGeneratePEMEncodedECDSAKeyPair(t *testing.T) {
 	t.Parallel()
 
-	const testKeyBits = 2048
-	privPEM, pubPEM, err := GenerateRSAKeyPair(testKeyBits, nil)
-	if err != nil {
-		t.Fatalf("GenerateRSAKeyPair returned error: %v", err)
-	}
+	testCurve := elliptic.P256()
 
-	if priv, err := UnmarshalPEMToPrivateKey(privPEM, SkipPassword); err != nil {
-		t.Errorf("SkipPassword should have worked to unmarshal private key without password, got %v", priv)
+	testCases := []struct {
+		name            string
+		initialPassFunc PassFunc
+		goodPFs         []PassFunc
+		badPFs          []PassFunc
+	}{
+		{
+			name:            "encrypted",
+			initialPassFunc: StaticPasswordFunc([]byte("TestGenerateEncryptedRSAKeyPair password")),
+			badPFs:          []PassFunc{SkipPassword, nil},
+		},
+		{
+			name:            "nil pass func",
+			initialPassFunc: nil,
+			goodPFs:         []PassFunc{SkipPassword, nil},
+		},
+		{
+			name:            "SkipPassword func",
+			initialPassFunc: SkipPassword,
+			goodPFs:         []PassFunc{SkipPassword, nil},
+		},
 	}
-	verifyRSAKeyPEMs(t, privPEM, pubPEM, testKeyBits, nil)
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			privPEM, pubPEM, err := GeneratePEMEncodedECDSAKeyPair(testCurve, tc.initialPassFunc)
+			if err != nil {
+				t.Fatalf("GeneratePEMEncodedRSAKeyPair returned error: %v", err)
+			}
+
+			for _, badPF := range tc.badPFs {
+				if priv, err := UnmarshalPEMToPrivateKey(privPEM, SkipPassword); err == nil {
+					t.Errorf("UnmarshalPEMToPrivateKey(pf=%v) should have returned error, got: %v", badPF, priv)
+				}
+			}
+			for _, goodPF := range tc.goodPFs {
+				if _, err := UnmarshalPEMToPrivateKey(privPEM, goodPF); err != nil {
+					t.Errorf("UnmarshalPEMToPrivateKey(pf=%v) returned error: %v", goodPF, err)
+				}
+			}
+			verifyECDSAKeyPEMs(t, privPEM, pubPEM, testCurve, tc.initialPassFunc)
+		})
+	}
 }

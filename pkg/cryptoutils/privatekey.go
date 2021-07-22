@@ -17,6 +17,8 @@ package cryptoutils
 
 import (
 	"crypto"
+	"crypto/ecdsa"
+	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
@@ -32,22 +34,8 @@ const (
 	EncryptedCosignPrivateKeyPEMType PEMType = "ENCRYPTED COSIGN PRIVATE KEY"
 )
 
-func encryptDER(der []byte, pf PassFunc) ([]byte, error) {
-	password, err := pf(true)
-	if err != nil {
-		return nil, err
-	}
-	return encrypted.Encrypt(der, password)
-}
-
-// GenerateRSAKeyPair generates an RSA keypair, optionally password encrypted using a provided PassFunc.
-func GenerateRSAKeyPair(keyLengthBits int, pf PassFunc) (privPEM, pubPEM []byte, err error) {
-	priv, err := rsa.GenerateKey(rand.Reader, keyLengthBits)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	pubPEM, err = MarshalPublicKeyToPEM(priv.Public())
+func pemEncodeKeyPair(priv crypto.PrivateKey, pub crypto.PublicKey, pf PassFunc) (privPEM, pubPEM []byte, err error) {
+	pubPEM, err = MarshalPublicKeyToPEM(pub)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -59,11 +47,35 @@ func GenerateRSAKeyPair(keyLengthBits int, pf PassFunc) (privPEM, pubPEM []byte,
 	if pf == nil {
 		return PEMEncode(PrivateKeyPEMType, derBytes), pubPEM, nil
 	}
-
-	if derBytes, err = encryptDER(derBytes, pf); err != nil {
+	password, err := pf(true)
+	if err != nil {
+		return nil, nil, err
+	}
+	if password == nil {
+		return PEMEncode(PrivateKeyPEMType, derBytes), pubPEM, nil
+	}
+	if derBytes, err = encrypted.Encrypt(derBytes, password); err != nil {
 		return nil, nil, err
 	}
 	return PEMEncode(EncryptedCosignPrivateKeyPEMType, derBytes), pubPEM, nil
+}
+
+// GeneratePEMEncodedECDSAKeyPair generates an ECDSA keypair, optionally password encrypted using a provided PassFunc, and PEM encoded.
+func GeneratePEMEncodedECDSAKeyPair(curve elliptic.Curve, pf PassFunc) (privPEM, pubPEM []byte, err error) {
+	priv, err := ecdsa.GenerateKey(curve, rand.Reader)
+	if err != nil {
+		return nil, nil, err
+	}
+	return pemEncodeKeyPair(priv, priv.Public(), pf)
+}
+
+// GeneratePEMEncodedRSAKeyPair generates an RSA keypair, optionally password encrypted using a provided PassFunc, and PEM encoded.
+func GeneratePEMEncodedRSAKeyPair(keyLengthBits int, pf PassFunc) (privPEM, pubPEM []byte, err error) {
+	priv, err := rsa.GenerateKey(rand.Reader, keyLengthBits)
+	if err != nil {
+		return nil, nil, err
+	}
+	return pemEncodeKeyPair(priv, priv.Public(), pf)
 }
 
 func MarshalPrivateKeyToEncryptedDER(priv crypto.PrivateKey, pf PassFunc) ([]byte, error) {
@@ -71,7 +83,14 @@ func MarshalPrivateKeyToEncryptedDER(priv crypto.PrivateKey, pf PassFunc) ([]byt
 	if err != nil {
 		return nil, err
 	}
-	return encryptDER(derKey, pf)
+	password, err := pf(true)
+	if err != nil {
+		return nil, err
+	}
+	if password == nil {
+		return nil, errors.New("password was nil")
+	}
+	return encrypted.Encrypt(derKey, password)
 }
 
 // UnmarshalPEMToPrivateKey converts a PEM-encoded byte slice into a crypto.PrivateKey
