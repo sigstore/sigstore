@@ -57,6 +57,13 @@ func readPasswordFn() func() ([]byte, error) {
 	}
 }
 
+// StaticPasswordFunc returns a PassFunc which returns the provided password.
+func StaticPasswordFunc(pw []byte) PassFunc {
+	return func(bool) ([]byte, error) {
+		return pw, nil
+	}
+}
+
 // SkipPassword is a PassFunc that does not interact with a user, but
 // simply returns nil for both the password result and error struct.
 func SkipPassword(_ bool) ([]byte, error) {

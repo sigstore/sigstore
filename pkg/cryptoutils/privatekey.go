@@ -17,6 +17,7 @@ package cryptoutils
 
 import (
 	"crypto"
+	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
@@ -31,35 +32,46 @@ const (
 	EncryptedCosignPrivateKeyPEMType PEMType = "ENCRYPTED COSIGN PRIVATE KEY"
 )
 
-func GenerateEncryptedKeyPair(pf PassFunc) ([]byte, []byte, error) {
-	priv := &rsa.PrivateKey{}
-
-	derKey, err := MarshalPrivateKeyToDER(priv)
-	if err != nil {
-		return nil, nil, err
-	}
-
+func encryptDER(der []byte, pf PassFunc) ([]byte, error) {
 	password, err := pf(true)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
+	return encrypted.Encrypt(der, password)
+}
 
-	var derBytes []byte
-	if password != nil {
-		derBytes, err = encrypted.Encrypt(derKey, password)
-		if err != nil {
-			return nil, nil, err
-		}
-	} else {
-		derBytes = derKey
-	}
-
-	privPEM := PEMEncode(EncryptedCosignPrivateKeyPEMType, derBytes)
-	pubPEM, err := MarshalPublicKeyToPEM(priv.Public())
+// GenerateRSAKeyPair generates an RSA keypair, optionally password encrypted using a provided PassFunc.
+func GenerateRSAKeyPair(keyLengthBits int, pf PassFunc) (privPEM, pubPEM []byte, err error) {
+	priv, err := rsa.GenerateKey(rand.Reader, keyLengthBits)
 	if err != nil {
 		return nil, nil, err
 	}
-	return privPEM, pubPEM, nil
+
+	pubPEM, err = MarshalPublicKeyToPEM(priv.Public())
+	if err != nil {
+		return nil, nil, err
+	}
+	derBytes, err := MarshalPrivateKeyToDER(priv)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if pf == nil {
+		return PEMEncode(PrivateKeyPEMType, derBytes), pubPEM, nil
+	}
+
+	if derBytes, err = encryptDER(derBytes, pf); err != nil {
+		return nil, nil, err
+	}
+	return PEMEncode(EncryptedCosignPrivateKeyPEMType, derBytes), pubPEM, nil
+}
+
+func MarshalPrivateKeyToEncryptedDER(priv crypto.PrivateKey, pf PassFunc) ([]byte, error) {
+	derKey, err := MarshalPrivateKeyToDER(priv)
+	if err != nil {
+		return nil, err
+	}
+	return encryptDER(derKey, pf)
 }
 
 // UnmarshalPEMToPrivateKey converts a PEM-encoded byte slice into a crypto.PrivateKey
@@ -72,19 +84,21 @@ func UnmarshalPEMToPrivateKey(pemBytes []byte, pf PassFunc) (crypto.PrivateKey, 
 	case string(PrivateKeyPEMType):
 		return x509.ParsePKCS8PrivateKey(derBlock.Bytes)
 	case string(EncryptedCosignPrivateKeyPEMType):
-		password, err := pf(false)
-		if err != nil {
-			return nil, err
-		}
-
-		keyBytes := derBlock.Bytes
-		if password != nil {
-			keyBytes, err = encrypted.Decrypt(derBlock.Bytes, password)
+		derBytes := derBlock.Bytes
+		if pf != nil {
+			password, err := pf(false)
 			if err != nil {
 				return nil, err
 			}
+			if password != nil {
+				derBytes, err = encrypted.Decrypt(derBytes, password)
+				if err != nil {
+					return nil, err
+				}
+			}
 		}
-		return x509.ParsePKCS8PrivateKey(keyBytes)
+
+		return x509.ParsePKCS8PrivateKey(derBytes)
 	}
 	return nil, fmt.Errorf("unknown PEM file type: %v", derBlock.Type)
 }
