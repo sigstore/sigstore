@@ -31,6 +31,7 @@ import (
 
 const (
 	PrivateKeyPEMType                  PEMType = "PRIVATE KEY"
+	encryptedCosignPrivateKeyPEMType   PEMType = "ENCRYPTED COSIGN PRIVATE KEY"
 	EncryptedSigstorePrivateKeyPEMType PEMType = "ENCRYPTED SIGSTORE PRIVATE KEY"
 )
 
@@ -102,7 +103,7 @@ func UnmarshalPEMToPrivateKey(pemBytes []byte, pf PassFunc) (crypto.PrivateKey, 
 	switch derBlock.Type {
 	case string(PrivateKeyPEMType):
 		return x509.ParsePKCS8PrivateKey(derBlock.Bytes)
-	case string(EncryptedSigstorePrivateKeyPEMType):
+	case string(EncryptedSigstorePrivateKeyPEMType), string(encryptedCosignPrivateKeyPEMType):
 		derBytes := derBlock.Bytes
 		if pf != nil {
 			password, err := pf(false)
