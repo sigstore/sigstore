@@ -39,21 +39,19 @@ var (
 //
 // - provided to stdin from pipe
 func readPasswordFn() func() ([]byte, error) {
-	pw, ok := os.LookupEnv("COSIGN_PASSWORD")
-	switch {
-	case ok:
+	if pw, ok := os.LookupEnv("COSIGN_PASSWORD"); ok {
 		return func() ([]byte, error) {
 			return []byte(pw), nil
 		}
-	case term.IsTerminal(0):
+	}
+	if term.IsTerminal(0) {
 		return func() ([]byte, error) {
 			return term.ReadPassword(0)
 		}
+	}
 	// Handle piped in passwords.
-	default:
-		return func() ([]byte, error) {
-			return ioutil.ReadAll(os.Stdin)
-		}
+	return func() ([]byte, error) {
+		return ioutil.ReadAll(os.Stdin)
 	}
 }
 
