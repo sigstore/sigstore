@@ -21,13 +21,16 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
 
 	"github.com/ReneKroon/ttlcache/v2"
 	vault "github.com/hashicorp/vault/api"
+	"github.com/mitchellh/go-homedir"
 	"github.com/pkg/errors"
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
 )
@@ -84,7 +87,18 @@ func newHashivaultClient(keyResourceID string) (*hashivaultClient, error) {
 
 	token := os.Getenv("VAULT_TOKEN")
 	if token == "" {
-		return nil, errors.New("VAULT_TOKEN is not set")
+		log.Printf("VAULT_TOKEN is not set, trying to read token from file at path ~/.vault-token")
+		homeDir, err := homedir.Dir()
+		if err != nil {
+			return nil, errors.Wrap(err, "get home directory")
+		}
+
+		tokenFromFile, err := os.ReadFile(filepath.Join(homeDir, ".vault-token"))
+		if err != nil {
+			return nil, errors.Wrap(err, "read .vault-token file")
+		}
+
+		token = string(tokenFromFile)
 	}
 
 	client, err := vault.NewClient(&vault.Config{
@@ -93,6 +107,8 @@ func newHashivaultClient(keyResourceID string) (*hashivaultClient, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "new vault client")
 	}
+
+	client.SetToken(token)
 
 	transitSecretEnginePath := os.Getenv("TRANSIT_SECRET_ENGINE_PATH")
 	if transitSecretEnginePath == "" {

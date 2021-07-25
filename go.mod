@@ -28,4 +28,5 @@ require (
 	google.golang.org/genproto v0.0.0-20210722135532-667f2b7c528f
 	google.golang.org/protobuf v1.27.1
 	gopkg.in/square/go-jose.v2 v2.6.0
+	github.com/mitchellh/go-homedir v1.1.0
 )
