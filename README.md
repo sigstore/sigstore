@@ -1,4 +1,4 @@
-# sigstore framework and signing CLI tool
+# sigstore framework
 
 > :warning: Not ready for use yet!
 
