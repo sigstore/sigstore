@@ -196,9 +196,9 @@ func LoadECDSASignerVerifier(priv *ecdsa.PrivateKey, hf crypto.Hash) (*ECDSASign
 
 // NewDefaultECDSASignerVerifier creates a combined signer and verifier using ECDSA.
 //
-// This creates a new ECDSA key using the P-384 curve and uses the SHA256 hashing algorithm.
+// This creates a new ECDSA key using the P-256 curve and uses the SHA256 hashing algorithm.
 func NewDefaultECDSASignerVerifier() (*ECDSASignerVerifier, *ecdsa.PrivateKey, error) {
-	return NewECDSASignerVerifier(elliptic.P384(), rand.Reader, crypto.SHA256)
+	return NewECDSASignerVerifier(elliptic.P256(), rand.Reader, crypto.SHA256)
 }
 
 // NewECDSASignerVerifier creates a combined signer and verifier using ECDSA.
