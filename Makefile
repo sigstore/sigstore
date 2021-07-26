@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-.PHONY: all test clean lint
+.PHONY: all pkg test test-e2e clean lint
 
 all: pkg
 
