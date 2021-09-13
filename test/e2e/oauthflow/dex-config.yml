@@ -6,7 +6,7 @@ issuer: http://127.0.0.1:5556/auth
 storage:
   type: sqlite3
   config:
-    file: ./dex.db
+    file: /var/dex/dex.db
 
 # Configuration for the HTTP endpoints.
 web:
@@ -19,6 +19,8 @@ oauth2:
   responseTypes: [ "code" ]
   skipApprovalScreen: true
   alwaysShowLoginScreen: false
+
+enablePasswordDB: true
 
 staticClients:
 - id: sigstore

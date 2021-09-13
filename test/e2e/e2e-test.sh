@@ -59,6 +59,10 @@ export AWS_REGION=us-east-1
 export AWS_ENDPOINT=localhost:4566
 export AWS_TLS_INSECURE_SKIP_VERIFY=1
 
+export OIDC_ISSUER=http://localhost:5556/auth
+export OIDC_ID=sigstore
+export OIDC_SECRET=mock-secret
+
 go test -tags e2e -count=1 ./...
 
 cleanup

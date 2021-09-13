@@ -18,6 +18,7 @@
 package oauthflow
 
 import (
+	"os"
 	"testing"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -30,9 +31,9 @@ type OAuthSuite struct {
 
 func (suite *OAuthSuite) TestOauthFlow() {
 	idToken, err := oauthflow.OIDConnect(
-		"http://127.0.0.1:5556/auth",
-		"sigstore",
-		"mock-secret",
+		os.Getenv("OIDC_ISSUER"),
+		os.Getenv("OIDC_ID"),
+		os.Getenv("OIDC_SECRET"),
 		oauthflow.DefaultIDTokenGetter,
 	)
 
