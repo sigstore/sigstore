@@ -32,9 +32,10 @@ func (suite *OAuthSuite) TestOauthFlow() {
 	idToken, err := oauthflow.OIDConnect(
 		"http://127.0.0.1:5556/auth",
 		"sigstore",
-		"ZXhhbXBsZS1hcHAtc2VjcmV0",
+		"mock-secret",
 		oauthflow.DefaultIDTokenGetter,
 	)
+
 	require.Nil(suite.T(), err)
 	require.NotNil(suite.T(), idToken)
 }

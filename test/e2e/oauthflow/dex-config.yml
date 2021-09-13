@@ -1,6 +1,3 @@
-# DEPRECATED: use config.yaml.dist and config.dev.yaml examples in the repository root.
-# TODO: keep this until all references are updated.
-
 # The base path of dex and the external name of the OpenID Connect service.
 # This is the canonical URL that all clients MUST use to refer to dex. If a
 # path is provided, dex's HTTP service will listen at a non-root URL.
@@ -9,7 +6,7 @@ issuer: http://127.0.0.1:5556/auth
 storage:
   type: sqlite3
   config:
-    file: examples/dex.db
+    file: ./dex.db
 
 # Configuration for the HTTP endpoints.
 web:
@@ -26,9 +23,9 @@ oauth2:
 staticClients:
 - id: sigstore
   redirectURIs:
-  - 'http://127.0.0.1:5555/auth/callback'
+  - 'http://127.0.0.1:5555/callback'
   name: 'Sigstore Mock'
-  secret: ZXhhbXBsZS1hcHAtc2VjcmV0
+  secret: mock-secret
 
 connectors:
 - type: mockCallback
@@ -37,10 +34,9 @@ connectors:
 
 # A static list of passwords to login the end user. By identifying here, dex
 # won't look in its underlying storage for passwords.
-#
-# If this option isn't chosen users may be added through the gRPC API.
+
 staticPasswords:
-- email: "admin@example.com"
+- email: "admin@sigstore.dev"
   # bcrypt hash of the string "password": $(echo password | htpasswd -BinC 10 admin | cut -d: -f2)
   hash: "$2a$10$2b2cU8CPhOTaGrs1HRQuAueS7JTT5ZHsHSzYiFPm1leZck7Mc8T4W"
   username: "admin"
