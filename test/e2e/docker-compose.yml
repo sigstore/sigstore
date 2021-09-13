@@ -28,3 +28,11 @@ services:
       - 4566:4566
     environment:
       - SERVICES=kms
+  dex:
+    image: ghcr.io/dexidp/dex:v2.30.0
+    ports:
+      - 5556:5556
+    volumes:
+      - ./oauthflow/dex-config.yml:/etc/dex/dex-config.yml:ro
+    command: ["serve", "/etc/dex/dex-config.yml"]
+
