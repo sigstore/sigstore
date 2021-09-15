@@ -25,7 +25,7 @@ enablePasswordDB: true
 staticClients:
 - id: sigstore
   redirectURIs:
-  - 'http://127.0.0.1:5555/callback'
+  - 'http://localhost:5555/auth/callback'
   name: 'Sigstore Mock'
   secret: mock-secret
 

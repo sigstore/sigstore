@@ -18,11 +18,12 @@
 package oauthflow
 
 import (
-	"os"
-	"testing"
+	"fmt"
+	"github.com/sigstore/sigstore/pkg/oauthflow"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
-	"github.com/sigstore/sigstore/pkg/oauthflow"
+	"os"
+	"testing"
 )
 
 type OAuthSuite struct {
@@ -37,6 +38,8 @@ func (suite *OAuthSuite) TestOauthFlow() {
 		oauthflow.DefaultIDTokenGetter,
 	)
 
+	code := idToken.Subject
+	fmt.Println("subject", code)
 	require.Nil(suite.T(), err)
 	require.NotNil(suite.T(), idToken)
 }
