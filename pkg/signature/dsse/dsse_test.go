@@ -26,7 +26,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/in-toto/in-toto-golang/pkg/ssl"
+	"github.com/secure-systems-lab/go-securesystemslib/dsse"
 	"github.com/sigstore/sigstore/pkg/signature"
 )
 
@@ -55,7 +55,7 @@ func TestRoundTrip(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	env := ssl.Envelope{}
+	env := dsse.Envelope{}
 	if err := json.Unmarshal(sig, &env); err != nil {
 		t.Fatal(err)
 	}
