@@ -23,7 +23,7 @@ import (
 	"io"
 	"io/ioutil"
 
-	"github.com/in-toto/in-toto-golang/pkg/ssl"
+	"github.com/secure-systems-lab/go-securesystemslib/dsse"
 	"github.com/sigstore/sigstore/pkg/signature"
 )
 
@@ -48,16 +48,16 @@ func (w *wrappedSigner) SignMessage(r io.Reader, opts ...signature.SignOption) (
 	if err != nil {
 		return nil, err
 	}
-	pae := ssl.PAE(w.payloadType, string(p))
+	pae := dsse.PAE(w.payloadType, string(p))
 	sig, err := w.s.SignMessage(bytes.NewReader(pae), opts...)
 	if err != nil {
 		return nil, err
 	}
 
-	env := ssl.Envelope{
+	env := dsse.Envelope{
 		PayloadType: w.payloadType,
 		Payload:     base64.StdEncoding.EncodeToString(p),
-		Signatures: []ssl.Signature{
+		Signatures: []dsse.Signature{
 			{
 				Sig: base64.StdEncoding.EncodeToString(sig),
 			},
@@ -86,12 +86,12 @@ func (w *wrappedVerifier) VerifySignature(s io.Reader, _ io.Reader, opts ...sign
 		return err
 	}
 
-	env := ssl.Envelope{}
+	env := dsse.Envelope{}
 	if err := json.Unmarshal(sig, &env); err != nil {
 		return nil
 	}
 
-	verifier := ssl.NewEnvelopeVerifier(&innerWrapper{v: w.v})
+	verifier := dsse.NewEnvelopeVerifier(&innerWrapper{v: w.v})
 	return verifier.Verify(&env)
 }
 
