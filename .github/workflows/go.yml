@@ -72,7 +72,7 @@ jobs:
         ports:
         - 8200/tcp
       localstack:
-        image: localstack/localstack:latest
+        image: localstack/localstack:0.12.15
         ports:
         - 4566/tcp
     steps:
