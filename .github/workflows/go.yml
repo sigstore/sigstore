@@ -84,11 +84,11 @@ jobs:
     - name: Install chrome
       run: sudo apt install ./google-chrome-stable_current_amd64.deb
     - name: Docker Build
-      working-directory: ./tests/e2e
+      working-directory: ./test/e2e
       run: docker-compose build
 
     - name: Unit Test
       run: go test -tags e2e -v ./test/e2e/...
     - name: Integeration test
-      working-directory: ./tests/e2e
+      working-directory: ./test/e2e
       run: ./e2e-test.sh
