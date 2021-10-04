@@ -25,15 +25,15 @@ import (
 	"time"
 
 	"github.com/coreos/go-oidc/v3/oidc"
+	"github.com/go-rod/rod"
 	"github.com/segmentio/ksuid"
 	"github.com/skratchdot/open-golang/open"
 	"golang.org/x/oauth2"
-	"github.com/go-rod/rod"
 )
 
 const (
-	oobRedirectURI = "urn:ietf:wg:oauth:2.0:oob"
-	integrationTest    = "INTEGRATION_TEST"
+	oobRedirectURI  = "urn:ietf:wg:oauth:2.0:oob"
+	integrationTest = "INTEGRATION_TEST"
 )
 
 // InteractiveIDTokenGetter is a type to get ID tokens for oauth flows
@@ -80,7 +80,7 @@ func (i *InteractiveIDTokenGetter) GetIDToken(p *oidc.Provider, cfg oauth2.Confi
 		// This code will only run in integration tests
 		page := rod.New().MustConnect().MustPage(authCodeURL)
 		page.MustElement("body > div.dex-container > div > div > div:nth-child(2) > a > button").MustClick()
-		code, err = getCodeFromLocalServer(stateToken, redirectURL)
+		code, _ = getCodeFromLocalServer(stateToken, redirectURL)
 	}
 	token, err := cfg.Exchange(context.Background(), code, append(pkce.TokenURLOpts(), oidc.Nonce(nonce))...)
 	if err != nil {
