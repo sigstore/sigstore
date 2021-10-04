@@ -76,8 +76,6 @@ jobs:
         ports:
         - 4566/tcp
     steps:
-    - uses: browser-actions/setup-chrome@latest
-
     - uses: actions/checkout@v2
 
     - name: Set up Go
@@ -91,6 +89,10 @@ jobs:
         key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
         restore-keys: |
           ${{ runner.os }}-go-
+    - name: Pull chrome
+      run: wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+    - name: Install chrome
+      run: sudo apt install ./google-chrome-stable_current_amd64.deb
 
     - name: Test
       env:
