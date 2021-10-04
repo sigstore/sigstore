@@ -16,8 +16,9 @@ require (
 	github.com/google/go-cmp v0.5.6
 	github.com/google/go-containerregistry v0.5.1
 	github.com/hashicorp/vault/api v1.1.1
-	github.com/in-toto/in-toto-golang v0.2.1-0.20210627200632-886210ae2ab9
+	github.com/mitchellh/go-homedir v1.1.0
 	github.com/pkg/errors v0.9.1
+	github.com/secure-systems-lab/go-securesystemslib v0.1.0
 	github.com/segmentio/ksuid v1.0.4
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966
 	github.com/stretchr/testify v1.7.0
@@ -28,5 +29,4 @@ require (
 	google.golang.org/genproto v0.0.0-20210722135532-667f2b7c528f
 	google.golang.org/protobuf v1.27.1
 	gopkg.in/square/go-jose.v2 v2.6.0
-	github.com/mitchellh/go-homedir v1.1.0
 )

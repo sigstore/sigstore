@@ -3,11 +3,11 @@
 > :warning: Not ready for use yet!
 
 sigstore/sigstore is a generic library that is utilized by various other
-clients and projects inc fulcio (webPKI), cosign (container and OCI signing tool)
+clients and projects including fulcio (webPKI), cosign (container and OCI signing tool)
 and tektoncd/chains (Supply Chain Security in Tekton Pipelines).
 
 sigstore is also good candidate for anyone wanting to develop go based clients / systems
-and utilise exiting go modules for common sigstore functionality.
+and utilise existing go modules for common sigstore functionality.
 
 ## Security
 

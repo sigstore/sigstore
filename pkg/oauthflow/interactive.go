@@ -62,13 +62,13 @@ func (i *InteractiveIDTokenGetter) GetIDToken(p *oidc.Provider, cfg oauth2.Confi
 	if err := open.Run(authCodeURL); err != nil {
 		// Swap to the out of band flow if we can't open the browser
 		fmt.Fprintf(os.Stderr, "error opening browser: %v\n", err)
-		code = doOobFlow(cfg, stateToken, opts)
+		code = doOobFlow(&cfg, stateToken, opts)
 	} else {
 		fmt.Fprintf(os.Stderr, "Your browser will now be opened to:\n%s\n", authCodeURL)
 		code, err = getCodeFromLocalServer(stateToken, redirectURL)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "error getting code from local server: %v\n", err)
-			code = doOobFlow(cfg, stateToken, opts)
+			code = doOobFlow(&cfg, stateToken, opts)
 		}
 	}
 	token, err := cfg.Exchange(context.Background(), code, append(pkce.TokenURLOpts(), oidc.Nonce(nonce))...)
@@ -109,7 +109,7 @@ func (i *InteractiveIDTokenGetter) GetIDToken(p *oidc.Provider, cfg oauth2.Confi
 	return &returnToken, nil
 }
 
-func doOobFlow(cfg oauth2.Config, stateToken string, opts []oauth2.AuthCodeOption) string {
+func doOobFlow(cfg *oauth2.Config, stateToken string, opts []oauth2.AuthCodeOption) string {
 	cfg.RedirectURL = oobRedirectURI
 	authURL := cfg.AuthCodeURL(stateToken, opts...)
 	fmt.Fprintln(os.Stderr, "Go to the following link in a browser:\n\n\t", authURL)
