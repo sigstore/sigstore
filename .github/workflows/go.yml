@@ -64,24 +64,6 @@ jobs:
   e2e:
     runs-on: ubuntu-latest
     needs: [build]
-    services:
-      vault:
-        image: vault
-        env:
-          VAULT_DEV_ROOT_TOKEN_ID: testtoken
-        ports:
-        - 8200/tcp
-      localstack:
-        image: localstack/localstack:0.12.15
-        ports:
-        - 4566/tcp
-      dex:
-        image: ghcr.io/dexidp/dex:v2.30.0
-        ports:
-          - 5556/tcp
-        volumes:
-          - ${{ github.workspace }}:/workspace
-        command: [ "dex", "serve", "/workspace/test/e2e/oauthflow/dex-config.yml" ]
     steps:
     - uses: actions/checkout@v2
 
@@ -100,8 +82,13 @@ jobs:
       run: wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
     - name: Install chrome
       run: sudo apt install ./google-chrome-stable_current_amd64.deb
+    - name: Docker Build
+      run: docker-compose build
 
-    - name: Test
+    - name: Unit Test
+      run: go test -tags e2e -v ./test/e2e/...
+    - name: Integeration test
+
       env:
         VAULT_ADDR: http://localhost:${{ job.services.vault.ports[8200] }}
         VAULT_TOKEN: testtoken
@@ -114,4 +101,5 @@ jobs:
         OIDC_ID: sigstore
         OIDC_SECRET: mock-secret
         INTEGRATION_TEST: 1
-      run: go test -tags e2e -v ./test/e2e/...
+        working-directory: ./tests/e2e
+        run: ./e2e-test.sh
