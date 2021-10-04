@@ -18,11 +18,12 @@
 package oauthflow
 
 import (
+	"os"
+	"testing"
+
 	"github.com/sigstore/sigstore/pkg/oauthflow"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
-	"os"
-	"testing"
 )
 
 type OAuthSuite struct {
@@ -47,4 +48,3 @@ func (suite *OAuthSuite) TestOauthFlow() {
 func TestVault(t *testing.T) {
 	suite.Run(t, new(OAuthSuite))
 }
-
