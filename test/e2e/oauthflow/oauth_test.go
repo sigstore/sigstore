@@ -18,7 +18,6 @@
 package oauthflow
 
 import (
-	"fmt"
 	"github.com/sigstore/sigstore/pkg/oauthflow"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -38,10 +37,11 @@ func (suite *OAuthSuite) TestOauthFlow() {
 		oauthflow.DefaultIDTokenGetter,
 	)
 
-	code := idToken.Subject
-	fmt.Println("subject", code)
+	email := idToken.Subject
+
 	require.Nil(suite.T(), err)
-	require.NotNil(suite.T(), idToken)
+	require.NotNil(suite.T(), email)
+	require.Equal(suite.T(), "kilgore@kilgore.trout", email)
 }
 
 func TestVault(t *testing.T) {

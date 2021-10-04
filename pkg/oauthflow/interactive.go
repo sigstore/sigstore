@@ -28,10 +28,12 @@ import (
 	"github.com/segmentio/ksuid"
 	"github.com/skratchdot/open-golang/open"
 	"golang.org/x/oauth2"
+	"github.com/go-rod/rod"
 )
 
 const (
 	oobRedirectURI = "urn:ietf:wg:oauth:2.0:oob"
+	integrationTest    = "INTEGRATION_TEST"
 )
 
 // InteractiveIDTokenGetter is a type to get ID tokens for oauth flows
@@ -59,17 +61,26 @@ func (i *InteractiveIDTokenGetter) GetIDToken(p *oidc.Provider, cfg oauth2.Confi
 	opts := append(pkce.AuthURLOpts(), oauth2.AccessTypeOnline, oidc.Nonce(nonce))
 	authCodeURL := cfg.AuthCodeURL(stateToken, opts...)
 	var code string
-	if err := open.Run(authCodeURL); err != nil {
-		// Swap to the out of band flow if we can't open the browser
-		fmt.Fprintf(os.Stderr, "error opening browser: %v\n", err)
-		code = doOobFlow(&cfg, stateToken, opts)
-	} else {
-		fmt.Fprintf(os.Stderr, "Your browser will now be opened to:\n%s\n", authCodeURL)
-		code, err = getCodeFromLocalServer(stateToken, redirectURL)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "error getting code from local server: %v\n", err)
+	// Check if we are running integration tests
+	inTest := os.Getenv(integrationTest)
+	if inTest == "" {
+		if err := open.Run(authCodeURL); err != nil {
+			// Swap to the out of band flow if we can't open the browser
+			fmt.Fprintf(os.Stderr, "error opening browser: %v\n", err)
 			code = doOobFlow(&cfg, stateToken, opts)
+		} else {
+			fmt.Fprintf(os.Stderr, "Your browser will now be opened to:\n%s\n", authCodeURL)
+			code, err = getCodeFromLocalServer(stateToken, redirectURL)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "error getting code from local server: %v\n", err)
+				code = doOobFlow(&cfg, stateToken, opts)
+			}
 		}
+	} else {
+		// This code will only run in integration tests
+		page := rod.New().MustConnect().MustPage(authCodeURL)
+		page.MustElement("body > div.dex-container > div > div > div:nth-child(2) > a > button").MustClick()
+		code, err = getCodeFromLocalServer(stateToken, redirectURL)
 	}
 	token, err := cfg.Exchange(context.Background(), code, append(pkce.TokenURLOpts(), oidc.Nonce(nonce))...)
 	if err != nil {

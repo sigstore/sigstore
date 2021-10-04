@@ -12,6 +12,7 @@ require (
 	github.com/ReneKroon/ttlcache/v2 v2.7.0
 	github.com/aws/aws-sdk-go v1.40.7
 	github.com/coreos/go-oidc/v3 v3.0.0
+	github.com/go-rod/rod v0.101.8
 	github.com/go-test/deep v1.0.7
 	github.com/google/go-cmp v0.5.6
 	github.com/google/go-containerregistry v0.5.1

@@ -62,6 +62,7 @@ export AWS_TLS_INSECURE_SKIP_VERIFY=1
 export OIDC_ISSUER=http://127.0.0.1:5556/auth
 export OIDC_ID=sigstore
 export OIDC_SECRET=mock-secret
+export INTEGRATION_TEST=1
 
 go test -tags e2e -count=1 ./...
 
