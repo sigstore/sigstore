@@ -38,9 +38,9 @@ func (suite *OAuthSuite) TestOauthFlow() {
 		oauthflow.DefaultIDTokenGetter,
 	)
 
-	email := idToken.Subject
-
 	require.Nil(suite.T(), err)
+
+	email := idToken.Subject
 	require.NotNil(suite.T(), email)
 	require.Equal(suite.T(), "kilgore@kilgore.trout", email)
 }

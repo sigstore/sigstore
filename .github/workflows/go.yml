@@ -76,6 +76,8 @@ jobs:
         ports:
         - 4566/tcp
     steps:
+    - uses: browser-actions/setup-chrome@latest
+
     - uses: actions/checkout@v2
 
     - name: Set up Go
@@ -99,4 +101,5 @@ jobs:
         AWS_REGION: us-east-1
         AWS_ENDPOINT: localhost:${{ job.services.localstack.ports[4566] }}
         AWS_TLS_INSECURE_SKIP_VERIFY: 1
+        INTEGRATION_TEST: 1
       run: go test -tags e2e -v ./test/e2e/...
