@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: Go
+name: build_test_lint
 
 permissions:
   contents: read
@@ -25,7 +25,7 @@ on:
     branches: [ main ]
 
 env:
-  GO_VERSION: 1.16.6
+  GO_VERSION: 1.17
 
 jobs:
   build:
@@ -60,43 +60,3 @@ jobs:
 
     - name: Ensure no files were modified as a result of the build
       run: git update-index --refresh && git diff-index --quiet HEAD -- || git diff --exit-code
-
-  e2e:
-    runs-on: ubuntu-latest
-    needs: [build]
-    services:
-      vault:
-        image: vault
-        env:
-          VAULT_DEV_ROOT_TOKEN_ID: testtoken
-        ports:
-        - 8200/tcp
-      localstack:
-        image: localstack/localstack:0.12.15
-        ports:
-        - 4566/tcp
-    steps:
-    - uses: actions/checkout@v2
-
-    - name: Set up Go
-      uses: actions/setup-go@v2
-      with:
-        go-version: ${{ env.GO_VERSION }}
-    - name: Cache Modules
-      uses: actions/cache@v2
-      with:
-        path: ~/go/pkg/mod
-        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-        restore-keys: |
-          ${{ runner.os }}-go-
-
-    - name: Test
-      env:
-        VAULT_ADDR: http://localhost:${{ job.services.vault.ports[8200] }}
-        VAULT_TOKEN: testtoken
-        AWS_ACCESS_KEY_ID: test
-        AWS_SECRET_ACCESS_KEY: test
-        AWS_REGION: us-east-1
-        AWS_ENDPOINT: localhost:${{ job.services.localstack.ports[4566] }}
-        AWS_TLS_INSECURE_SKIP_VERIFY: 1
-      run: go test -tags e2e -v ./test/e2e/...

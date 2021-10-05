@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: Verify
+name: license_check
 
 on:
   push:
@@ -22,7 +22,7 @@ on:
     branches: [ main ]
 
 jobs:
-  license-check:
+  license_check:
     name: license boilerplate check
     runs-on: ubuntu-latest
     steps:
