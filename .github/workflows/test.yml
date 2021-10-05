@@ -28,7 +28,7 @@ env:
   GO_VERSION: 1.16.6
 
 jobs:
-  test:
+  unit_test:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
