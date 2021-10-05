@@ -13,10 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: Go
-
-permissions:
-  contents: read
+name: test
 
 on:
   push:
@@ -25,58 +22,23 @@ on:
     branches: [ main ]
 
 env:
-  GO_VERSION: 1.16.6
+  GO_VERSION: 1.16.8
 
 jobs:
-  build:
+  e2e_test:
+    name: e2e integration tests
     runs-on: ubuntu-latest
-
-    steps:
-    - uses: actions/checkout@v2
-
-    - name: Set up Go
-      uses: actions/setup-go@v2
-      with:
-        go-version: ${{ env.GO_VERSION }}
-    - name: Cache Modules
-      uses: actions/cache@v2
-      with:
-        path: ~/go/pkg/mod
-        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-        restore-keys: |
-          ${{ runner.os }}-go-
-
-    - name: Build
-      run: go build -v ./...
-
-    - name: Test
-      run: go test -v ./...
-
-    - name: golangci-lint
-      uses: golangci/golangci-lint-action@v2.5.2
-      with:
-        version: latest
-        skip-go-installation: true
-        skip-pkg-cache: true
-
-    - name: Ensure no files were modified as a result of the build
-      run: git update-index --refresh && git diff-index --quiet HEAD -- || git diff --exit-code
-
-  e2e:
-    runs-on: ubuntu-latest
-    needs: [build]
-    env:
-      AULT_TOKEN: testtoken
-      VAULT_ADDR: http://localhost:8200/
-      AWS_ACCESS_KEY_ID: test
-      AWS_SECRET_ACCESS_KEY: test
-      AWS_REGION: us-east-1
-      AWS_ENDPOINT: localhost:4566
-      AWS_TLS_INSECURE_SKIP_VERIFY: 1
-      OIDC_ISSUER: http://127.0.0.1:5556/auth
-      OIDC_ID: sigstore
-      OIDC_SECRET: mock-secret
-      INTEGRATION_TEST: 1
+    services:
+      vault:
+        image: vault
+        env:
+          VAULT_DEV_ROOT_TOKEN_ID: testtoken
+        ports:
+        - 8200/tcp
+      localstack:
+        image: localstack/localstack:0.12.15
+        ports:
+        - 4566/tcp
     steps:
     - uses: actions/checkout@v2
 
