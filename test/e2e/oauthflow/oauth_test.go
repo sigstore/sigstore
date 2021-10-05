@@ -21,7 +21,11 @@ import (
 	"os"
 	"testing"
 
+	"bou.ke/monkey"
+
+	"github.com/go-rod/rod"
 	"github.com/sigstore/sigstore/pkg/oauthflow"
+	"github.com/skratchdot/open-golang/open"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
@@ -31,6 +35,20 @@ type OAuthSuite struct {
 }
 
 func (suite *OAuthSuite) TestOauthFlow() {
+	urlCh := make(chan string)
+
+	monkey.Patch(open.Run, func(input string) error {
+		urlCh <- input
+		return nil
+	})
+	defer monkey.UnpatchAll()
+
+	go func() {
+		authCodeURL := <-urlCh
+		page := rod.New().MustConnect().MustPage(authCodeURL)
+		page.MustElement("body > div.dex-container > div > div > div:nth-child(2) > a > button").MustClick()
+	}()
+
 	idToken, err := oauthflow.OIDConnect(
 		os.Getenv("OIDC_ISSUER"),
 		os.Getenv("OIDC_ID"),
