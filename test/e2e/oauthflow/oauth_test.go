@@ -45,6 +45,6 @@ func (suite *OAuthSuite) TestOauthFlow() {
 	require.Equal(suite.T(), "kilgore@kilgore.trout", email)
 }
 
-func TestVault(t *testing.T) {
+func TestOAuthFlow(t *testing.T) {
 	suite.Run(t, new(OAuthSuite))
 }
