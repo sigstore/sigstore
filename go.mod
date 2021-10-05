@@ -3,7 +3,7 @@ module github.com/sigstore/sigstore
 go 1.16
 
 require (
-	bou.ke/monkey v1.0.2 // indirect
+	bou.ke/monkey v1.0.2
 	cloud.google.com/go v0.88.0
 	github.com/Azure/azure-sdk-for-go v55.8.0+incompatible
 	github.com/Azure/go-autorest/autorest v0.11.19 // indirect
