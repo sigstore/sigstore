@@ -26,8 +26,6 @@ import (
 	"reflect"
 	"testing"
 
-	"time"
-
 	"golang.org/x/oauth2"
 	"gopkg.in/square/go-jose.v2"
 )
@@ -35,19 +33,18 @@ import (
 func TestGetCodeWorking(t *testing.T) {
 	desiredState := "foo"
 	desiredCode := "code"
-	redirectURL, _ := url.Parse("http://localhost:5556/auth/callback")
 	// We need to start this in the background and send our request to the server
 
 	var gotCode string
 	var gotErr error
-	doneCh := make(chan int)
+	doneCh := make(chan string)
+	errCh := make(chan error)
+	_, url, _ := startRedirectListener(desiredState, doneCh, errCh)
 	go func() {
-		gotCode, gotErr = getCodeFromLocalServer(desiredState, redirectURL)
-		doneCh <- 1
+		gotCode, gotErr = getCode(doneCh, errCh)
 	}()
 
-	sendCodeAndState(t, desiredCode, desiredState)
-	<-doneCh
+	sendCodeAndState(t, url, desiredCode, desiredState)
 
 	if gotErr != nil {
 		t.Fatal(gotErr)
@@ -60,29 +57,26 @@ func TestGetCodeWorking(t *testing.T) {
 func TestGetCodeWrongState(t *testing.T) {
 	desiredState := "foo"
 	desiredCode := "code"
-	redirectURL, _ := url.Parse("http://localhost:5556/auth/callback")
 	// We need to start this in the background and send our request to the server
 
 	var gotErr error
-	doneCh := make(chan int)
+	doneCh := make(chan string)
+	errCh := make(chan error)
+	_, url, _ := startRedirectListener(desiredState, doneCh, errCh)
 	go func() {
-		_, gotErr = getCodeFromLocalServer(desiredState, redirectURL)
-		doneCh <- 1
+		_, gotErr = getCode(doneCh, errCh)
 	}()
 
-	// Give the server a couple milliseconds to start up
-	time.Sleep(50 * time.Millisecond)
-	sendCodeAndState(t, desiredCode, "WRONG")
-	<-doneCh
+	sendCodeAndState(t, url, desiredCode, "WRONG")
 
 	if gotErr == nil {
 		t.Fatal("expected error, sent wrong state!")
 	}
 }
 
-func sendCodeAndState(t *testing.T, code, state string) {
+func sendCodeAndState(t *testing.T, redirectURL *url.URL, code, state string) {
 	t.Helper()
-	testURL, _ := url.Parse(fmt.Sprintf("http://localhost:5556/auth/callback?code=%v&state=%v", code, state))
+	testURL, _ := url.Parse(fmt.Sprintf("%v?code=%v&state=%v", redirectURL.String(), code, state))
 	if _, err := http.Get(testURL.String()); err != nil {
 		t.Fatal(err)
 	}

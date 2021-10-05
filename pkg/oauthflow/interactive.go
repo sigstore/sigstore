@@ -17,8 +17,8 @@ package oauthflow
 
 import (
 	"context"
-	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -28,6 +28,8 @@ import (
 	"github.com/segmentio/ksuid"
 	"github.com/skratchdot/open-golang/open"
 	"golang.org/x/oauth2"
+
+	"github.com/pkg/errors"
 )
 
 const (
@@ -41,14 +43,24 @@ type InteractiveIDTokenGetter struct {
 }
 
 func (i *InteractiveIDTokenGetter) GetIDToken(p *oidc.Provider, cfg oauth2.Config) (*OIDCIDToken, error) {
-	redirectURL, err := url.Parse(cfg.RedirectURL)
-	if err != nil {
-		return nil, err
-	}
-
 	// generate random fields and save them for comparison after OAuth2 dance
 	stateToken := randStr()
 	nonce := randStr()
+
+	doneCh := make(chan string)
+	errCh := make(chan error)
+	// starts listener on ephemeral port
+	redirectServer, redirectURL, err := startRedirectListener(stateToken, doneCh, errCh)
+	if err != nil {
+		return nil, errors.Wrap(err, "starting redirect listener")
+	}
+	defer func() {
+		go func() {
+			_ = redirectServer.Shutdown(context.Background())
+		}()
+	}()
+
+	cfg.RedirectURL = redirectURL.String()
 
 	// require that OIDC provider support PKCE to provide sufficient security for the CLI
 	pkce, err := NewPKCE(p)
@@ -65,7 +77,7 @@ func (i *InteractiveIDTokenGetter) GetIDToken(p *oidc.Provider, cfg oauth2.Confi
 		code = doOobFlow(&cfg, stateToken, opts)
 	} else {
 		fmt.Fprintf(os.Stderr, "Your browser will now be opened to:\n%s\n", authCodeURL)
-		code, err = getCodeFromLocalServer(stateToken, redirectURL)
+		code, err = getCode(doneCh, errCh)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "error getting code from local server: %v\n", err)
 			code = doOobFlow(&cfg, stateToken, opts)
@@ -119,36 +131,47 @@ func doOobFlow(cfg *oauth2.Config, stateToken string, opts []oauth2.AuthCodeOpti
 	return code
 }
 
-func getCodeFromLocalServer(state string, redirectURL *url.URL) (string, error) {
-	doneCh := make(chan string)
-	errCh := make(chan error)
+func startRedirectListener(state string, doneCh chan string, errCh chan error) (*http.Server, *url.URL, error) {
+	listener, err := net.Listen("tcp", ":0")
+	if err != nil {
+		return nil, nil, err
+	}
+
+	port := listener.Addr().(*net.TCPAddr).Port
+
+	url := &url.URL{
+		Scheme: "http",
+		Host:   fmt.Sprintf("localhost:%d", port),
+		Path:   "/auth/callback",
+	}
+
 	m := http.NewServeMux()
-	s := http.Server{
-		Addr:    redirectURL.Host,
+	s := &http.Server{
+		Addr:    url.Host,
 		Handler: m,
 	}
-	defer func() {
-		go func() {
-			_ = s.Shutdown(context.Background())
-		}()
-	}()
+
+	m.HandleFunc(url.Path, func(w http.ResponseWriter, r *http.Request) {
+		// even though these are fetched from the FormValue method,
+		// these are supplied as query parameters
+		if r.FormValue("state") != state {
+			errCh <- errors.New("invalid state token")
+			return
+		}
+		doneCh <- r.FormValue("code")
+		fmt.Fprint(w, htmlPage)
+	})
 
 	go func() {
-		m.HandleFunc(redirectURL.Path, func(w http.ResponseWriter, r *http.Request) {
-			// even though these are fetched from the FormValue method,
-			// these are supplied as query parameters
-			if r.FormValue("state") != state {
-				errCh <- errors.New("invalid state token")
-				return
-			}
-			fmt.Fprint(w, htmlPage)
-			doneCh <- r.FormValue("code")
-		})
-		if err := s.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		if err := s.Serve(listener); err != nil && err != http.ErrServerClosed {
 			errCh <- err
 		}
 	}()
 
+	return s, url, nil
+}
+
+func getCode(doneCh chan string, errCh chan error) (string, error) {
 	timeoutCh := time.NewTimer(120 * time.Second)
 	select {
 	case code := <-doneCh:
