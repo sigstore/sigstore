@@ -28,17 +28,6 @@ jobs:
   e2e_test:
     name: e2e integration tests
     runs-on: ubuntu-latest
-    services:
-      vault:
-        image: vault
-        env:
-          VAULT_DEV_ROOT_TOKEN_ID: testtoken
-        ports:
-        - 8200/tcp
-      localstack:
-        image: localstack/localstack:0.12.15
-        ports:
-        - 4566/tcp
     steps:
     - uses: actions/checkout@v2
 
@@ -65,8 +54,6 @@ jobs:
       working-directory: ./test/e2e
       run: docker-compose build
 
-    - name: Unit Test
-      run: go test -tags e2e -v ./test/e2e/...
     - name: Integeration test
       working-directory: ./test/e2e
       run: ./e2e-test.sh
