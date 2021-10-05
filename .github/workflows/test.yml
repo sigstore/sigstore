@@ -13,7 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: Verify
+name: test
+
+permissions:
+  contents: read
 
 on:
   push:
@@ -21,29 +24,32 @@ on:
   pull_request:
     branches: [ main ]
 
-jobs:
-  license-check:
-    name: license boilerplate check
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-go@v2
-        with:
-          go-version: '1.16'
-      - name: Install addlicense
-        run: go install github.com/google/addlicense@latest
-      - name: Check license headers
-        run: |
-          set -e
-          addlicense -l apache -c 'The Sigstore Authors' -v *
-          git diff --exit-code
+env:
+  GO_VERSION: 1.16.6
 
-  golangci-lint:
-    name: lint
+jobs:
+  test:
     runs-on: ubuntu-latest
     steps:
-      - uses: golangci/golangci-lint-action@v2.5.2
-        with:
-          version: latest
-          skip-go-installation: true
-          skip-pkg-cache: true
+    - uses: actions/checkout@v2
+
+    - name: Set up Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: ${{ env.GO_VERSION }}
+    - name: Cache Modules
+      uses: actions/cache@v2
+      with:
+        path: ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+
+    - name: Build
+      run: go build -v ./...
+
+    - name: Test
+      run: go test -v ./...
+
+    - name: Ensure no files were modified as a result of the build
+      run: git update-index --refresh && git diff-index --quiet HEAD -- || git diff --exit-code
