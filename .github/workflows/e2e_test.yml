@@ -54,6 +54,6 @@ jobs:
       working-directory: ./test/e2e
       run: docker-compose build
 
-    - name: Integeration test
+    - name: Integration test
       working-directory: ./test/e2e
       run: ./e2e-test.sh
