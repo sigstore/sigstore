@@ -30,12 +30,8 @@ oauth2:
   skipApprovalScreen: true
   alwaysShowLoginScreen: false
 
-enablePasswordDB: true
-
 staticClients:
 - id: sigstore
-  redirectURIs:
-  - 'http://localhost:5557/auth/callback'
   name: 'Sigstore Mock'
   public: true
 
