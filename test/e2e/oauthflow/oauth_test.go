@@ -52,7 +52,7 @@ func (suite *OAuthSuite) TestOauthFlow() {
 	idToken, err := oauthflow.OIDConnect(
 		os.Getenv("OIDC_ISSUER"),
 		os.Getenv("OIDC_ID"),
-		os.Getenv("OIDC_SECRET"),
+		"",
 		oauthflow.DefaultIDTokenGetter,
 	)
 
