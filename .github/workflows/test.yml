@@ -29,6 +29,7 @@ env:
 
 jobs:
   unit_test:
+    name: unit tests
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2

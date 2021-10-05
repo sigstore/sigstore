@@ -39,7 +39,7 @@ jobs:
           git diff --exit-code
 
   golangci:
-    name: lint
+    name: lint checks
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2.3.4

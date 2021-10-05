@@ -26,6 +26,7 @@ env:
 
 jobs:
   e2e_test:
+    name: e2e integration tests
     runs-on: ubuntu-latest
     services:
       vault:
