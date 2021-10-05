@@ -132,7 +132,7 @@ func doOobFlow(cfg *oauth2.Config, stateToken string, opts []oauth2.AuthCodeOpti
 }
 
 func startRedirectListener(state string, doneCh chan string, errCh chan error) (*http.Server, *url.URL, error) {
-	listener, err := net.Listen("tcp", ":0")
+	listener, err := net.Listen("tcp", "localhost:0")
 	if err != nil {
 		return nil, nil, err
 	}
