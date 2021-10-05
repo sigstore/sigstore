@@ -37,7 +37,7 @@ staticClients:
   redirectURIs:
   - 'http://localhost:5557/auth/callback'
   name: 'Sigstore Mock'
-  secret: mock-secret
+  public: true
 
 connectors:
 - type: mockCallback
