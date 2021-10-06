@@ -32,9 +32,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-const (
-	oobRedirectURI = "urn:ietf:wg:oauth:2.0:oob"
-)
+const oobRedirectURI = "urn:ietf:wg:oauth:2.0:oob"
 
 // InteractiveIDTokenGetter is a type to get ID tokens for oauth flows
 type InteractiveIDTokenGetter struct {
