@@ -61,7 +61,6 @@ func OIDConnect(issuer string, id string, secret string, tg TokenGetter) (*OIDCI
 		ClientID:     id,
 		ClientSecret: secret,
 		Endpoint:     provider.Endpoint(),
-		RedirectURL:  "http://localhost:5557/auth/callback",
 		Scopes:       []string{oidc.ScopeOpenID, "email"},
 	}
 
