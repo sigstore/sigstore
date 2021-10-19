@@ -27,7 +27,8 @@ import (
 	"gopkg.in/square/go-jose.v2"
 )
 
-const htmlPage = `<html>
+const (
+	htmlPage = `<html>
 <title>Sigstore Auth</title>
 <body>
 <h1>Sigstore Auth Successful</h1>
@@ -35,6 +36,10 @@ const htmlPage = `<html>
 </body>
 </html>
 `
+	GithubAuthSubURL    = "github-sigstore-prod"
+	GoogleAuthSubURL    = "google-sigstore-prod"
+	MicrosoftAuthSubURL = "microsoft-sigstore-prod"
+)
 
 type TokenGetter interface {
 	GetIDToken(provider *oidc.Provider, config oauth2.Config) (*OIDCIDToken, error)
@@ -50,6 +55,24 @@ type OIDCIDToken struct {
 var DefaultIDTokenGetter = &InteractiveIDTokenGetter{
 	MessagePrinter: func(url string) { fmt.Fprintf(os.Stderr, "Your browser will now be opened to:\n%s\n", url) },
 	HTMLPage:       htmlPage,
+}
+
+var DefaultGithubIDTokenGetter = &InteractiveIDTokenGetter{
+	MessagePrinter: DefaultIDTokenGetter.MessagePrinter,
+	HTMLPage:       DefaultIDTokenGetter.HTMLPage,
+	AuthSubURL:     GithubAuthSubURL,
+}
+
+var DefaultGoogleIDTokenGetter = &InteractiveIDTokenGetter{
+	MessagePrinter: DefaultIDTokenGetter.MessagePrinter,
+	HTMLPage:       DefaultIDTokenGetter.HTMLPage,
+	AuthSubURL:     GoogleAuthSubURL,
+}
+
+var DefaultMicrosoftIDTokenGetter = &InteractiveIDTokenGetter{
+	MessagePrinter: DefaultIDTokenGetter.MessagePrinter,
+	HTMLPage:       DefaultIDTokenGetter.HTMLPage,
+	AuthSubURL:     MicrosoftAuthSubURL,
 }
 
 func OIDConnect(issuer string, id string, secret string, tg TokenGetter) (*OIDCIDToken, error) {
