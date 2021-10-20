@@ -22,7 +22,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"path"
 	"time"
 
 	"github.com/coreos/go-oidc/v3/oidc"
@@ -39,7 +38,7 @@ const oobRedirectURI = "urn:ietf:wg:oauth:2.0:oob"
 type InteractiveIDTokenGetter struct {
 	MessagePrinter func(url string)
 	HTMLPage       string
-	AuthSubURL     string
+	ExtraOpt       []oauth2.AuthCodeOption
 }
 
 func (i *InteractiveIDTokenGetter) GetIDToken(p *oidc.Provider, cfg oauth2.Config) (*OIDCIDToken, error) {
@@ -61,9 +60,6 @@ func (i *InteractiveIDTokenGetter) GetIDToken(p *oidc.Provider, cfg oauth2.Confi
 	}()
 
 	cfg.RedirectURL = redirectURL.String()
-	if i.AuthSubURL != "" {
-		cfg.Endpoint.AuthURL = path.Join(cfg.Endpoint.AuthURL, i.AuthSubURL)
-	}
 
 	// require that OIDC provider support PKCE to provide sufficient security for the CLI
 	pkce, err := NewPKCE(p)
@@ -72,6 +68,9 @@ func (i *InteractiveIDTokenGetter) GetIDToken(p *oidc.Provider, cfg oauth2.Confi
 	}
 
 	opts := append(pkce.AuthURLOpts(), oauth2.AccessTypeOnline, oidc.Nonce(nonce))
+	if len(i.ExtraOpt) > 0 {
+		opts = append(opts, i.ExtraOpt...)
+	}
 	authCodeURL := cfg.AuthCodeURL(stateToken, opts...)
 	var code string
 	if err := open.Run(authCodeURL); err != nil {
