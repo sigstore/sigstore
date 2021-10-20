@@ -57,26 +57,26 @@ var DefaultIDTokenGetter = &InteractiveIDTokenGetter{
 	HTMLPage:       htmlPage,
 }
 
-func ConnectorIdOpt(prov string) oauth2.AuthCodeOption {
+func ConnectorIDOpt(prov string) oauth2.AuthCodeOption {
 	return oauth2.SetAuthURLParam("connector_id", prov)
 }
 
 var DefaultGithubIDTokenGetter = &InteractiveIDTokenGetter{
 	MessagePrinter: DefaultIDTokenGetter.MessagePrinter,
 	HTMLPage:       DefaultIDTokenGetter.HTMLPage,
-	ExtraOpt:       []oauth2.AuthCodeOption{ConnectorIdOpt(GithubAuthSubURL)},
+	ExtraOpt:       []oauth2.AuthCodeOption{ConnectorIDOpt(GithubAuthSubURL)},
 }
 
 var DefaultGoogleIDTokenGetter = &InteractiveIDTokenGetter{
 	MessagePrinter: DefaultIDTokenGetter.MessagePrinter,
 	HTMLPage:       DefaultIDTokenGetter.HTMLPage,
-	ExtraOpt:       []oauth2.AuthCodeOption{ConnectorIdOpt(GoogleAuthSubURL)},
+	ExtraOpt:       []oauth2.AuthCodeOption{ConnectorIDOpt(GoogleAuthSubURL)},
 }
 
 var DefaultMicrosoftIDTokenGetter = &InteractiveIDTokenGetter{
 	MessagePrinter: DefaultIDTokenGetter.MessagePrinter,
 	HTMLPage:       DefaultIDTokenGetter.HTMLPage,
-	ExtraOpt:       []oauth2.AuthCodeOption{ConnectorIdOpt(MicrosoftAuthSubURL)},
+	ExtraOpt:       []oauth2.AuthCodeOption{ConnectorIDOpt(MicrosoftAuthSubURL)},
 }
 
 func OIDConnect(issuer string, id string, secret string, tg TokenGetter) (*OIDCIDToken, error) {
