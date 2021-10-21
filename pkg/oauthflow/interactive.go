@@ -36,9 +36,9 @@ const oobRedirectURI = "urn:ietf:wg:oauth:2.0:oob"
 
 // InteractiveIDTokenGetter is a type to get ID tokens for oauth flows
 type InteractiveIDTokenGetter struct {
-	MessagePrinter func(url string)
-	HTMLPage       string
-	ExtraOpt       []oauth2.AuthCodeOption
+	MessagePrinter     func(url string)
+	HTMLPage           string
+	ExtraAuthURLParams []oauth2.AuthCodeOption
 }
 
 func (i *InteractiveIDTokenGetter) GetIDToken(p *oidc.Provider, cfg oauth2.Config) (*OIDCIDToken, error) {
@@ -68,8 +68,8 @@ func (i *InteractiveIDTokenGetter) GetIDToken(p *oidc.Provider, cfg oauth2.Confi
 	}
 
 	opts := append(pkce.AuthURLOpts(), oauth2.AccessTypeOnline, oidc.Nonce(nonce))
-	if len(i.ExtraOpt) > 0 {
-		opts = append(opts, i.ExtraOpt...)
+	if len(i.ExtraAuthURLParams) > 0 {
+		opts = append(opts, i.ExtraAuthURLParams...)
 	}
 	authCodeURL := cfg.AuthCodeURL(stateToken, opts...)
 	var code string
