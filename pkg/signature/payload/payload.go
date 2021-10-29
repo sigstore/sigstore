@@ -51,8 +51,8 @@ type Cosign struct {
 	Annotations map[string]interface{}
 }
 
-func (p Cosign) MarshalJSON() ([]byte, error) {
-	simple := SimpleContainerImage{
+func (p Cosign) SimpleContainerImage() SimpleContainerImage {
+	return SimpleContainerImage{
 		Critical: Critical{
 			Identity: Identity{
 				DockerReference: p.Image.Repository.Name(),
@@ -64,7 +64,10 @@ func (p Cosign) MarshalJSON() ([]byte, error) {
 		},
 		Optional: p.Annotations,
 	}
-	return json.Marshal(simple)
+}
+
+func (p Cosign) MarshalJSON() ([]byte, error) {
+	return json.Marshal(p.SimpleContainerImage())
 }
 
 var _ json.Marshaler = Cosign{}
