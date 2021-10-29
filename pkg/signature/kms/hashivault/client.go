@@ -25,7 +25,6 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"strings"
 	"time"
 
 	"github.com/ReneKroon/ttlcache/v2"
@@ -45,6 +44,7 @@ type hashivaultClient struct {
 var (
 	errReference   = errors.New("kms specification should be in the format hashivault://<key>")
 	referenceRegex = regexp.MustCompile(`^hashivault://(?P<path>\w(([\w-.]+)?\w)?)$`)
+	prefixRegex    = regexp.MustCompile("vault:v[0-9]+:")
 )
 
 const (
@@ -200,9 +200,14 @@ func (h hashivaultClient) verify(sig, digest []byte, alg crypto.Hash) error {
 	client := h.client.Logical()
 	encodedSig := base64.StdEncoding.EncodeToString(sig)
 
+	vaultDataPrefix := os.Getenv("VAULT_KEY_PREFIX")
+	if vaultDataPrefix == "" {
+		vaultDataPrefix = vaultV1DataPrefix
+	}
+
 	result, err := client.Write(fmt.Sprintf("/%s/verify/%s/%s", h.transitSecretEnginePath, h.keyPath, hashString(alg)), map[string]interface{}{
 		"input":     base64.StdEncoding.EncodeToString(digest),
-		"signature": fmt.Sprintf("%s%s", vaultV1DataPrefix, encodedSig),
+		"signature": fmt.Sprintf("%s%s", vaultDataPrefix, encodedSig),
 	})
 
 	if err != nil {
@@ -226,7 +231,8 @@ func vaultDecode(data interface{}) ([]byte, error) {
 	if !ok {
 		return nil, errors.New("Received non-string data")
 	}
-	return base64.StdEncoding.DecodeString(strings.TrimPrefix(encoded, vaultV1DataPrefix))
+
+	return base64.StdEncoding.DecodeString(prefixRegex.ReplaceAllString(encoded, ""))
 }
 
 func hashString(h crypto.Hash) string {
