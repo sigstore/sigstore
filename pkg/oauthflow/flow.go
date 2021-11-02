@@ -27,7 +27,8 @@ import (
 	"gopkg.in/square/go-jose.v2"
 )
 
-const htmlPage = `<html>
+const (
+	htmlPage = `<html>
 <title>Sigstore Auth</title>
 <body>
 <h1>Sigstore Auth Successful</h1>
@@ -35,6 +36,11 @@ const htmlPage = `<html>
 </body>
 </html>
 `
+
+	GithubAuthSubURL    = "https://github.com/login/oauth"
+	GoogleAuthSubURL    = "https://accounts.google.com"
+	MicrosoftAuthSubURL = "https://login.microsoftonline.com"
+)
 
 type TokenGetter interface {
 	GetIDToken(provider *oidc.Provider, config oauth2.Config) (*OIDCIDToken, error)
@@ -45,11 +51,33 @@ type OIDCIDToken struct {
 	Subject   string
 }
 
+func ConnectorIDOpt(prov string) oauth2.AuthCodeOption {
+	return oauth2.SetAuthURLParam("connector_id", prov)
+}
+
 // DefaultIDTokenGetter is the default implementation.
 // The HTML page and message printed to the terminal can be customized.
 var DefaultIDTokenGetter = &InteractiveIDTokenGetter{
 	MessagePrinter: func(url string) { fmt.Fprintf(os.Stderr, "Your browser will now be opened to:\n%s\n", url) },
 	HTMLPage:       htmlPage,
+}
+
+var DefaultGithubIDTokenGetter = &InteractiveIDTokenGetter{
+	MessagePrinter:     DefaultIDTokenGetter.MessagePrinter,
+	HTMLPage:           DefaultIDTokenGetter.HTMLPage,
+	ExtraAuthURLParams: []oauth2.AuthCodeOption{ConnectorIDOpt(GithubAuthSubURL)},
+}
+
+var DefaultGoogleIDTokenGetter = &InteractiveIDTokenGetter{
+	MessagePrinter:     DefaultIDTokenGetter.MessagePrinter,
+	HTMLPage:           DefaultIDTokenGetter.HTMLPage,
+	ExtraAuthURLParams: []oauth2.AuthCodeOption{ConnectorIDOpt(GoogleAuthSubURL)},
+}
+
+var DefaultMicrosoftIDTokenGetter = &InteractiveIDTokenGetter{
+	MessagePrinter:     DefaultIDTokenGetter.MessagePrinter,
+	HTMLPage:           DefaultIDTokenGetter.HTMLPage,
+	ExtraAuthURLParams: []oauth2.AuthCodeOption{ConnectorIDOpt(MicrosoftAuthSubURL)},
 }
 
 func OIDConnect(issuer string, id string, secret string, tg TokenGetter) (*OIDCIDToken, error) {
