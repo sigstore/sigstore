@@ -37,9 +37,10 @@ const (
 </html>
 `
 
-	GithubAuthSubURL    = "https://github.com/login/oauth"
-	GoogleAuthSubURL    = "https://accounts.google.com"
-	MicrosoftAuthSubURL = "https://login.microsoftonline.com"
+	// Default connector ids used by `oauth2.sigstore.dev` for specfic Idps.
+	PublicInstanceGithubAuthSubURL    = "https://github.com/login/oauth"
+	PublicInstanceGoogleAuthSubURL    = "https://accounts.google.com"
+	PublicInstanceMicrosoftAuthSubURL = "https://login.microsoftonline.com"
 )
 
 type TokenGetter interface {
@@ -62,22 +63,28 @@ var DefaultIDTokenGetter = &InteractiveIDTokenGetter{
 	HTMLPage:       htmlPage,
 }
 
+// DefaultGithubIDTokenGetter is a `oauth2.sigstore.dev` flow selecting github as an Idp
+// Flow is based on `DefaultIDTokenGetter` fields
 var DefaultGithubIDTokenGetter = &InteractiveIDTokenGetter{
 	MessagePrinter:     DefaultIDTokenGetter.MessagePrinter,
 	HTMLPage:           DefaultIDTokenGetter.HTMLPage,
-	ExtraAuthURLParams: []oauth2.AuthCodeOption{ConnectorIDOpt(GithubAuthSubURL)},
+	ExtraAuthURLParams: []oauth2.AuthCodeOption{ConnectorIDOpt(PublicInstanceGithubAuthSubURL)},
 }
 
+// DefaultGoogleIDTokenGetter is a `oauth2.sigstore.dev` flow selecting github as an Idp
+// Flow is based on `DefaultIDTokenGetter` fields
 var DefaultGoogleIDTokenGetter = &InteractiveIDTokenGetter{
 	MessagePrinter:     DefaultIDTokenGetter.MessagePrinter,
 	HTMLPage:           DefaultIDTokenGetter.HTMLPage,
-	ExtraAuthURLParams: []oauth2.AuthCodeOption{ConnectorIDOpt(GoogleAuthSubURL)},
+	ExtraAuthURLParams: []oauth2.AuthCodeOption{ConnectorIDOpt(PublicInstanceGoogleAuthSubURL)},
 }
 
+// DefaultMicrosoftIDTokenGetter is a `oauth2.sigstore.dev` flow selecting microsoft as an Idp
+// Flow is based on `DefaultIDTokenGetter` fields
 var DefaultMicrosoftIDTokenGetter = &InteractiveIDTokenGetter{
 	MessagePrinter:     DefaultIDTokenGetter.MessagePrinter,
 	HTMLPage:           DefaultIDTokenGetter.HTMLPage,
-	ExtraAuthURLParams: []oauth2.AuthCodeOption{ConnectorIDOpt(MicrosoftAuthSubURL)},
+	ExtraAuthURLParams: []oauth2.AuthCodeOption{ConnectorIDOpt(PublicInstanceMicrosoftAuthSubURL)},
 }
 
 func OIDConnect(issuer string, id string, secret string, tg TokenGetter) (*OIDCIDToken, error) {
