@@ -19,7 +19,6 @@ import (
 	"context"
 	"crypto"
 	"crypto/ecdsa"
-	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -217,13 +216,11 @@ func (a *azureVaultClient) createKey(ctx context.Context) (crypto.PublicKey, err
 	return a.public()
 }
 
-func (a *azureVaultClient) sign(ctx context.Context, rawPayload []byte) ([]byte, error) {
-	hash := sha256.Sum256(rawPayload)
-	signed := hash[:]
+func (a *azureVaultClient) sign(ctx context.Context, hash []byte) ([]byte, error) {
 
 	params := keyvault.KeySignParameters{
 		Algorithm: keyvault.ES256,
-		Value:     to.StringPtr(base64.RawURLEncoding.EncodeToString(signed)),
+		Value:     to.StringPtr(base64.RawURLEncoding.EncodeToString(hash)),
 	}
 
 	result, err := a.client.Sign(ctx, a.vaultURL, a.keyName, "", params)
@@ -239,13 +236,11 @@ func (a *azureVaultClient) sign(ctx context.Context, rawPayload []byte) ([]byte,
 	return decResult, nil
 }
 
-func (a *azureVaultClient) verify(ctx context.Context, signature, payload []byte) error {
-	hash := sha256.Sum256(payload)
-	signed := hash[:]
+func (a *azureVaultClient) verify(ctx context.Context, signature, hash []byte) error {
 
 	params := keyvault.KeyVerifyParameters{
 		Algorithm: keyvault.ES256,
-		Digest:    to.StringPtr(base64.RawURLEncoding.EncodeToString(signed)),
+		Digest:    to.StringPtr(base64.RawURLEncoding.EncodeToString(hash)),
 		Signature: to.StringPtr(base64.RawURLEncoding.EncodeToString(signature)),
 	}
 
