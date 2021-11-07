@@ -10,7 +10,7 @@ require (
 	github.com/Azure/go-autorest/autorest/azure/auth v0.5.8 // indirect
 	github.com/Azure/go-autorest/autorest/to v0.4.0
 	github.com/Azure/go-autorest/autorest/validation v0.3.1 // indirect
-	github.com/ReneKroon/ttlcache/v2 v2.7.0
+	github.com/ReneKroon/ttlcache/v2 v2.9.0
 	github.com/aws/aws-sdk-go v1.41.19
 	github.com/coreos/go-oidc/v3 v3.0.0
 	github.com/go-rod/rod v0.101.8
