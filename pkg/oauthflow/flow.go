@@ -37,7 +37,7 @@ const (
 </html>
 `
 
-	// Default connector ids used by `oauth2.sigstore.dev` for specfic Idps.
+	// Default connector ids used by `oauth2.sigstore.dev` for specific Idps.
 	PublicInstanceGithubAuthSubURL    = "https://github.com/login/oauth"
 	PublicInstanceGoogleAuthSubURL    = "https://accounts.google.com"
 	PublicInstanceMicrosoftAuthSubURL = "https://login.microsoftonline.com"
