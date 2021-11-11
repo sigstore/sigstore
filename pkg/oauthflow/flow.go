@@ -63,25 +63,25 @@ var DefaultIDTokenGetter = &InteractiveIDTokenGetter{
 	HTMLPage:       htmlPage,
 }
 
-// DefaultGithubIDTokenGetter is a `oauth2.sigstore.dev` flow selecting github as an Idp
+// PublicInstanceGithubIDTokenGetter is a `oauth2.sigstore.dev` flow selecting github as an Idp
 // Flow is based on `DefaultIDTokenGetter` fields
-var DefaultGithubIDTokenGetter = &InteractiveIDTokenGetter{
+var PublicInstanceGithubIDTokenGetter = &InteractiveIDTokenGetter{
 	MessagePrinter:     DefaultIDTokenGetter.MessagePrinter,
 	HTMLPage:           DefaultIDTokenGetter.HTMLPage,
 	ExtraAuthURLParams: []oauth2.AuthCodeOption{ConnectorIDOpt(PublicInstanceGithubAuthSubURL)},
 }
 
-// DefaultGoogleIDTokenGetter is a `oauth2.sigstore.dev` flow selecting github as an Idp
+// PublicInstanceGoogleIDTokenGetter is a `oauth2.sigstore.dev` flow selecting github as an Idp
 // Flow is based on `DefaultIDTokenGetter` fields
-var DefaultGoogleIDTokenGetter = &InteractiveIDTokenGetter{
+var PublicInstanceGoogleIDTokenGetter = &InteractiveIDTokenGetter{
 	MessagePrinter:     DefaultIDTokenGetter.MessagePrinter,
 	HTMLPage:           DefaultIDTokenGetter.HTMLPage,
 	ExtraAuthURLParams: []oauth2.AuthCodeOption{ConnectorIDOpt(PublicInstanceGoogleAuthSubURL)},
 }
 
-// DefaultMicrosoftIDTokenGetter is a `oauth2.sigstore.dev` flow selecting microsoft as an Idp
+// PublicInstanceMicrosoftIDTokenGetter is a `oauth2.sigstore.dev` flow selecting microsoft as an Idp
 // Flow is based on `DefaultIDTokenGetter` fields
-var DefaultMicrosoftIDTokenGetter = &InteractiveIDTokenGetter{
+var PublicInstanceMicrosoftIDTokenGetter = &InteractiveIDTokenGetter{
 	MessagePrinter:     DefaultIDTokenGetter.MessagePrinter,
 	HTMLPage:           DefaultIDTokenGetter.HTMLPage,
 	ExtraAuthURLParams: []oauth2.AuthCodeOption{ConnectorIDOpt(PublicInstanceMicrosoftAuthSubURL)},
