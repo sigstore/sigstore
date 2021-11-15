@@ -91,18 +91,18 @@ func (w *wrappedVerifier) VerifySignature(s io.Reader, _ io.Reader, opts ...sign
 		return nil
 	}
 
-	verifier := dsse.NewEnvelopeVerifier(&VerifierAdapter{v: w.v})
+	verifier := dsse.NewEnvelopeVerifier(&VerifierAdapter{SignatureVerifier: w.v})
 	return verifier.Verify(&env)
 }
 
 // VerifierAdapter wraps a `sigstore/signature.Verifier`, making it compatible with `go-securesystemslib/dsse.Verifier`.
 type VerifierAdapter struct {
-	v signature.Verifier
+	SignatureVerifier signature.Verifier
 }
 
 // Verify implements `go-securesystemslib/dsse.Verifier`
 func (a *VerifierAdapter) Verify(_ string, data []byte, sig []byte) error {
-	return a.v.VerifySignature(bytes.NewReader(sig), bytes.NewReader(data))
+	return a.SignatureVerifier.VerifySignature(bytes.NewReader(sig), bytes.NewReader(data))
 }
 
 func WrapSignerVerifier(sv signature.SignerVerifier, payloadType string) signature.SignerVerifier {
