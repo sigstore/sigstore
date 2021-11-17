@@ -45,7 +45,7 @@ test-e2e:
 
 clean:
 	rm -rf sigstore
-	rm test/fuzz/*fuzz.zip
+	rm $(FUZZ_DIR)/*fuzz.zip
 
 fuzz: $(GO-FUZZ-BUILD)
 	cd $(FUZZ_DIR);$(GO-FUZZ-BUILD) ./...
