@@ -21,11 +21,17 @@ linters:
   - goimports
   - gosec
   - gocritic
-  - golint
+  - revive
   - misspell
 output:
   uniq-by-line: false
 issues:
+  include:
+    # revive `package-comments` and `exported` rules.
+    - EXC0012
+    - EXC0013
+    - EXC0014
+    - EXC0015
   exclude-rules:
   - path: _test\.go
     linters:
