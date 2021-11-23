@@ -44,3 +44,41 @@ func FuzzLoadCertificates(data []byte) int {
 	}
 	return 1
 }
+
+func FuzzUnmarshalCertificatesFromPEM(data []byte) int {
+	b, _ := pem.Decode(data)
+	if b == nil {
+		return 0
+	}
+	result, err := cryptoutils.UnmarshalCertificatesFromPEM(data)
+	if err != nil {
+		if result != nil {
+			panic(fmt.Sprintf("result %v should be nil when there is an error %v", result, err))
+		}
+		return 0
+	}
+	for _, cert := range result {
+		if len(cert.Raw) == 0 {
+			panic(fmt.Sprintf("x509 cert raw is empty"))
+		}
+	}
+	return 1
+}
+
+func FuzzUnmarshalPEMToPublicKey(data []byte) int {
+	b, _ := pem.Decode(data)
+	if b == nil {
+		return 0
+	}
+	result, err := cryptoutils.UnmarshalPEMToPublicKey(data)
+	if err != nil {
+		if result != nil {
+			panic(fmt.Sprintf("result %v should be nil when there is an error %v", result, err))
+		}
+		return 0
+	}
+	if result == nil {
+		panic("result %v should not be nil ")
+	}
+	return 1
+}
