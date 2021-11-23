@@ -38,7 +38,7 @@ import (
 	"github.com/sigstore/sigstore/pkg/signature/options"
 )
 
-//nolint:golint
+//nolint:revive
 const (
 	Algorithm_ECDSA_P256_SHA256        = "ecdsa-p256-sha256"
 	Algorithm_ECDSA_P384_SHA384        = "ecdsa-p384-sha384"
