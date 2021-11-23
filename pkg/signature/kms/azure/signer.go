@@ -34,12 +34,12 @@ var azureSupportedHashFuncs = []crypto.Hash{
 	crypto.SHA256,
 }
 
-//nolint:golint
+//nolint:revive
 const (
 	Algorithm_ES256 = "ES256"
 )
 
-var azureSupportedAlgorithms []string = []string{
+var azureSupportedAlgorithms = []string{
 	Algorithm_ES256,
 }
 

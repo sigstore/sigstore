@@ -27,7 +27,7 @@ import (
 )
 
 // Taken from https://www.vaultproject.io/api/secret/transit
-//nolint:golint
+//nolint:revive
 const (
 	Algorithm_ECDSA_P256 = "ecdsa-p256"
 	Algorithm_ECDSA_P384 = "ecdsa-p384"
@@ -38,7 +38,7 @@ const (
 	Algorithm_RSA_4096   = "rsa-4096"
 )
 
-var hvSupportedAlgorithms []string = []string{
+var hvSupportedAlgorithms = []string{
 	Algorithm_ECDSA_P256,
 	Algorithm_ECDSA_P384,
 	Algorithm_ECDSA_P521,

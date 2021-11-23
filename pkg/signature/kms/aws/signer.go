@@ -27,7 +27,7 @@ import (
 	"github.com/sigstore/sigstore/pkg/signature/options"
 )
 
-var awsSupportedAlgorithms []string = []string{
+var awsSupportedAlgorithms = []string{
 	kms.CustomerMasterKeySpecRsa2048,
 	kms.CustomerMasterKeySpecRsa3072,
 	kms.CustomerMasterKeySpecRsa4096,
