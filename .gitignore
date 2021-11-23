@@ -2,4 +2,5 @@
 .idea/*
 sigstore
 *fuzz.zip
+*-fuzz.a
 bin*
