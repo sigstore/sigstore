@@ -15,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package fuzz
+package pem
 
 import (
 	"bytes"
@@ -30,6 +30,7 @@ func FuzzLoadCertificates(data []byte) int {
 	if b == nil {
 		return 0
 	}
+
 	result, err := cryptoutils.LoadCertificatesFromPEM(bytes.NewReader(data))
 	if err != nil {
 		if result != nil {
