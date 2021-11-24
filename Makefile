@@ -50,7 +50,7 @@ fuzz: $(GO-FUZZ-BUILD) ## Run Fuzz tests
 
 clean: ## Clean workspace
 	rm -rf sigstore
-	rm $(FUZZ_DIR)/*fuzz.zip
+	rm -f $(FUZZ_DIR)/*fuzz.zip
 	rm -rf $(TOOLS_BIN_DIR)
 
 ## --------------------------------------
