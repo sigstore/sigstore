@@ -20,6 +20,9 @@ The following KMS systems are available:
 
 For example code, look at the relevant test code for each main code file.
 
+## Fuzzing
+The fuzzing tests are within https://github.com/sigstore/sigstore/tree/main/test/fuzz
+
 ## Security
 
 Should you discover any security issues, please refer to sigstores [security
