@@ -43,10 +43,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2.4.0
-      - name: deps
-        run: sudo apt-get update && sudo apt-get install -yq libpcsclite-dev
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v2.5.2
+        uses: golangci/golangci-lint-action@v2
         timeout-minutes: 5
         with:
           version: latest
