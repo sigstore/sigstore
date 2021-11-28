@@ -43,7 +43,10 @@ test-e2e: ## Run E2E Tests
 	go test -tags e2e ./test/e2e/...
 
 fuzz: $(GO-FUZZ-BUILD) ## Run Fuzz tests
-	cd $(FUZZ_DIR);$(GO-FUZZ-BUILD) ./...
+	cd $(FUZZ_DIR);$(GO-FUZZ-BUILD) -o pem-fuzz.zip ./pem 
+	cd $(FUZZ_DIR);$(GO-FUZZ-BUILD) -o signature-fuzz.zip ./signature
+	cd $(FUZZ_DIR);$(GO-FUZZ-BUILD) -o fuzz-fuzz.zip . 
+
 
 clean: ## Clean workspace
 	rm -rf sigstore
