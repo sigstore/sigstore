@@ -21,9 +21,12 @@ import (
 	"bytes"
 	"crypto"
 	"crypto/ecdsa"
+	"crypto/ed25519"
+	"crypto/rsa"
 	"fmt"
 	"math/big"
 
+	fuzz "github.com/AdaLogics/go-fuzz-headers"
 	"github.com/sigstore/sigstore/pkg/signature"
 )
 
@@ -55,5 +58,90 @@ func FuzzECDSASigner(data []byte) int {
 		panic(fmt.Sprintf("signature verify failed %v", err))
 	}
 
+	return 1
+}
+
+func FuzzComputeDigest(data []byte) int {
+	hashFuncs := []crypto.Hash{
+		crypto.SHA256,
+		crypto.SHA512,
+		crypto.SHA384,
+		crypto.SHA224,
+		crypto.SHA1,
+	}
+	data, _, err := signature.ComputeDigestForSigning(bytes.NewReader(data), crypto.SHA512, hashFuncs)
+	if err != nil {
+		if data != nil {
+			panic(fmt.Sprintf("key %v is not nil when there is an error %v ", data, err))
+		}
+		return 0
+	}
+	return 1
+}
+
+func FuzzComputeVerifying(data []byte) int {
+	hashFuncs := []crypto.Hash{
+		crypto.SHA256,
+		crypto.SHA512,
+		crypto.SHA384,
+		crypto.SHA224,
+		crypto.SHA1,
+	}
+	data, _, err := signature.ComputeDigestForVerifying(bytes.NewReader(data), crypto.SHA512, hashFuncs)
+	if err != nil {
+		if data != nil {
+			panic(fmt.Sprintf("key %v is not nil when there is an error %v ", data, err))
+		}
+		return 0
+	}
+	return 1
+}
+
+func FuzzED25529SignerVerfier(data []byte) int {
+	x := ed25519.PrivateKey(data)
+
+	signer, err := signature.LoadED25519SignerVerifier(x)
+	if err != nil {
+		if signer != nil {
+			panic(fmt.Sprintf("key %v is not nil when there is an error %v ", signer, err))
+		}
+		return 0
+	}
+
+	sig, err := signer.SignMessage(bytes.NewReader(data))
+	if err != nil {
+		if sig != nil {
+			panic(fmt.Sprintf("key %v is not nil when there is an error %v ", sig, err))
+		}
+		return 0
+	}
+
+	signer.VerifySignature(bytes.NewReader(sig), bytes.NewReader(data))
+	return 1
+}
+
+func FuzzRSAPKCS1v15SignerVerfier(data []byte) int {
+	f := fuzz.NewConsumer(data)
+	x := rsa.PrivateKey{}
+	f.GenerateStruct(&x)
+
+	signer, err := signature.LoadRSAPKCS1v15Signer(&x, crypto.SHA512)
+	if err != nil {
+		if signer != nil {
+			panic(fmt.Sprintf("key %v is not nil when there is an error %v ", signer, err))
+		}
+		return 0
+	}
+
+	sig, err := signer.SignMessage(bytes.NewReader(data))
+	if err != nil {
+		if sig != nil {
+			panic(fmt.Sprintf("key %v is not nil when there is an error %v ", sig, err))
+		}
+		return 0
+	}
+	if _, err := signer.Sign(bytes.NewReader(data), data, nil); err != nil {
+		return 0
+	}
 	return 1
 }
