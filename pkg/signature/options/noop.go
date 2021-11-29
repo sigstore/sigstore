@@ -24,8 +24,17 @@ import (
 // NoOpOptionImpl implements the RPCOption, SignOption, VerifyOption interfaces as no-ops.
 type NoOpOptionImpl struct{}
 
-func (NoOpOptionImpl) ApplyContext(ctx *context.Context)                {}
-func (NoOpOptionImpl) ApplyCryptoSignerOpts(opts *crypto.SignerOpts)    {}
-func (NoOpOptionImpl) ApplyDigest(digest *[]byte)                       {}
-func (NoOpOptionImpl) ApplyRand(rand *io.Reader)                        {}
+// ApplyContext is a no-op required to fully implement the requisite interfaces
+func (NoOpOptionImpl) ApplyContext(ctx *context.Context) {}
+
+// ApplyCryptoSignerOpts is a no-op required to fully implement the requisite interfaces
+func (NoOpOptionImpl) ApplyCryptoSignerOpts(opts *crypto.SignerOpts) {}
+
+// ApplyDigest is a no-op required to fully implement the requisite interfaces
+func (NoOpOptionImpl) ApplyDigest(digest *[]byte) {}
+
+// ApplyRand is a no-op required to fully implement the requisite interfaces
+func (NoOpOptionImpl) ApplyRand(rand *io.Reader) {}
+
+// ApplyRemoteVerification is a no-op required to fully implement the requisite interfaces
 func (NoOpOptionImpl) ApplyRemoteVerification(remoteVerification *bool) {}

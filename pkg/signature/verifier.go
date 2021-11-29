@@ -28,6 +28,7 @@ import (
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
 )
 
+// Verifier verifies the digital signature using a specified public key
 type Verifier interface {
 	PublicKeyProvider
 	VerifySignature(signature, message io.Reader, opts ...VerifyOption) error

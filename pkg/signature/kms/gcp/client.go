@@ -105,7 +105,7 @@ func newGCPClient(ctx context.Context, refStr string) (*gcpClient, error) {
 	g.kvCache.SetLoaderFunction(g.kvCacheLoaderFunction)
 	g.kvCache.SkipTTLExtensionOnHit(true)
 	// prime the cache
-	_, err = g.kvCache.Get(CacheKey)
+	_, err = g.kvCache.Get(cacheKey)
 	if err != nil {
 		return nil, errors.Wrap(err, "initializing key version from GCP KMS")
 	}
@@ -113,17 +113,18 @@ func newGCPClient(ctx context.Context, refStr string) (*gcpClient, error) {
 }
 
 var (
-	ErrKMSReference = errors.New("kms specification should be in the format gcpkms://projects/[PROJECT_ID]/locations/[LOCATION]/keyRings/[KEY_RING]/cryptoKeys/[KEY]/versions/[VERSION]")
+	errKMSReference = errors.New("kms specification should be in the format gcpkms://projects/[PROJECT_ID]/locations/[LOCATION]/keyRings/[KEY_RING]/cryptoKeys/[KEY]/versions/[VERSION]")
 
 	re = regexp.MustCompile(`^gcpkms://projects/([^/]+)/locations/([^/]+)/keyRings/([^/]+)/cryptoKeys/([^/]+)(?:/versions/([^/]+))?$`)
 )
 
-// schemes for various KMS services are copied from https://github.com/google/go-cloud/tree/master/secrets
+// ReferenceScheme schemes for various KMS services are copied from https://github.com/google/go-cloud/tree/master/secrets
 const ReferenceScheme = "gcpkms://"
 
+// ValidReference returns a non-nil error if the reference string is invalid
 func ValidReference(ref string) error {
 	if !re.MatchString(ref) {
-		return ErrKMSReference
+		return errKMSReference
 	}
 	return nil
 }
@@ -145,7 +146,7 @@ type cryptoKeyVersion struct {
 }
 
 // use a consistent key for cache lookups
-const CacheKey = "crypto_key_version"
+const cacheKey = "crypto_key_version"
 
 func (g *gcpClient) kvCacheLoaderFunction(key string) (data interface{}, ttl time.Duration, err error) {
 	// if we're given an explicit version, cache this value forever
@@ -265,7 +266,7 @@ func (g *gcpClient) getHashFunc() (crypto.Hash, error) {
 // call to GCP if the existing entry in the cache has expired.
 func (g *gcpClient) getCKV() (*cryptoKeyVersion, error) {
 	// we get once and use consistently to ensure the cache value doesn't change underneath us
-	kmsVersionInt, err := g.kvCache.Get(CacheKey)
+	kmsVersionInt, err := g.kvCache.Get(cacheKey)
 	if err != nil {
 		return nil, err
 	}
@@ -340,7 +341,7 @@ func (g *gcpClient) verify(sig, message io.Reader, opts ...signature.VerifyOptio
 	if err := crv.Verifier.VerifySignature(sig, message, opts...); err != nil {
 		// key could have been rotated, clear cache and try again if we're not pinned to a version
 		if g.version == "" {
-			_ = g.kvCache.Remove(CacheKey)
+			_ = g.kvCache.Remove(cacheKey)
 			crv, err = g.getCKV()
 			if err != nil {
 				return errors.Wrap(err, "transient error getting info from KMS")

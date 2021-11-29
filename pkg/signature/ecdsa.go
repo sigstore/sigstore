@@ -34,6 +34,7 @@ var ecdsaSupportedHashFuncs = []crypto.Hash{
 	crypto.SHA1,
 }
 
+// ECDSASigner is a signature.Signer that uses an Elliptic Curve DSA algorithm
 type ECDSASigner struct {
 	hashFunc crypto.Hash
 	priv     *ecdsa.PrivateKey
@@ -112,6 +113,7 @@ func (e ECDSASigner) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpts)
 	return e.SignMessage(nil, ecdsaOpts...)
 }
 
+// ECDSAVerifier is a signature.Verifier that uses an Elliptic Curve DSA algorithm
 type ECDSAVerifier struct {
 	publicKey *ecdsa.PublicKey
 	hashFunc  crypto.Hash
@@ -171,6 +173,7 @@ func (e ECDSAVerifier) VerifySignature(signature, message io.Reader, opts ...Ver
 	return nil
 }
 
+// ECDSASignerVerifier is a signature.SignerVerifier that uses an Elliptic Curve DSA algorithm
 type ECDSASignerVerifier struct {
 	*ECDSASigner
 	*ECDSAVerifier

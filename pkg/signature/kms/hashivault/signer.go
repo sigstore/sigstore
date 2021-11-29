@@ -16,7 +16,6 @@
 package hashivault
 
 import (
-	"bytes"
 	"context"
 	"crypto"
 	"io"
@@ -56,6 +55,7 @@ var hvSupportedHashFuncs = []crypto.Hash{
 	crypto.Hash(0),
 }
 
+// SignerVerifier creates and verifies digital signatures over a message using Hashicorp Vault KMS service
 type SignerVerifier struct {
 	hashFunc crypto.Hash
 	client   *hashivaultClient
@@ -82,12 +82,6 @@ func LoadSignerVerifier(referenceStr string, hashFunc crypto.Hash) (*SignerVerif
 	}
 
 	return h, nil
-}
-
-// THIS WILL BE REMOVED ONCE ALL SIGSTORE PROJECTS NO LONGER USE IT
-func (h *SignerVerifier) Sign(ctx context.Context, payload []byte) ([]byte, []byte, error) {
-	sig, err := h.SignMessage(bytes.NewReader(payload), options.WithContext(ctx))
-	return sig, nil, err
 }
 
 // SignMessage signs the provided message using Hashivault KMS. If the message is provided,
@@ -192,6 +186,8 @@ func (c cryptoSignerWrapper) Sign(_ io.Reader, digest []byte, opts crypto.Signer
 	return c.sv.SignMessage(nil, hvOptions...)
 }
 
+// CryptoSigner returns a crypto.Signer object that uses the underlying SignerVerifier, along with a crypto.SignerOpts object
+// that allows the KMS to be used in APIs that only accept the standard golang objects
 func (h *SignerVerifier) CryptoSigner(ctx context.Context, errFunc func(error)) (crypto.Signer, crypto.SignerOpts, error) {
 	csw := &cryptoSignerWrapper{
 		ctx:      ctx,
@@ -203,10 +199,12 @@ func (h *SignerVerifier) CryptoSigner(ctx context.Context, errFunc func(error)) 
 	return csw, h.hashFunc, nil
 }
 
+// SupportedAlgorithms returns the list of algorithms supported by the Hashicorp Vault service
 func (h *SignerVerifier) SupportedAlgorithms() []string {
 	return hvSupportedAlgorithms
 }
 
+// DefaultAlgorithm returns the default algorithm for the Hashicorp Vault service
 func (h *SignerVerifier) DefaultAlgorithm() string {
 	return Algorithm_ECDSA_P256
 }

@@ -41,6 +41,7 @@ type InteractiveIDTokenGetter struct {
 	ExtraAuthURLParams []oauth2.AuthCodeOption
 }
 
+// GetIDToken gets an OIDC ID Token from the specified provider using an interactive browser session
 func (i *InteractiveIDTokenGetter) GetIDToken(p *oidc.Provider, cfg oauth2.Config) (*OIDCIDToken, error) {
 	// generate random fields and save them for comparison after OAuth2 dance
 	stateToken := randStr()

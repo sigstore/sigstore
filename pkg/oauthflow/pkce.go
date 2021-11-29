@@ -25,15 +25,18 @@ import (
 )
 
 const (
+	// PKCES256 is the SHA256 option required by the PKCE RFC
 	PKCES256 = "S256"
 )
 
+// PKCE specifies the challenge and value pair required to fulfill RFC7636
 type PKCE struct {
 	Challenge string
 	Method    string
 	Value     string
 }
 
+// NewPKCE creates a new PKCE challenge for the specified provider per its supported methods (obtained through OIDC discovery endpoint)
 func NewPKCE(provider *oidc.Provider) (*PKCE, error) {
 	var providerClaims struct {
 		CodeChallengeMethodsSupported []string `json:"code_challenge_methods_supported"`
@@ -73,6 +76,7 @@ func NewPKCE(provider *oidc.Provider) (*PKCE, error) {
 	}, nil
 }
 
+// AuthURLOpts returns the set of request parameters required during the initial exchange of the OAuth2 flow
 func (p *PKCE) AuthURLOpts() []oauth2.AuthCodeOption {
 	return []oauth2.AuthCodeOption{
 		oauth2.SetAuthURLParam("code_challenge_method", string(p.Method)),
@@ -80,6 +84,7 @@ func (p *PKCE) AuthURLOpts() []oauth2.AuthCodeOption {
 	}
 }
 
+// TokenURLOpts returns the set of request parameters required during the token request exchange flow
 func (p *PKCE) TokenURLOpts() []oauth2.AuthCodeOption {
 	return []oauth2.AuthCodeOption{
 		oauth2.SetAuthURLParam("code_verifier", p.Value),

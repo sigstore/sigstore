@@ -33,6 +33,7 @@ var rsaSupportedHashFuncs = []crypto.Hash{
 	crypto.SHA1,
 }
 
+// RSAPSSSigner is a signature.Signer that uses the RSA PSS algorithm
 type RSAPSSSigner struct {
 	hashFunc crypto.Hash
 	priv     *rsa.PrivateKey
@@ -125,6 +126,7 @@ func (r RSAPSSSigner) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpts
 	return r.SignMessage(nil, rsaOpts...)
 }
 
+// RSAPSSVerifier is a signature.Verifier that uses the RSA PSS algorithm
 type RSAPSSVerifier struct {
 	publicKey *rsa.PublicKey
 	hashFunc  crypto.Hash
@@ -196,6 +198,7 @@ func (r RSAPSSVerifier) VerifySignature(signature, message io.Reader, opts ...Ve
 	return rsa.VerifyPSS(r.publicKey, hf, digest, sigBytes, pssOpts)
 }
 
+// RSAPSSSignerVerifier is a signature.SignerVerifier that uses the RSA PSS algorithm
 type RSAPSSSignerVerifier struct {
 	*RSAPSSSigner
 	*RSAPSSVerifier

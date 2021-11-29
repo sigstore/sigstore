@@ -26,6 +26,7 @@ import (
 )
 
 const (
+	// CertificatePEMType is the string "CERTIFICATE" to be used during PEM encoding and decoding
 	CertificatePEMType PEMType = "CERTIFICATE"
 )
 
@@ -73,7 +74,7 @@ func UnmarshalCertificatesFromPEM(pemBytes []byte) ([]*x509.Certificate, error) 
 	return result, nil
 }
 
-// LoadCertificatesFromPEMFile extracts one or more X509 certificates from the provided
+// LoadCertificatesFromPEM extracts one or more X509 certificates from the provided
 // io.Reader.
 func LoadCertificatesFromPEM(pem io.Reader) ([]*x509.Certificate, error) {
 	fileBytes, err := io.ReadAll(pem)

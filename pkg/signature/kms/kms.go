@@ -29,42 +29,36 @@ import (
 )
 
 func init() {
-	ProvidersMux().AddProvider(aws.ReferenceScheme, func(ctx context.Context, keyResourceID string, hashFunc crypto.Hash) (SignerVerifier, error) {
+	providersMux.AddProvider(aws.ReferenceScheme, func(ctx context.Context, keyResourceID string, hashFunc crypto.Hash) (SignerVerifier, error) {
 		return aws.LoadSignerVerifier(keyResourceID)
 	})
-	ProvidersMux().AddProvider(azure.ReferenceScheme, func(ctx context.Context, keyResourceID string, hashFunc crypto.Hash) (SignerVerifier, error) {
+	providersMux.AddProvider(azure.ReferenceScheme, func(ctx context.Context, keyResourceID string, hashFunc crypto.Hash) (SignerVerifier, error) {
 		return azure.LoadSignerVerifier(ctx, keyResourceID, hashFunc)
 	})
-	ProvidersMux().AddProvider(gcp.ReferenceScheme, func(ctx context.Context, keyResourceID string, _ crypto.Hash) (SignerVerifier, error) {
+	providersMux.AddProvider(gcp.ReferenceScheme, func(ctx context.Context, keyResourceID string, _ crypto.Hash) (SignerVerifier, error) {
 		return gcp.LoadSignerVerifier(ctx, keyResourceID)
 	})
-	ProvidersMux().AddProvider(hashivault.ReferenceScheme, func(ctx context.Context, keyResourceID string, hashFunc crypto.Hash) (SignerVerifier, error) {
+	providersMux.AddProvider(hashivault.ReferenceScheme, func(ctx context.Context, keyResourceID string, hashFunc crypto.Hash) (SignerVerifier, error) {
 		return hashivault.LoadSignerVerifier(keyResourceID, hashFunc)
 	})
 }
 
-type ProviderInit func(context.Context, string, crypto.Hash) (SignerVerifier, error)
+type providerInit func(context.Context, string, crypto.Hash) (SignerVerifier, error)
 
-type Providers struct {
-	providers map[string]ProviderInit
+type providers struct {
+	providers map[string]providerInit
 }
 
-func (p *Providers) AddProvider(keyResourceID string, init ProviderInit) {
+// AddProvider adds the provider implementation into the local cache
+func (p *providers) AddProvider(keyResourceID string, init providerInit) {
 	p.providers[keyResourceID] = init
 }
 
-func (p *Providers) Providers() map[string]ProviderInit {
-	return p.providers
+var providersMux = &providers{
+	providers: map[string]providerInit{},
 }
 
-var providersMux = &Providers{
-	providers: map[string]ProviderInit{},
-}
-
-func ProvidersMux() *Providers {
-	return providersMux
-}
-
+// Get returns a KMS SignerVerifier for the given resource string and hash function
 func Get(ctx context.Context, keyResourceID string, hashFunc crypto.Hash) (SignerVerifier, error) {
 	for ref, providerInit := range providersMux.providers {
 		if strings.HasPrefix(keyResourceID, ref) {
@@ -74,6 +68,7 @@ func Get(ctx context.Context, keyResourceID string, hashFunc crypto.Hash) (Signe
 	return nil, fmt.Errorf("no provider found for that key reference")
 }
 
+// SignerVerifier creates and verifies digital signatures over a message using a KMS service
 type SignerVerifier interface {
 	signature.SignerVerifier
 	CreateKey(ctx context.Context, algorithm string) (crypto.PublicKey, error)

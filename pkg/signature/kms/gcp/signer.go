@@ -16,7 +16,6 @@
 package gcp
 
 import (
-	"bytes"
 	"context"
 	"crypto"
 	"hash/crc32"
@@ -33,6 +32,7 @@ var gcpSupportedHashFuncs = []crypto.Hash{
 	crypto.SHA384,
 }
 
+// SignerVerifier creates and verifies digital signatures over a message using GCP KMS service
 type SignerVerifier struct {
 	defaultCtx context.Context
 	client     *gcpClient
@@ -53,12 +53,6 @@ func LoadSignerVerifier(defaultCtx context.Context, referenceStr string) (*Signe
 	}
 
 	return g, nil
-}
-
-// THIS WILL BE REMOVED ONCE ALL SIGSTORE PROJECTS NO LONGER USE IT
-func (g *SignerVerifier) Sign(ctx context.Context, payload []byte) ([]byte, []byte, error) {
-	sig, err := g.SignMessage(bytes.NewReader(payload), options.WithContext(ctx))
-	return sig, nil, err
 }
 
 // SignMessage signs the provided message using GCP KMS. If the message is provided,
@@ -168,6 +162,8 @@ func (c cryptoSignerWrapper) Sign(_ io.Reader, digest []byte, opts crypto.Signer
 	return c.sv.SignMessage(nil, gcpOptions...)
 }
 
+// CryptoSigner returns a crypto.Signer object that uses the underlying SignerVerifier, along with a crypto.SignerOpts object
+// that allows the KMS to be used in APIs that only accept the standard golang objects
 func (g *SignerVerifier) CryptoSigner(ctx context.Context, errFunc func(error)) (crypto.Signer, crypto.SignerOpts, error) {
 	defaultHf, err := g.client.getHashFunc()
 	if err != nil {
@@ -184,6 +180,7 @@ func (g *SignerVerifier) CryptoSigner(ctx context.Context, errFunc func(error)) 
 	return csw, defaultHf, nil
 }
 
+// SupportedAlgorithms returns the list of algorithms supported by the GCP KMS service
 func (g *SignerVerifier) SupportedAlgorithms() (result []string) {
 	for k := range algorithmMap {
 		result = append(result, k)
@@ -191,6 +188,7 @@ func (g *SignerVerifier) SupportedAlgorithms() (result []string) {
 	return
 }
 
+// DefaultAlgorithm returns the default algorithm for the GCP KMS service
 func (g *SignerVerifier) DefaultAlgorithm() string {
 	return Algorithm_ECDSA_P256_SHA256
 }
