@@ -22,6 +22,7 @@ import (
 	"crypto"
 	"crypto/ecdsa"
 	"crypto/ed25519"
+	"crypto/elliptic"
 	"crypto/rsa"
 	"fmt"
 	"math/big"
@@ -37,6 +38,7 @@ func FuzzECDSASigner(data []byte) int {
 	x.X = z
 	x.Y = z
 	x.D = z
+	x.Curve = elliptic.P384()
 
 	signer, err := signature.LoadECDSASignerVerifier(&x, crypto.SHA512)
 	if err != nil {
@@ -55,7 +57,7 @@ func FuzzECDSASigner(data []byte) int {
 	}
 
 	if err = signer.VerifySignature(bytes.NewReader(sig), bytes.NewReader(data)); err != nil {
-		panic(fmt.Sprintf("signature verify failed %v", err))
+		return 0
 	}
 
 	return 1
@@ -126,6 +128,31 @@ func FuzzRSAPKCS1v15SignerVerfier(data []byte) int {
 	f.GenerateStruct(&x)
 
 	signer, err := signature.LoadRSAPKCS1v15Signer(&x, crypto.SHA512)
+	if err != nil {
+		if signer != nil {
+			panic(fmt.Sprintf("key %v is not nil when there is an error %v ", signer, err))
+		}
+		return 0
+	}
+
+	sig, err := signer.SignMessage(bytes.NewReader(data))
+	if err != nil {
+		if sig != nil {
+			panic(fmt.Sprintf("key %v is not nil when there is an error %v ", sig, err))
+		}
+		return 0
+	}
+	if _, err := signer.Sign(bytes.NewReader(data), data, nil); err != nil {
+		return 0
+	}
+	return 1
+}
+
+func FuzzRSAPSSSignerVerfier(data []byte) int {
+	f := fuzz.NewConsumer(data)
+	x := rsa.PrivateKey{}
+	f.GenerateStruct(&x)
+	signer, err := signature.LoadRSAPSSSignerVerifier(&x, crypto.SHA512, nil)
 	if err != nil {
 		if signer != nil {
 			panic(fmt.Sprintf("key %v is not nil when there is an error %v ", signer, err))
