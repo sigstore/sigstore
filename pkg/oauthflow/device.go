@@ -29,8 +29,10 @@ import (
 )
 
 const (
+	// SigstoreDeviceURL specifies the Device Code endpoint for the public good Sigstore service
 	/* #nosec */
 	SigstoreDeviceURL = "https://oauth2.sigstore.dev/auth/device/code"
+	// SigstoreTokenURL specifies the Token endpoint for the public good Sigstore service
 	/* #nosec */
 	SigstoreTokenURL = "https://oauth2.sigstore.dev/auth/device/token"
 )
@@ -49,6 +51,7 @@ type tokenResp struct {
 	Error   string `json:"error"`
 }
 
+// DeviceFlowTokenGetter fetches an OIDC Identity token using the Device Code Grant flow as specified in RFC8628
 type DeviceFlowTokenGetter struct {
 	MessagePrinter func(string)
 	Sleeper        func(time.Duration)
@@ -57,6 +60,7 @@ type DeviceFlowTokenGetter struct {
 	TokenURL       string
 }
 
+// NewDeviceFlowTokenGetter creates a new DeviceFlowTokenGetter that retrieves an OIDC Identity Token using a Device Code Grant
 func NewDeviceFlowTokenGetter(issuer, codeURL, tokenURL string) *DeviceFlowTokenGetter {
 	return &DeviceFlowTokenGetter{
 		MessagePrinter: func(s string) { fmt.Println(s) },
@@ -134,6 +138,7 @@ func (d *DeviceFlowTokenGetter) deviceFlow(clientID string) (string, error) {
 	}
 }
 
+// GetIDToken gets an OIDC ID Token from the specified provider using the device code grant flow
 func (d *DeviceFlowTokenGetter) GetIDToken(p *oidc.Provider, cfg oauth2.Config) (*OIDCIDToken, error) {
 	idToken, err := d.deviceFlow(cfg.ClientID)
 	if err != nil {

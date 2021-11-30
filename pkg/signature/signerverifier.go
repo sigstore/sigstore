@@ -27,6 +27,7 @@ import (
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
 )
 
+// SignerVerifier creates and verifies digital signatures over a message using a specified key pair
 type SignerVerifier interface {
 	Signer
 	Verifier

@@ -25,6 +25,7 @@ import (
 	"github.com/sigstore/sigstore/pkg/signature/options"
 )
 
+// RSAPKCS1v15Signer is a signature.Signer that uses the RSA PKCS1v15 algorithm
 type RSAPKCS1v15Signer struct {
 	hashFunc crypto.Hash
 	priv     *rsa.PrivateKey
@@ -106,6 +107,7 @@ func (r RSAPKCS1v15Signer) Sign(rand io.Reader, digest []byte, opts crypto.Signe
 	return r.SignMessage(nil, rsaOpts...)
 }
 
+// RSAPKCS1v15Verifier is a signature.Verifier that uses the RSA PKCS1v15 algorithm
 type RSAPKCS1v15Verifier struct {
 	publicKey *rsa.PublicKey
 	hashFunc  crypto.Hash
@@ -168,6 +170,7 @@ func (r RSAPKCS1v15Verifier) VerifySignature(signature, message io.Reader, opts 
 	return rsa.VerifyPKCS1v15(r.publicKey, hf, digest, sigBytes)
 }
 
+// RSAPKCS1v15SignerVerifier is a signature.SignerVerifier that uses the RSA PKCS1v15 algorithm
 type RSAPKCS1v15SignerVerifier struct {
 	*RSAPKCS1v15Signer
 	*RSAPKCS1v15Verifier

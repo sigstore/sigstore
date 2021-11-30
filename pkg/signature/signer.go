@@ -35,6 +35,7 @@ import (
 	_ "golang.org/x/crypto/sha3"
 )
 
+// Signer creates digital signatures over a message using a specified key pair
 type Signer interface {
 	PublicKeyProvider
 	SignMessage(message io.Reader, opts ...SignOption) ([]byte, error)

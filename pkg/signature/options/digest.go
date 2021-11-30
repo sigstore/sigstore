@@ -15,15 +15,18 @@
 
 package options
 
+// RequestDigest implements the functional option pattern for specifying a digest value
 type RequestDigest struct {
 	NoOpOptionImpl
 	digest []byte
 }
 
+// ApplyDigest sets the specified digest value as the functional option
 func (r RequestDigest) ApplyDigest(digest *[]byte) {
 	*digest = r.digest
 }
 
+// WithDigest specifies that the given digest can be used by underlying signature implementations
 func WithDigest(digest []byte) RequestDigest {
 	return RequestDigest{digest: digest}
 }

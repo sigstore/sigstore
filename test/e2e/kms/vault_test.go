@@ -79,11 +79,6 @@ func (suite *VaultSuite) TearDownSuite() {
 	require.Nil(suite.T(), err)
 }
 
-func (suite *VaultSuite) TestProviders() {
-	providers := kms.ProvidersMux().Providers()
-	assert.Len(suite.T(), providers, 4)
-}
-
 func (suite *VaultSuite) TestProvider() {
 	suite.GetProvider("provider")
 }

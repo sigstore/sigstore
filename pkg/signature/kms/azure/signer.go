@@ -16,7 +16,6 @@
 package azure
 
 import (
-	"bytes"
 	"context"
 	"crypto"
 	"io"
@@ -43,6 +42,7 @@ var azureSupportedAlgorithms = []string{
 	Algorithm_ES256,
 }
 
+// SignerVerifier creates and verifies digital signatures over a message using Azure KMS service
 type SignerVerifier struct {
 	defaultCtx context.Context
 	hashFunc   crypto.Hash
@@ -71,12 +71,6 @@ func LoadSignerVerifier(defaultCtx context.Context, referenceStr string, hashFun
 	}
 
 	return a, nil
-}
-
-// THIS WILL BE REMOVED ONCE ALL SIGSTORE PROJECTS NO LONGER USE IT
-func (a *SignerVerifier) Sign(ctx context.Context, payload []byte) ([]byte, []byte, error) {
-	sig, err := a.SignMessage(bytes.NewReader(payload), options.WithContext(ctx))
-	return sig, nil, err
 }
 
 // SignMessage signs the provided message using GCP KMS. If the message is provided,
@@ -218,6 +212,8 @@ func (c cryptoSignerWrapper) Sign(_ io.Reader, digest []byte, opts crypto.Signer
 	return c.sv.SignMessage(nil, gcpOptions...)
 }
 
+// CryptoSigner returns a crypto.Signer object that uses the underlying SignerVerifier, along with a crypto.SignerOpts object
+// that allows the KMS to be used in APIs that only accept the standard golang objects
 func (a *SignerVerifier) CryptoSigner(ctx context.Context, errFunc func(error)) (crypto.Signer, crypto.SignerOpts, error) {
 	csw := &cryptoSignerWrapper{
 		ctx:      ctx,
@@ -229,10 +225,12 @@ func (a *SignerVerifier) CryptoSigner(ctx context.Context, errFunc func(error)) 
 	return csw, a.hashFunc, nil
 }
 
+// SupportedAlgorithms returns the list of algorithms supported by the Azure KMS service
 func (*SignerVerifier) SupportedAlgorithms() []string {
 	return azureSupportedAlgorithms
 }
 
+// DefaultAlgorithm returns the default algorithm for the Azure KMS service
 func (*SignerVerifier) DefaultAlgorithm() string {
 	return Algorithm_ES256
 }

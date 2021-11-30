@@ -51,10 +51,12 @@ var (
 )
 
 const (
+	// ReferenceScheme schemes for various KMS services are copied from https://github.com/google/go-cloud/tree/master/secrets
 	ReferenceScheme = "azurekms://"
-	CacheKey        = "azure_vault_signer"
+	cacheKey        = "azure_vault_signer"
 )
 
+// ValidReference returns a non-nil error if the reference string is invalid
 func ValidReference(ref string) error {
 	if !referenceRegex.MatchString(ref) {
 		return errAzureReference
@@ -182,7 +184,7 @@ func (a *azureVaultClient) getKey(ctx context.Context) (keyvault.KeyBundle, erro
 }
 
 func (a *azureVaultClient) public() (crypto.PublicKey, error) {
-	return a.keyCache.Get(CacheKey)
+	return a.keyCache.Get(cacheKey)
 }
 
 func (a *azureVaultClient) createKey(ctx context.Context) (crypto.PublicKey, error) {

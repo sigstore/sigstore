@@ -16,7 +16,6 @@
 package aws
 
 import (
-	"bytes"
 	"context"
 	"crypto"
 	"io"
@@ -42,6 +41,7 @@ var awsSupportedHashFuncs = []crypto.Hash{
 	crypto.SHA512,
 }
 
+// SignerVerifier is a signature.SignerVerifier that uses the AWS Key Management Service
 type SignerVerifier struct {
 	client *awsClient
 }
@@ -59,12 +59,6 @@ func LoadSignerVerifier(referenceStr string) (*SignerVerifier, error) {
 	}
 
 	return a, nil
-}
-
-// THIS WILL BE REMOVED ONCE ALL SIGSTORE PROJECTS NO LONGER USE IT
-func (a *SignerVerifier) Sign(ctx context.Context, payload []byte) ([]byte, []byte, error) {
-	sig, err := a.SignMessage(bytes.NewReader(payload), options.WithContext(ctx))
-	return sig, nil, err
 }
 
 // SignMessage signs the provided message using AWS KMS. If the message is provided,
@@ -215,6 +209,8 @@ func (c cryptoSignerWrapper) Sign(_ io.Reader, digest []byte, opts crypto.Signer
 	return c.sv.SignMessage(nil, awsOptions...)
 }
 
+// CryptoSigner returns a crypto.Signer object that uses the underlying SignerVerifier, along with a crypto.SignerOpts object
+// that allows the KMS to be used in APIs that only accept the standard golang objects
 func (a *SignerVerifier) CryptoSigner(ctx context.Context, errFunc func(error)) (crypto.Signer, crypto.SignerOpts, error) {
 	defaultHf, err := a.client.getHashFunc(ctx)
 	if err != nil {
@@ -231,10 +227,12 @@ func (a *SignerVerifier) CryptoSigner(ctx context.Context, errFunc func(error)) 
 	return csw, defaultHf, nil
 }
 
+// SupportedAlgorithms returns the list of algorithms supported by the AWS KMS service
 func (*SignerVerifier) SupportedAlgorithms() []string {
 	return awsSupportedAlgorithms
 }
 
+// DefaultAlgorithm returns the default algorithm for the AWS KMS service
 func (*SignerVerifier) DefaultAlgorithm() string {
 	return kms.CustomerMasterKeySpecEccNistP256
 }

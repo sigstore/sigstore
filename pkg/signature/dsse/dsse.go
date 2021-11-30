@@ -27,6 +27,7 @@ import (
 	"github.com/sigstore/sigstore/pkg/signature"
 )
 
+// WrapSigner returns a signature.Signer that uses the DSSE encoding format
 func WrapSigner(s signature.Signer, payloadType string) signature.Signer {
 	return &wrappedSigner{
 		s:           s,
@@ -39,10 +40,12 @@ type wrappedSigner struct {
 	payloadType string
 }
 
+// PublicKey returns the public key associated with the signer
 func (w *wrappedSigner) PublicKey(opts ...signature.PublicKeyOption) (crypto.PublicKey, error) {
 	return w.s.PublicKey(opts...)
 }
 
+// SignMessage signs the provided stream in the reader using the DSSE encoding format
 func (w *wrappedSigner) SignMessage(r io.Reader, opts ...signature.SignOption) ([]byte, error) {
 	p, err := ioutil.ReadAll(r)
 	if err != nil {
@@ -66,6 +69,7 @@ func (w *wrappedSigner) SignMessage(r io.Reader, opts ...signature.SignOption) (
 	return json.Marshal(env)
 }
 
+// WrapVerifier returns a signature.Verifier that uses the DSSE encoding format
 func WrapVerifier(v signature.Verifier) signature.Verifier {
 	return &wrappedVerifier{
 		v: v,
@@ -76,10 +80,12 @@ type wrappedVerifier struct {
 	v signature.Verifier
 }
 
+// PublicKey returns the public key associated with the verifier
 func (w *wrappedVerifier) PublicKey(opts ...signature.PublicKeyOption) (crypto.PublicKey, error) {
 	return w.v.PublicKey(opts...)
 }
 
+// VerifySignature verifies the signature specified in an DSSE envelope
 func (w *wrappedVerifier) VerifySignature(s io.Reader, _ io.Reader, opts ...signature.VerifyOption) error {
 	sig, err := ioutil.ReadAll(s)
 	if err != nil {
@@ -105,6 +111,7 @@ func (a *VerifierAdapter) Verify(_ string, data []byte, sig []byte) error {
 	return a.SignatureVerifier.VerifySignature(bytes.NewReader(sig), bytes.NewReader(data))
 }
 
+// WrapSignerVerifier returns a signature.SignerVerifier that uses the DSSE encoding format
 func WrapSignerVerifier(sv signature.SignerVerifier, payloadType string) signature.SignerVerifier {
 	signer := &wrappedSigner{
 		payloadType: payloadType,
@@ -125,14 +132,17 @@ type wrappedSignerVerifier struct {
 	verifier *wrappedVerifier
 }
 
+// PublicKey returns the public key associated with the verifier
 func (w *wrappedSignerVerifier) PublicKey(opts ...signature.PublicKeyOption) (crypto.PublicKey, error) {
 	return w.signer.PublicKey(opts...)
 }
 
+// VerifySignature verifies the signature specified in an DSSE envelope
 func (w *wrappedSignerVerifier) VerifySignature(s io.Reader, r io.Reader, opts ...signature.VerifyOption) error {
 	return w.verifier.VerifySignature(s, r, opts...)
 }
 
+// SignMessage signs the provided stream in the reader using the DSSE encoding format
 func (w *wrappedSignerVerifier) SignMessage(r io.Reader, opts ...signature.SignOption) ([]byte, error) {
 	return w.signer.SignMessage(r, opts...)
 }

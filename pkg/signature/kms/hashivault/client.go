@@ -51,11 +51,13 @@ const (
 	vaultV1DataPrefix = "vault:v1:"
 
 	// use a consistent key for cache lookups
-	CacheKey = "signer"
+	cacheKey = "signer"
 
+	// ReferenceScheme schemes for various KMS services are copied from https://github.com/google/go-cloud/tree/master/secrets
 	ReferenceScheme = "hashivault://"
 )
 
+// ValidReference returns a non-nil error if the reference string is invalid
 func ValidReference(ref string) error {
 	if !referenceRegex.MatchString(ref) {
 		return errReference
@@ -173,7 +175,7 @@ func (h *hashivaultClient) fetchPublicKey(_ context.Context) (crypto.PublicKey, 
 }
 
 func (h *hashivaultClient) public() (crypto.PublicKey, error) {
-	return h.keyCache.Get(CacheKey)
+	return h.keyCache.Get(cacheKey)
 }
 
 func (h hashivaultClient) sign(digest []byte, alg crypto.Hash) ([]byte, error) {

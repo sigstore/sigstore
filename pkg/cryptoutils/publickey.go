@@ -23,6 +23,7 @@ import (
 )
 
 const (
+	// PublicKeyPEMType is the string "PUBLIC KEY" to be used during PEM encoding and decoding
 	PublicKeyPEMType PEMType = "PUBLIC KEY"
 )
 

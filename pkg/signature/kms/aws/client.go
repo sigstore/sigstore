@@ -38,7 +38,8 @@ import (
 )
 
 const (
-	CacheKey        = "signer"
+	cacheKey = "signer"
+	// ReferenceScheme schemes for various KMS services are copied from https://github.com/google/go-cloud/tree/master/secrets
 	ReferenceScheme = "awskms://"
 )
 
@@ -51,7 +52,7 @@ type awsClient struct {
 }
 
 var (
-	ErrKMSReference = errors.New("kms specification should be in the format awskms://[ENDPOINT]/[ID/ALIAS/ARN] (endpoint optional)")
+	errKMSReference = errors.New("kms specification should be in the format awskms://[ENDPOINT]/[ID/ALIAS/ARN] (endpoint optional)")
 
 	// Key ID/ALIAS/ARN conforms to KMS standard documented here: https://docs.aws.amazon.com/kms/latest/developerguide/concepts.html#key-id
 	// Key format examples:
@@ -73,13 +74,14 @@ var (
 	allREs      = []*regexp.Regexp{keyIDRE, keyARNRE, aliasNameRE, aliasARNRE}
 )
 
+// ValidReference returns a non-nil error if the reference string is invalid
 func ValidReference(ref string) error {
 	for _, re := range allREs {
 		if re.MatchString(ref) {
 			return nil
 		}
 	}
-	return ErrKMSReference
+	return errKMSReference
 }
 
 func parseReference(resourceID string) (endpoint, keyID, alias string, err error) {
@@ -197,7 +199,7 @@ func (a *awsClient) getHashFunc(ctx context.Context) (crypto.Hash, error) {
 	return cmk.HashFunc(), nil
 }
 func (a *awsClient) getCMK(ctx context.Context) (*cmk, error) {
-	c, err := a.keyCache.GetByLoader(CacheKey, a.keyCacheLoaderFunctionWithContext(ctx))
+	c, err := a.keyCache.GetByLoader(cacheKey, a.keyCacheLoaderFunctionWithContext(ctx))
 	if err != nil {
 		return nil, err
 	}
@@ -268,7 +270,7 @@ func (a *awsClient) verifyRemotely(ctx context.Context, sig []byte, digest []byt
 	return errors.Wrap(err, "unable to verify signature")
 }
 func (a *awsClient) public(ctx context.Context) (crypto.PublicKey, error) {
-	key, err := a.keyCache.GetByLoader(CacheKey, a.keyCacheLoaderFunctionWithContext(ctx))
+	key, err := a.keyCache.GetByLoader(cacheKey, a.keyCacheLoaderFunctionWithContext(ctx))
 	if err != nil {
 		return nil, err
 	}

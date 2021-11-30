@@ -29,6 +29,7 @@ var ed25519SupportedHashFuncs = []crypto.Hash{
 	crypto.Hash(0),
 }
 
+// ED25519Signer is a signature.Signer that uses the Ed25519 public-key signature system
 type ED25519Signer struct {
 	priv ed25519.PrivateKey
 }
@@ -89,6 +90,7 @@ func (e ED25519Signer) Sign(_ io.Reader, message []byte, _ crypto.SignerOpts) ([
 	return e.SignMessage(bytes.NewReader(message))
 }
 
+// ED25519Verifier is a signature.Verifier that uses the Ed25519 public-key signature system
 type ED25519Verifier struct {
 	publicKey ed25519.PublicKey
 }
@@ -137,6 +139,7 @@ func (e *ED25519Verifier) VerifySignature(signature, message io.Reader, _ ...Ver
 	return nil
 }
 
+// ED25519SignerVerifier is a signature.SignerVerifier that uses the Ed25519 public-key signature system
 type ED25519SignerVerifier struct {
 	*ED25519Signer
 	*ED25519Verifier
@@ -163,7 +166,7 @@ func LoadED25519SignerVerifier(priv ed25519.PrivateKey) (*ED25519SignerVerifier,
 
 // NewDefaultED25519SignerVerifier creates a combined signer and verifier using ED25519.
 // This creates a new ED25519 key using crypto/rand as an entropy source.
-func NewDefaultED25519SignerVerifierE() (*ED25519SignerVerifier, ed25519.PrivateKey, error) {
+func NewDefaultED25519SignerVerifier() (*ED25519SignerVerifier, ed25519.PrivateKey, error) {
 	return NewED25519SignerVerifier(rand.Reader)
 }
 
