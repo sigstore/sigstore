@@ -1,4 +1,5 @@
 # sigstore framework
+[![Fuzzing Status](https://oss-fuzz-build-logs.storage.googleapis.com/badges/sigstore.svg)](https://bugs.chromium.org/p/oss-fuzz/issues/list?sort=-opened&can=1&q=proj:sigstore)
 
 sigstore/sigstore is a generic library / framework that is utilized by various other
 clients and projects including fulcio (webPKI), cosign (container and OCI signing tool)
