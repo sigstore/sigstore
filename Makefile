@@ -46,6 +46,11 @@ fuzz: $(GO-FUZZ-BUILD) ## Run Fuzz tests
 	cd $(FUZZ_DIR);$(GO-FUZZ-BUILD) -o pem-fuzz.zip ./pem 
 	cd $(FUZZ_DIR);$(GO-FUZZ-BUILD) -o signature-fuzz.zip ./signature
 	cd $(FUZZ_DIR);$(GO-FUZZ-BUILD) -o fuzz-fuzz.zip . 
+	#The fuzzing is going to be next to pkg and not in the fuzz directory because the dependecies
+	#required to build is almost copy of the dsse. This is to avoid duplication.
+	$(GO-FUZZ-BUILD) -o $(FUZZ_DIR)/dsse-fuzz.zip ./pkg/signature/dsse/fuzz/...
+	#hack for go-fuzz-build bringing in additional dependecies 
+	go mod tidy
 
 
 clean: ## Clean workspace
