@@ -51,7 +51,7 @@ func (w *wrappedSigner) SignMessage(r io.Reader, opts ...signature.SignOption) (
 	if err != nil {
 		return nil, err
 	}
-	pae := dsse.PAE(w.payloadType, string(p))
+	pae := dsse.PAE(w.payloadType, p)
 	sig, err := w.s.SignMessage(bytes.NewReader(pae), opts...)
 	if err != nil {
 		return nil, err
