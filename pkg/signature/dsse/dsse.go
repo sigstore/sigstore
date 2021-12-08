@@ -97,18 +97,43 @@ func (w *wrappedVerifier) VerifySignature(s io.Reader, _ io.Reader, opts ...sign
 		return nil
 	}
 
-	verifier := dsse.NewEnvelopeVerifier(&VerifierAdapter{SignatureVerifier: w.v})
-	return verifier.Verify(&env)
+	pub, err := w.PublicKey()
+	if err != nil {
+		return err
+	}
+	verifier, err := dsse.NewEnvelopeVerifier(&VerifierAdapter{
+		SignatureVerifier: w.v,
+
+		Pub:   pub,
+		KeyId: "", // We do not want to limit verification to a specific key.
+	})
+	if err != nil {
+		return err
+	}
+	_, err = verifier.Verify(&env)
+	return err
 }
 
 // VerifierAdapter wraps a `sigstore/signature.Verifier`, making it compatible with `go-securesystemslib/dsse.Verifier`.
 type VerifierAdapter struct {
 	SignatureVerifier signature.Verifier
+	Pub               crypto.PublicKey
+	KeyId             string
 }
 
 // Verify implements `go-securesystemslib/dsse.Verifier`
-func (a *VerifierAdapter) Verify(_ string, data []byte, sig []byte) error {
+func (a *VerifierAdapter) Verify(data []byte, sig []byte) error {
 	return a.SignatureVerifier.VerifySignature(bytes.NewReader(sig), bytes.NewReader(data))
+}
+
+// Public implements `go-securesystemslib/dsse.Verifier`
+func (a *VerifierAdapter) Public() crypto.PublicKey {
+	return a.Pub
+}
+
+// KeyID implements `go-securesystemslib/dsse.Verifier`
+func (a *VerifierAdapter) KeyID() (string, error) {
+	return a.KeyId, nil
 }
 
 // WrapSignerVerifier returns a signature.SignerVerifier that uses the DSSE encoding format
