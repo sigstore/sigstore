@@ -94,7 +94,7 @@ func (w *wrappedVerifier) VerifySignature(s io.Reader, _ io.Reader, opts ...sign
 
 	env := dsse.Envelope{}
 	if err := json.Unmarshal(sig, &env); err != nil {
-		return nil
+		return err
 	}
 
 	pub, err := w.PublicKey()

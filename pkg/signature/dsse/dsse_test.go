@@ -72,3 +72,22 @@ func TestRoundTrip(t *testing.T) {
 		t.Errorf("Expected payload %s, got %s", data, env.Payload)
 	}
 }
+
+func TestInvalidSignature(t *testing.T) {
+	p, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	v, err := signature.LoadECDSAVerifier(&p.PublicKey, crypto.SHA256)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	wv := WrapVerifier(v)
+	sig := []byte("not valid JSON")
+
+	if err := wv.VerifySignature(bytes.NewReader(sig), nil); err == nil {
+		t.Fatalf("Did not fail verification on bogus signature")
+	}
+}
