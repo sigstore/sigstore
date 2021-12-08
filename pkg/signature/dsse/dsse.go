@@ -104,8 +104,8 @@ func (w *wrappedVerifier) VerifySignature(s io.Reader, _ io.Reader, opts ...sign
 	verifier, err := dsse.NewEnvelopeVerifier(&VerifierAdapter{
 		SignatureVerifier: w.v,
 
-		Pub:   pub,
-		KeyId: "", // We do not want to limit verification to a specific key.
+		Pub:      pub,
+		PubKeyID: "", // We do not want to limit verification to a specific key.
 	})
 	if err != nil {
 		return err
@@ -118,7 +118,7 @@ func (w *wrappedVerifier) VerifySignature(s io.Reader, _ io.Reader, opts ...sign
 type VerifierAdapter struct {
 	SignatureVerifier signature.Verifier
 	Pub               crypto.PublicKey
-	KeyId             string
+	PubKeyID          string
 }
 
 // Verify implements `go-securesystemslib/dsse.Verifier`
@@ -133,7 +133,7 @@ func (a *VerifierAdapter) Public() crypto.PublicKey {
 
 // KeyID implements `go-securesystemslib/dsse.Verifier`
 func (a *VerifierAdapter) KeyID() (string, error) {
-	return a.KeyId, nil
+	return a.PubKeyID, nil
 }
 
 // WrapSignerVerifier returns a signature.SignerVerifier that uses the DSSE encoding format
