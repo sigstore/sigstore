@@ -1,5 +1,6 @@
 //go:build gofuzz
 // +build gofuzz
+
 //
 // Copyright 2021 The Sigstore Authors.
 //
@@ -149,6 +150,9 @@ func FuzzRSAPKCS1v15SignerVerfier(data []byte) int {
 }
 
 func FuzzRSAPSSSignerVerfier(data []byte) int {
+	if len(data) == 0 {
+		return 0
+	}
 	f := fuzz.NewConsumer(data)
 	x := rsa.PrivateKey{}
 	f.GenerateStruct(&x)
