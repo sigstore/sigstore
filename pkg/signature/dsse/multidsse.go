@@ -150,6 +150,7 @@ func (wL *wrappedMultiVerifier) VerifySignature(s io.Reader, _ io.Reader, opts .
 	return err
 }
 
+// WrapMultiSignerVerifier returns a signature.SignerVerifier that uses the DSSE encoding format
 func WrapMultiSignerVerifier(payloadType string, threshold int, svL ...signature.SignerVerifier) signature.SignerVerifier {
 
 	var signerL []signature.Signer
