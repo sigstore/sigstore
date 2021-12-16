@@ -23,7 +23,7 @@ import (
 	"github.com/sigstore/sigstore/pkg/signature"
 )
 
-// VerifierAdapter wraps a `sigstore/signature.Verifier`, making it compatible with `go-securesystemslib/dsse.Verifier`.
+// SignerAdapter wraps a `sigstore/signature.Signer`, making it compatible with `go-securesystemslib/dsse.Signer`.
 type SignerAdapter struct {
 	SignatureSigner signature.Signer
 	Pub             crypto.PublicKey
