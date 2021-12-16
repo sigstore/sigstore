@@ -6,7 +6,7 @@ require (
 	bou.ke/monkey v1.0.2
 	cloud.google.com/go v0.99.0 // indirect
 	cloud.google.com/go/kms v1.1.0
-	github.com/Azure/azure-sdk-for-go v60.1.0+incompatible
+	github.com/Azure/azure-sdk-for-go v60.2.0+incompatible
 	github.com/Azure/go-autorest/autorest v0.11.22 // indirect
 	github.com/Azure/go-autorest/autorest/adal v0.9.17 // indirect
 	github.com/Azure/go-autorest/autorest/azure/auth v0.5.9 // indirect
