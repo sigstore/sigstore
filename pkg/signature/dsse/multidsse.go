@@ -28,7 +28,6 @@ import (
 
 type wrappedMultiSigner struct {
 	sLAdapters  []dsse.SignVerifier
-	threshold   int
 	payloadType string
 }
 
