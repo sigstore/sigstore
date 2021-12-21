@@ -13,7 +13,7 @@ require (
 	github.com/Azure/go-autorest/autorest/azure/cli v0.4.4 // indirect
 	github.com/Azure/go-autorest/autorest/to v0.4.0
 	github.com/Azure/go-autorest/autorest/validation v0.3.1 // indirect
-	github.com/ReneKroon/ttlcache/v2 v2.10.0
+	github.com/ReneKroon/ttlcache/v2 v2.11.0
 	github.com/armon/go-metrics v0.3.10 // indirect
 	github.com/aws/aws-sdk-go v1.42.23
 	github.com/cenkalti/backoff/v3 v3.2.2 // indirect
