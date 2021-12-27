@@ -25,6 +25,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/secure-systems-lab/go-securesystemslib/dsse"
 	"github.com/sigstore/sigstore/pkg/signature"
@@ -33,6 +34,10 @@ import (
 
 // Fuzz is the fuzz testing.
 func Fuzz(b []byte) int {
+	// avoids the invalid UTF-8 error
+	if !utf8.Valid(b) {
+		return 0
+	}
 	p, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {
 		panic(err)
