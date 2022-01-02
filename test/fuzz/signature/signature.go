@@ -27,6 +27,7 @@ import (
 	"crypto/rsa"
 	"fmt"
 	"math/big"
+	"strings"
 
 	fuzz "github.com/AdaLogics/go-fuzz-headers"
 	"github.com/sigstore/sigstore/pkg/signature"
@@ -153,6 +154,13 @@ func FuzzRSAPSSSignerVerfier(data []byte) int {
 	if len(data) == 0 {
 		return 0
 	}
+	s := string(data)
+
+	// Skip when the data is not a valid RSA PSS signature.
+	if strings.TrimSpace(s) == "" {
+		return 0
+	}
+
 	f := fuzz.NewConsumer(data)
 	x := rsa.PrivateKey{}
 	f.GenerateStruct(&x)
