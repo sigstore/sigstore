@@ -29,26 +29,26 @@ jobs:
     name: e2e integration tests
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2.4.0
+    - uses: actions/checkout@ec3a7ce113134d7a93b817d10a8272cb61118579 #v2.4.0
 
     - name: Set up Go
-      uses: actions/setup-go@v2
+      uses: actions/setup-go@424fc82d43fa5a37540bae62709ddcc23d9520d4 #v2.1.5
       with:
         go-version: ${{ env.GO_VERSION }}
 
     - name: Cache Modules
-      uses: actions/cache@v2
+      uses: actions/cache@937d24475381cd9c75ae6db12cb4e79714b926ed #v2.1.7
       with:
         path: ~/go/pkg/mod
         key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
         restore-keys: |
           ${{ runner.os }}-go-
 
-    - name: Pull chrome
-      run: wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-
-    - name: Install chrome
-      run: sudo apt install ./google-chrome-stable_current_amd64.deb
+    - name: Pull chrome (from ubuntu repository)
+      run: |
+        wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
+        sudo sh -c 'echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google-chrome.list'
+        sudo apt update && sudo apt install -y google-chrome-stable
 
     - name: Docker Build
       working-directory: ./test/e2e
