@@ -195,6 +195,47 @@ func (suite *VaultSuite) TestVerify() {
 	assert.Nil(suite.T(), err)
 }
 
+func (suite *VaultSuite) TestVerifyBadData() {
+	provider := suite.GetProvider("testverify")
+
+	key, err := provider.CreateKey(context.Background(), hashivault.Algorithm_ECDSA_P256)
+	assert.Nil(suite.T(), err)
+	assert.NotNil(suite.T(), key)
+
+	data := []byte("mydata")
+	sig, err := provider.SignMessage(bytes.NewReader(data))
+	assert.Nil(suite.T(), err)
+	assert.NotNil(suite.T(), sig)
+
+	dataInvalid := []byte("mydata-invalid")
+	err = provider.VerifySignature(bytes.NewReader(sig), bytes.NewReader(dataInvalid))
+	assert.Contains(suite.T(), err.Error(), "Failed vault verification")
+}
+
+func (suite *VaultSuite) TestBadSignature() {
+	provider1 := suite.GetProvider("testverify1")
+	provider2 := suite.GetProvider("testverify2")
+
+	key1, err := provider1.CreateKey(context.Background(), hashivault.Algorithm_ECDSA_P256)
+	assert.Nil(suite.T(), err)
+	assert.NotNil(suite.T(), key1)
+
+	key2, err := provider2.CreateKey(context.Background(), hashivault.Algorithm_ECDSA_P256)
+	assert.Nil(suite.T(), err)
+	assert.NotNil(suite.T(), key2)
+
+	data := []byte("mydata")
+	sig1, err := provider1.SignMessage(bytes.NewReader(data))
+	assert.Nil(suite.T(), err)
+	assert.NotNil(suite.T(), sig1)
+
+	err = provider1.VerifySignature(bytes.NewReader(sig1), bytes.NewReader(data))
+	assert.Nil(suite.T(), err)
+
+	err = provider2.VerifySignature(bytes.NewReader(sig1), bytes.NewReader(data))
+	assert.Contains(suite.T(), err.Error(), "Failed vault verification")
+}
+
 func (suite *VaultSuite) TestNoProvider() {
 	provider, err := kms.Get(context.Background(), "hashi://nonsense", crypto.Hash(0))
 	require.Error(suite.T(), err)
