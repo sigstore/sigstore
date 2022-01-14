@@ -1,5 +1,5 @@
 //
-// Copyright 2021 The Sigstore Authors.
+// Copyright 2022 The Sigstore Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -33,6 +33,7 @@ import (
 
 	kvauth "github.com/Azure/azure-sdk-for-go/services/keyvault/auth"
 	"github.com/Azure/azure-sdk-for-go/services/keyvault/v7.1/keyvault"
+	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/to"
 )
 
@@ -82,21 +83,6 @@ func newAzureKMS(ctx context.Context, keyResourceID string) (*azureVaultClient, 
 		return nil, err
 	}
 
-	azureTenantID := os.Getenv("AZURE_TENANT_ID")
-	if azureTenantID == "" {
-		return nil, errors.New("AZURE_TENANT_ID is not set")
-	}
-
-	azureClientID := os.Getenv("AZURE_CLIENT_ID")
-	if azureClientID == "" {
-		return nil, errors.New("AZURE_CLIENT_ID is not set")
-	}
-
-	azureClientSecret := os.Getenv("AZURE_CLIENT_SECRET")
-	if azureClientSecret == "" {
-		return nil, errors.New("AZURE_CLIENT_SECRET is not set")
-	}
-
 	client, err := getKeysClient()
 	if err != nil {
 		return nil, errors.Wrap(err, "new azure kms client")
@@ -116,10 +102,74 @@ func newAzureKMS(ctx context.Context, keyResourceID string) (*azureVaultClient, 
 	return azClient, nil
 }
 
+type authenticationMethod string
+
+const (
+	unknownAuthenticationMethod     = "unknown"
+	environmentAuthenticationMethod = "environment"
+	cliAuthenticationMethod         = "cli"
+)
+
+// getAuthMethod returns the an authenticationMethod to use to get an Azure Authorizer.
+// If no environment variables are set, unknownAuthMethod will be used.
+// If the environment variable 'AZURE_AUTH_METHOD' is set to either environment or cli, use it.
+// If the environment variables 'AZURE_TENANT_ID', 'AZURE_CLIENT_ID' and 'AZURE_CLIENT_SECRET' are set, use environment.
+func getAuthenticationMethod() authenticationMethod {
+	tenantID := os.Getenv("AZURE_TENANT_ID")
+	clientID := os.Getenv("AZURE_CLIENT_ID")
+	clientSecret := os.Getenv("AZURE_CLIENT_SECRET")
+	authMethod := os.Getenv("AZURE_AUTH_METHOD")
+
+	if authMethod != "" {
+		switch strings.ToLower(authMethod) {
+		case "environment":
+			return environmentAuthenticationMethod
+		case "cli":
+			return cliAuthenticationMethod
+		}
+	}
+
+	if tenantID != "" && clientID != "" && clientSecret != "" {
+		return environmentAuthenticationMethod
+	}
+
+	return unknownAuthenticationMethod
+}
+
+// getAuthorizer takes an authenticationMethod and returns an Authorizer or an error.
+// If the method is unknown, Environment will be tested and if it returns an error CLI will be tested.
+// If the method is specified, the specified method will be used and no other will be tested.
+// This means the following default order of methods will be used if nothing else is defined:
+// 1. Client credentials (FromEnvironment)
+// 2. Client certificate (FromEnvironment)
+// 3. Username password (FromEnvironment)
+// 4. MSI (FromEnvironment)
+// 5. CLI (FromCLI)
+func getAuthorizer(method authenticationMethod) (autorest.Authorizer, error) {
+	switch method {
+	case environmentAuthenticationMethod:
+		return kvauth.NewAuthorizerFromEnvironment()
+	case cliAuthenticationMethod:
+		return kvauth.NewAuthorizerFromCLI()
+	case unknownAuthenticationMethod:
+		break
+	default:
+		return nil, fmt.Errorf("you should never reach this")
+	}
+
+	authorizer, err := kvauth.NewAuthorizerFromEnvironment()
+	if err == nil {
+		return authorizer, nil
+	}
+
+	return kvauth.NewAuthorizerFromCLI()
+}
+
 func getKeysClient() (keyvault.BaseClient, error) {
 	keyClient := keyvault.New()
 
-	authorizer, err := kvauth.NewAuthorizerFromEnvironment()
+	authMethod := getAuthenticationMethod()
+	authorizer, err := getAuthorizer(authMethod)
 	if err != nil {
 		return keyvault.BaseClient{}, err
 	}
