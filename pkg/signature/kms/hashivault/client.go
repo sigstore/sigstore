@@ -209,6 +209,7 @@ func (h hashivaultClient) verify(sig, digest []byte, alg crypto.Hash) error {
 
 	result, err := client.Write(fmt.Sprintf("/%s/verify/%s/%s", h.transitSecretEnginePath, h.keyPath, hashString(alg)), map[string]interface{}{
 		"input":     base64.StdEncoding.EncodeToString(digest),
+		"prehashed": alg != crypto.Hash(0),
 		"signature": fmt.Sprintf("%s%s", vaultDataPrefix, encodedSig),
 	})
 
@@ -221,9 +222,15 @@ func (h hashivaultClient) verify(sig, digest []byte, alg crypto.Hash) error {
 		return errors.New("corrupted response")
 	}
 
-	if isValid, ok := valid.(bool); ok && isValid {
+	isValid, ok := valid.(bool)
+	if !ok {
+		return fmt.Errorf("data type assertion for field `valid` failed: %T %#v", valid.(bool), valid.(bool))
+	}
+
+	if !isValid {
 		return errors.New("Failed vault verification")
 	}
+
 	return nil
 }
 
