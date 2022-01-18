@@ -19,6 +19,7 @@ import (
 	"crypto"
 	"crypto/rsa"
 	"encoding/base64"
+	"strings"
 	"testing"
 
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
@@ -108,4 +109,15 @@ func TestRSAPSSSignerVerifier(t *testing.T) {
 		t.Errorf("unexpected error creating verifier with nil opts: %v", err)
 	}
 	testingVerifier(t, v, "rsa", crypto.SHA256, sig, message)
+}
+
+func TestRSAPSSSignerVerifierUnsupportedHash(t *testing.T) {
+	publicKey, err := cryptoutils.UnmarshalPEMToPublicKey([]byte(pubKey))
+	if err != nil {
+		t.Errorf("unexpected error unmarshalling public key: %v", err)
+	}
+	_, err = LoadRSAPSSVerifier(publicKey.(*rsa.PublicKey), crypto.SHA1, nil)
+	if !strings.Contains(err.Error(), "invalid hash function specified") {
+		t.Errorf("expected error 'invalid hash function specified', got: %v", err.Error())
+	}
 }
