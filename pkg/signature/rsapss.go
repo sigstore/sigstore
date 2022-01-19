@@ -27,10 +27,8 @@ import (
 
 var rsaSupportedHashFuncs = []crypto.Hash{
 	crypto.SHA256,
-	crypto.SHA512,
-	crypto.SHA224,
 	crypto.SHA384,
-	crypto.SHA1,
+	crypto.SHA512,
 }
 
 // RSAPSSSigner is a signature.Signer that uses the RSA PSS algorithm
@@ -45,7 +43,7 @@ type RSAPSSSigner struct {
 // If opts are specified, then they will be stored and used as a default if not overridden
 // by the value passed to Sign().
 //
-// hf must not be crypto.Hash(0).
+// hf must be either SHA256, SHA388, or SHA512. opts.Hash is ignored.
 func LoadRSAPSSSigner(priv *rsa.PrivateKey, hf crypto.Hash, opts *rsa.PSSOptions) (*RSAPSSSigner, error) {
 	if priv == nil {
 		return nil, errors.New("invalid RSA private key specified")
@@ -135,7 +133,7 @@ type RSAPSSVerifier struct {
 
 // LoadRSAPSSVerifier verifies signatures using the specified public key and hash algorithm.
 //
-// hf must not be crypto.Hash(0). opts.Hash is ignored.
+// hf must be either SHA256, SHA388, or SHA512. opts.Hash is ignored.
 func LoadRSAPSSVerifier(pub *rsa.PublicKey, hashFunc crypto.Hash, opts *rsa.PSSOptions) (*RSAPSSVerifier, error) {
 	if pub == nil {
 		return nil, errors.New("invalid RSA public key specified")

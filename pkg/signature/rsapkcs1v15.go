@@ -33,13 +33,13 @@ type RSAPKCS1v15Signer struct {
 
 // LoadRSAPKCS1v15Signer calculates signatures using the specified private key and hash algorithm.
 //
-// hf must not be crypto.Hash(0).
+// hf must be either SHA256, SHA388, or SHA512.
 func LoadRSAPKCS1v15Signer(priv *rsa.PrivateKey, hf crypto.Hash) (*RSAPKCS1v15Signer, error) {
 	if priv == nil {
 		return nil, errors.New("invalid RSA private key specified")
 	}
 
-	if hf == crypto.Hash(0) {
+	if !isSupportedAlg(hf, rsaSupportedHashFuncs) {
 		return nil, errors.New("invalid hash function specified")
 	}
 
@@ -116,13 +116,13 @@ type RSAPKCS1v15Verifier struct {
 // LoadRSAPKCS1v15Verifier returns a Verifier that verifies signatures using the specified
 // RSA public key and hash algorithm.
 //
-// hf must not be crypto.Hash(0).
+// hf must be either SHA256, SHA388, or SHA512.
 func LoadRSAPKCS1v15Verifier(pub *rsa.PublicKey, hashFunc crypto.Hash) (*RSAPKCS1v15Verifier, error) {
 	if pub == nil {
 		return nil, errors.New("invalid RSA public key specified")
 	}
 
-	if hashFunc == crypto.Hash(0) {
+	if !isSupportedAlg(hashFunc, rsaSupportedHashFuncs) {
 		return nil, errors.New("invalid hash function specified")
 	}
 
