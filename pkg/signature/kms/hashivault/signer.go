@@ -65,11 +65,23 @@ type SignerVerifier struct {
 //
 // It also can verify signatures (via a remote vall to the Vault instance). hashFunc should be
 // set to crypto.Hash(0) if the key referred to by referenceStr is an ED25519 signing key.
-func LoadSignerVerifier(referenceStr string, hashFunc crypto.Hash) (*SignerVerifier, error) {
+func LoadSignerVerifier(referenceStr string, hashFunc crypto.Hash, opts ...signature.RPCOption) (*SignerVerifier, error) {
 	h := &SignerVerifier{}
+	ctx := context.Background()
+	rpcAuth := options.RPCAuth{}
+	for _, opt := range opts {
+		opt.ApplyRPCAuthOpts(&rpcAuth)
+		opt.ApplyContext(&ctx)
+	}
 
 	var err error
-	h.client, err = newHashivaultClient(referenceStr)
+	if rpcAuth.OIDC.Token != "" {
+		rpcAuth.Token, err = oidcLogin(ctx, rpcAuth.Address, rpcAuth.OIDC.Path, rpcAuth.OIDC.Role, rpcAuth.OIDC.Token)
+		if err != nil {
+			return nil, err
+		}
+	}
+	h.client, err = newHashivaultClient(rpcAuth.Address, rpcAuth.Token, rpcAuth.Path, referenceStr)
 	if err != nil {
 		return nil, err
 	}

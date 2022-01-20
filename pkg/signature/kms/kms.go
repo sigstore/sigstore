@@ -29,21 +29,21 @@ import (
 )
 
 func init() {
-	providersMux.AddProvider(aws.ReferenceScheme, func(ctx context.Context, keyResourceID string, hashFunc crypto.Hash) (SignerVerifier, error) {
+	providersMux.AddProvider(aws.ReferenceScheme, func(ctx context.Context, keyResourceID string, hashFunc crypto.Hash, opts ...signature.RPCOption) (SignerVerifier, error) {
 		return aws.LoadSignerVerifier(keyResourceID)
 	})
-	providersMux.AddProvider(azure.ReferenceScheme, func(ctx context.Context, keyResourceID string, hashFunc crypto.Hash) (SignerVerifier, error) {
+	providersMux.AddProvider(azure.ReferenceScheme, func(ctx context.Context, keyResourceID string, hashFunc crypto.Hash, opts ...signature.RPCOption) (SignerVerifier, error) {
 		return azure.LoadSignerVerifier(ctx, keyResourceID, hashFunc)
 	})
-	providersMux.AddProvider(gcp.ReferenceScheme, func(ctx context.Context, keyResourceID string, _ crypto.Hash) (SignerVerifier, error) {
+	providersMux.AddProvider(gcp.ReferenceScheme, func(ctx context.Context, keyResourceID string, _ crypto.Hash, opts ...signature.RPCOption) (SignerVerifier, error) {
 		return gcp.LoadSignerVerifier(ctx, keyResourceID)
 	})
-	providersMux.AddProvider(hashivault.ReferenceScheme, func(ctx context.Context, keyResourceID string, hashFunc crypto.Hash) (SignerVerifier, error) {
-		return hashivault.LoadSignerVerifier(keyResourceID, hashFunc)
+	providersMux.AddProvider(hashivault.ReferenceScheme, func(ctx context.Context, keyResourceID string, hashFunc crypto.Hash, opts ...signature.RPCOption) (SignerVerifier, error) {
+		return hashivault.LoadSignerVerifier(keyResourceID, hashFunc, opts...)
 	})
 }
 
-type providerInit func(context.Context, string, crypto.Hash) (SignerVerifier, error)
+type providerInit func(context.Context, string, crypto.Hash, ...signature.RPCOption) (SignerVerifier, error)
 
 type providers struct {
 	providers map[string]providerInit
@@ -59,10 +59,10 @@ var providersMux = &providers{
 }
 
 // Get returns a KMS SignerVerifier for the given resource string and hash function
-func Get(ctx context.Context, keyResourceID string, hashFunc crypto.Hash) (SignerVerifier, error) {
+func Get(ctx context.Context, keyResourceID string, hashFunc crypto.Hash, opts ...signature.RPCOption) (SignerVerifier, error) {
 	for ref, providerInit := range providersMux.providers {
 		if strings.HasPrefix(keyResourceID, ref) {
-			return providerInit(ctx, keyResourceID, hashFunc)
+			return providerInit(ctx, keyResourceID, hashFunc, opts...)
 		}
 	}
 	return nil, fmt.Errorf("no provider found for that key reference")
