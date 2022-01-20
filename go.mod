@@ -26,7 +26,7 @@ require (
 	github.com/go-rod/rod v0.101.8
 	github.com/go-test/deep v1.0.8
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
-	github.com/google/go-cmp v0.5.6
+	github.com/google/go-cmp v0.5.7
 	github.com/google/go-containerregistry v0.7.1-0.20211118220127-abdc633f8305
 	github.com/hashicorp/go-hclog v1.0.0 // indirect
 	github.com/hashicorp/go-retryablehttp v0.7.0 // indirect
