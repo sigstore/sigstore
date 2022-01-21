@@ -16,7 +16,7 @@ This library currently provides:
 The following KMS systems are available:
 * AWS Key Management Service
 * Azure Key Vault
-* Hashivault Vault
+* HashiCorp Vault
 * Google Cloud Platform Key Management Service
 
 For example code, look at the relevant test code for each main code file.
