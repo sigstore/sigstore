@@ -84,7 +84,7 @@ func LoadSignerVerifier(referenceStr string, hashFunc crypto.Hash) (*SignerVerif
 	return h, nil
 }
 
-// SignMessage signs the provided message using Hashivault KMS. If the message is provided,
+// SignMessage signs the provided message using HashiCorp Vault KMS. If the message is provided,
 // this method will compute the digest according to the hash function specified
 // when the HashivaultSigner was created.
 //
