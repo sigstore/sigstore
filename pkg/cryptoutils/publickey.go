@@ -17,7 +17,10 @@ package cryptoutils
 
 import (
 	"crypto"
+	"crypto/sha1" // nolint:gosec
 	"crypto/x509"
+	"crypto/x509/pkix"
+	"encoding/asn1"
 	"encoding/pem"
 	"errors"
 )
@@ -26,6 +29,13 @@ const (
 	// PublicKeyPEMType is the string "PUBLIC KEY" to be used during PEM encoding and decoding
 	PublicKeyPEMType PEMType = "PUBLIC KEY"
 )
+
+// subjectPublicKeyInfo is used to construct a subject key ID.
+// https://tools.ietf.org/html/rfc5280#section-4.1.2.7
+type subjectPublicKeyInfo struct {
+	Algorithm        pkix.AlgorithmIdentifier
+	SubjectPublicKey asn1.BitString
+}
 
 // UnmarshalPEMToPublicKey converts a PEM-encoded byte slice into a crypto.PublicKey
 func UnmarshalPEMToPublicKey(pemBytes []byte) (crypto.PublicKey, error) {
@@ -51,4 +61,20 @@ func MarshalPublicKeyToPEM(pub crypto.PublicKey) ([]byte, error) {
 		return nil, err
 	}
 	return PEMEncode(PublicKeyPEMType, derBytes), nil
+}
+
+// SKID generates a 160-bit SHA-1 hash of the value of the BIT STRING
+// subjectPublicKey (excluding the tag, length, and number of unused bits).
+// https://tools.ietf.org/html/rfc5280#section-4.2.1.2
+func SKID(pub crypto.PublicKey) ([]byte, error) {
+	derPubBytes, err := x509.MarshalPKIXPublicKey(pub)
+	if err != nil {
+		return nil, err
+	}
+	var spki subjectPublicKeyInfo
+	if _, err := asn1.Unmarshal(derPubBytes, &spki); err != nil {
+		return nil, err
+	}
+	skid := sha1.Sum(spki.SubjectPublicKey.Bytes) // nolint:gosec
+	return skid[:], nil
 }

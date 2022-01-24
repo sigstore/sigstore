@@ -67,3 +67,48 @@ func TestRSAPublicKeyPEMRoundtrip(t *testing.T) {
 	}
 	verifyPublicKeyPEMRoundtrip(t, priv.Public())
 }
+
+func TestSKIDRSA(t *testing.T) {
+	priv, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatalf("rsa.GenerateKey failed: %v", err)
+	}
+	skid, err := SKID(priv.Public())
+	if err != nil {
+		t.Fatalf("SKID failed: %v", err)
+	}
+	// Expect SKID is 160 bits (20 bytes)
+	if len(skid) != 20 {
+		t.Fatalf("SKID failed: %v", skid)
+	}
+}
+
+func TestSKIDECDSA(t *testing.T) {
+	priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		t.Fatalf("ecdsa.GenerateKey failed: %v", err)
+	}
+	skid, err := SKID(priv.Public())
+	if err != nil {
+		t.Fatalf("SKID failed: %v", err)
+	}
+	// Expect SKID is 160 bits (20 bytes)
+	if len(skid) != 20 {
+		t.Fatalf("SKID failed: %v", skid)
+	}
+}
+
+func TestSKIDED25519(t *testing.T) {
+	pub, _, err := ed25519.GenerateKey(rand.Reader)
+	if err != nil {
+		t.Fatalf("ed25519.GenerateKey failed: %v", err)
+	}
+	skid, err := SKID(pub)
+	if err != nil {
+		t.Fatalf("SKID failed: %v", err)
+	}
+	// Expect SKID is 160 bits (20 bytes)
+	if len(skid) != 20 {
+		t.Fatalf("SKID failed: %v", skid)
+	}
+}
