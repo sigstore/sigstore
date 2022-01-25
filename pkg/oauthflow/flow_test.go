@@ -39,7 +39,7 @@ func TestGetCodeWorking(t *testing.T) {
 	var gotErr error
 	doneCh := make(chan string)
 	errCh := make(chan error)
-	_, url, _ := startRedirectListener(desiredState, doneCh, errCh)
+	_, url, _ := startRedirectListener(desiredState, "", doneCh, errCh)
 	go func() {
 		gotCode, gotErr = getCode(doneCh, errCh)
 	}()
@@ -62,12 +62,12 @@ func TestGetCodeWrongState(t *testing.T) {
 	var gotErr error
 	doneCh := make(chan string)
 	errCh := make(chan error)
-	_, url, _ := startRedirectListener(desiredState, doneCh, errCh)
+	_, u, _ := startRedirectListener(desiredState, "", doneCh, errCh)
 	go func() {
 		_, gotErr = getCode(doneCh, errCh)
 	}()
 
-	sendCodeAndState(t, url, desiredCode, "WRONG")
+	sendCodeAndState(t, u, desiredCode, "WRONG")
 
 	if gotErr == nil {
 		t.Fatal("expected error, sent wrong state!")
