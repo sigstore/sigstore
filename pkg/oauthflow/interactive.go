@@ -25,11 +25,10 @@ import (
 	"time"
 
 	"github.com/coreos/go-oidc/v3/oidc"
+	"github.com/pkg/errors"
 	"github.com/segmentio/ksuid"
 	"github.com/skratchdot/open-golang/open"
 	"golang.org/x/oauth2"
-
-	"github.com/pkg/errors"
 )
 
 const oobRedirectURI = "urn:ietf:wg:oauth:2.0:oob"
@@ -50,7 +49,7 @@ func (i *InteractiveIDTokenGetter) GetIDToken(p *oidc.Provider, cfg oauth2.Confi
 	doneCh := make(chan string)
 	errCh := make(chan error)
 	// starts listener on ephemeral port
-	redirectServer, redirectURL, err := startRedirectListener(stateToken, doneCh, errCh)
+	redirectServer, redirectURL, err := startRedirectListener(stateToken, i.HTMLPage, doneCh, errCh)
 	if err != nil {
 		return nil, errors.Wrap(err, "starting redirect listener")
 	}
@@ -134,7 +133,7 @@ func doOobFlow(cfg *oauth2.Config, stateToken string, opts []oauth2.AuthCodeOpti
 	return code
 }
 
-func startRedirectListener(state string, doneCh chan string, errCh chan error) (*http.Server, *url.URL, error) {
+func startRedirectListener(state, htmlPage string, doneCh chan string, errCh chan error) (*http.Server, *url.URL, error) {
 	listener, err := net.Listen("tcp", "localhost:0")
 	if err != nil {
 		return nil, nil, err
