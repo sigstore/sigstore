@@ -58,8 +58,12 @@ func NewPKCE(provider *oidc.Provider) (*PKCE, error) {
 			fmt.Printf("Unsupported code challenge method in list: '%v'", method)
 		}
 	}
-	if chosenMethod == "" && !providerIsAzureBacked(provider) {
-		return nil, fmt.Errorf("PKCE is not supported by OIDC provider '%v'", provider.Endpoint().AuthURL)
+	if chosenMethod == "" {
+		if providerIsAzureBacked(provider) {
+			chosenMethod = PKCES256
+		} else {
+			return nil, fmt.Errorf("PKCE is not supported by OIDC provider '%v'", provider.Endpoint().AuthURL)
+		}
 	}
 
 	// we use two 27 character strings to meet requirements of RFC 7636:
@@ -94,10 +98,12 @@ func (p *PKCE) TokenURLOpts() []oauth2.AuthCodeOption {
 
 var azureregex = regexp.MustCompile(`^https:\/\/login\.microsoftonline\.(com|us)\/`)
 
+// providerIsAzureBacked returns a boolean indicating whether the provider is Azure-backed;
+// Azure supports PKCE but does not advertise it in their OIDC discovery endpoint
 func providerIsAzureBacked(p *oidc.Provider) bool {
 	// Per https://docs.microsoft.com/en-us/azure/active-directory/develop/authentication-national-cloud#azure-ad-authentication-endpoints
 	// if endpoint starts with any of these strings then we should attempt PKCE anyway as their OIDC discovery doc
 	// does not advertise supporting PKCE but they actually do
 
-	return azureregex.MatchString(p.Endpoint().AuthURL)
+	return p != nil && azureregex.MatchString(p.Endpoint().AuthURL)
 }

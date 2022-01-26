@@ -55,4 +55,8 @@ func TestProviderIsAzureBacked(t *testing.T) {
 			}
 		})
 	}
+
+	if providerIsAzureBacked(nil) != false {
+		t.Errorf("nil provider should not return true for being Azure-backed")
+	}
 }
