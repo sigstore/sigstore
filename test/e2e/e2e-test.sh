@@ -33,7 +33,7 @@ docker-compose up -d
 count=0
 
 echo -n "waiting up to 60 sec for system to start"
-until [ $(docker-compose ps vault | grep -c "Up") == 1 -a $(docker-compose logs localstack | grep -c Ready) == 1 ];
+until [ $(docker-compose ps vault | grep -c -e "Up" -e "running") == 1 -a $(docker-compose logs localstack | grep -c Ready) == 1 ];
 do
     if [ $count -eq 12 ]; then
        echo "! timeout reached"
