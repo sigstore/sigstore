@@ -36,7 +36,7 @@ type RPCAuthOIDC struct {
 	Token string // token is a jwt with vault
 }
 
-// ApplyCryptoSignerOpts sets the RPCAuth as a function option
+// ApplyRPCAuthOpts sets the RPCAuth as a function option
 func (r RPCAuthOpts) ApplyRPCAuthOpts(opts *RPCAuth) {
 	if r.opts.Address != "" {
 		opts.Address = r.opts.Address
@@ -52,7 +52,7 @@ func (r RPCAuthOpts) ApplyRPCAuthOpts(opts *RPCAuth) {
 	}
 }
 
-// WithRPCAuthTokenOpts specifies RPCAuth settings to be used with RPC logins
+// WithRPCAuthOpts specifies RPCAuth settings to be used with RPC logins
 func WithRPCAuthOpts(opts RPCAuth) RPCAuthOpts {
 	return RPCAuthOpts{opts: opts}
 }
