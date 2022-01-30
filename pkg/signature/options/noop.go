@@ -38,3 +38,6 @@ func (NoOpOptionImpl) ApplyRand(rand *io.Reader) {}
 
 // ApplyRemoteVerification is a no-op required to fully implement the requisite interfaces
 func (NoOpOptionImpl) ApplyRemoteVerification(remoteVerification *bool) {}
+
+// ApplyRPCAuthOpts is a no-op required to fully implement the requisite interfaces
+func (NoOpOptionImpl) ApplyRPCAuthOpts(opts *RPCAuth) {}

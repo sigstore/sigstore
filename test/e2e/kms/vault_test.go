@@ -13,6 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:build e2e
 // +build e2e
 
 package main
@@ -43,8 +44,8 @@ type VaultSuite struct {
 	suite.Suite
 }
 
-func (suite *VaultSuite) GetProvider(key string) *hashivault.SignerVerifier {
-	provider, err := kms.Get(context.Background(), fmt.Sprintf("hashivault://%s", key), crypto.SHA256)
+func (suite *VaultSuite) GetProvider(key string, opts ...signature.RPCOption) *hashivault.SignerVerifier {
+	provider, err := kms.Get(context.Background(), fmt.Sprintf("hashivault://%s", key), crypto.SHA256, opts...)
 	require.NoError(suite.T(), err)
 	require.NotNil(suite.T(), provider)
 	return provider.(*hashivault.SignerVerifier)
@@ -77,6 +78,8 @@ func (suite *VaultSuite) TearDownSuite() {
 
 	err = client.Sys().Unmount("transit")
 	require.Nil(suite.T(), err)
+	err = client.Sys().Unmount("somerandompath")
+	require.Nil(suite.T(), err)
 }
 
 func (suite *VaultSuite) TestProvider() {
@@ -108,10 +111,53 @@ func (suite *VaultSuite) TestSign() {
 	assert.Nil(suite.T(), err)
 }
 
+func (suite *VaultSuite) TestSignOpts() {
+	addr := os.Getenv("VAULT_ADDR")
+	token := os.Getenv("VAULT_TOKEN")
+	os.Setenv("VAULT_ADDR", "")
+	os.Setenv("VAULT_TOKEN", "")
+	defer os.Setenv("VAULT_ADDR", addr)
+	defer os.Setenv("VAULT_TOKEN", token)
+	provider := suite.GetProvider("testsign",
+		options.WithRPCAuthOpts(options.RPCAuth{Address: addr, Token: token}))
+
+	key, err := provider.CreateKey(context.Background(), hashivault.Algorithm_ECDSA_P256)
+	assert.Nil(suite.T(), err)
+	assert.NotNil(suite.T(), key)
+
+	data := []byte("mydata")
+	sig, err := provider.SignMessage(bytes.NewReader(data))
+	assert.Nil(suite.T(), err)
+	assert.NotNil(suite.T(), sig)
+
+	verifier, _ := signature.LoadECDSAVerifier(key.(*ecdsa.PublicKey), crypto.SHA256)
+	err = verifier.VerifySignature(bytes.NewReader(sig), bytes.NewReader(data))
+	assert.Nil(suite.T(), err)
+}
+
 func (suite *VaultSuite) TestSignWithDifferentTransitSecretEnginePath() {
 	provider := suite.GetProvider("testsign")
 	os.Setenv("TRANSIT_SECRET_ENGINE_PATH", "somerandompath")
 	defer os.Setenv("TRANSIT_SECRET_ENGINE_PATH", "transit")
+
+	key, err := provider.CreateKey(context.Background(), hashivault.Algorithm_ECDSA_P256)
+	assert.Nil(suite.T(), err)
+	assert.NotNil(suite.T(), key)
+
+	data := []byte("mydata")
+	sig, err := provider.SignMessage(bytes.NewReader(data), options.WithContext(context.Background()))
+	assert.Nil(suite.T(), err)
+	assert.NotNil(suite.T(), sig)
+
+	verifier, err := signature.LoadECDSAVerifier(key.(*ecdsa.PublicKey), crypto.SHA256)
+	assert.Nil(suite.T(), err)
+
+	err = verifier.VerifySignature(bytes.NewReader(sig), bytes.NewReader(data), options.WithContext(context.Background()))
+	assert.Nil(suite.T(), err)
+}
+
+func (suite *VaultSuite) TestSignWithDifferentTransitSecretEnginePathOpts() {
+	provider := suite.GetProvider("testsign", options.WithRPCAuthOpts(options.RPCAuth{Path: "somerandompath"}))
 
 	key, err := provider.CreateKey(context.Background(), hashivault.Algorithm_ECDSA_P256)
 	assert.Nil(suite.T(), err)
@@ -240,6 +286,16 @@ func (suite *VaultSuite) TestNoProvider() {
 	provider, err := kms.Get(context.Background(), "hashi://nonsense", crypto.Hash(0))
 	require.Error(suite.T(), err)
 	require.Nil(suite.T(), provider)
+}
+
+func (suite *VaultSuite) TestInvalidHost() {
+	provider, err := kms.Get(context.Background(), "hashivault://keyname", crypto.SHA256,
+		options.WithRPCAuthOpts(options.RPCAuth{Address: "https://unknown.example.com:8200"}))
+	assert.Nil(suite.T(), err)
+	assert.NotNil(suite.T(), provider)
+
+	_, err = provider.CreateKey(context.Background(), hashivault.Algorithm_ECDSA_P256)
+	require.Error(suite.T(), err)
 }
 
 func TestVault(t *testing.T) {
