@@ -42,6 +42,7 @@ import (
 
 type VaultSuite struct {
 	suite.Suite
+	vaultclient *vault.Client
 }
 
 func (suite *VaultSuite) GetProvider(key string, opts ...signature.RPCOption) *hashivault.SignerVerifier {
@@ -52,33 +53,37 @@ func (suite *VaultSuite) GetProvider(key string, opts ...signature.RPCOption) *h
 }
 
 func (suite *VaultSuite) SetupSuite() {
-	client, err := vault.NewClient(&vault.Config{
+	var err error
+	suite.vaultclient, err = vault.NewClient(&vault.Config{
 		Address: os.Getenv("VAULT_ADDR"),
 	})
 	require.Nil(suite.T(), err)
-	require.NotNil(suite.T(), client)
+	require.NotNil(suite.T(), suite.vaultclient)
 
-	err = client.Sys().Mount("transit", &vault.MountInput{
+	err = suite.vaultclient.Sys().Mount("transit", &vault.MountInput{
 		Type: "transit",
 	})
 	require.Nil(suite.T(), err)
 
-	err = client.Sys().Mount("somerandompath", &vault.MountInput{
+	err = suite.vaultclient.Sys().Mount("somerandompath", &vault.MountInput{
 		Type: "transit",
 	})
 	require.Nil(suite.T(), err)
 }
 
 func (suite *VaultSuite) TearDownSuite() {
-	client, err := vault.NewClient(&vault.Config{
-		Address: os.Getenv("VAULT_ADDR"),
-	})
-	require.Nil(suite.T(), err)
-	require.NotNil(suite.T(), client)
+	var err error
+	if suite.vaultclient == nil {
+		suite.vaultclient, err = vault.NewClient(&vault.Config{
+			Address: os.Getenv("VAULT_ADDR"),
+		})
+		require.Nil(suite.T(), err)
+		require.NotNil(suite.T(), suite.vaultclient)
+	}
 
-	err = client.Sys().Unmount("transit")
+	err = suite.vaultclient.Sys().Unmount("transit")
 	require.Nil(suite.T(), err)
-	err = client.Sys().Unmount("somerandompath")
+	err = suite.vaultclient.Sys().Unmount("somerandompath")
 	require.Nil(suite.T(), err)
 }
 
@@ -133,6 +138,151 @@ func (suite *VaultSuite) TestSignOpts() {
 	verifier, _ := signature.LoadECDSAVerifier(key.(*ecdsa.PublicKey), crypto.SHA256)
 	err = verifier.VerifySignature(bytes.NewReader(sig), bytes.NewReader(data))
 	assert.Nil(suite.T(), err)
+}
+
+func (suite *VaultSuite) TestSignSpecificKeyVersion() {
+	provider := suite.GetProvider("testsignversion")
+
+	key, err := provider.CreateKey(context.Background(), hashivault.Algorithm_ECDSA_P256)
+	assert.Nil(suite.T(), err)
+	assert.NotNil(suite.T(), key)
+
+	// test without specifying any value (aka use default)
+	data := []byte("mydata")
+	sig, err := provider.SignMessage(bytes.NewReader(data))
+	assert.Nil(suite.T(), err)
+	assert.NotNil(suite.T(), sig)
+	verifier, _ := signature.LoadECDSAVerifier(key.(*ecdsa.PublicKey), crypto.SHA256)
+	err = verifier.VerifySignature(bytes.NewReader(sig), bytes.NewReader(data))
+	assert.Nil(suite.T(), err)
+
+	// test with specifying default value
+	sig, err = provider.SignMessage(bytes.NewReader(data), options.WithKeyVersion("0"))
+	assert.Nil(suite.T(), err)
+	assert.NotNil(suite.T(), sig)
+
+	// test with specifying explicit value
+	sig, err = provider.SignMessage(bytes.NewReader(data), options.WithKeyVersion("1"))
+	assert.Nil(suite.T(), err)
+	assert.NotNil(suite.T(), sig)
+
+	// test version that doesn't (yet) exist
+	sig, err = provider.SignMessage(bytes.NewReader(data), options.WithKeyVersion("2"))
+	assert.NotNil(suite.T(), err)
+	assert.Nil(suite.T(), sig)
+
+	// rotate key (now two valid versions)
+	client := suite.vaultclient.Logical()
+	_, err = client.Write("/transit/keys/testsignversion/rotate", nil)
+	assert.Nil(suite.T(), err)
+
+	// test default version again (implicitly)
+	sig, err = provider.SignMessage(bytes.NewReader(data))
+	assert.Nil(suite.T(), err)
+	assert.NotNil(suite.T(), sig)
+
+	// test default version again (explicitly)
+	sig, err = provider.SignMessage(bytes.NewReader(data), options.WithKeyVersion("0"))
+	assert.Nil(suite.T(), err)
+	assert.NotNil(suite.T(), sig)
+
+	// test explicit previous version (should still work as we haven't set min_encryption_version yet)
+	sig, err = provider.SignMessage(bytes.NewReader(data), options.WithKeyVersion("1"))
+	assert.Nil(suite.T(), err)
+	assert.NotNil(suite.T(), sig)
+
+	// test explicit new version
+	sig, err = provider.SignMessage(bytes.NewReader(data), options.WithKeyVersion("2"))
+	assert.Nil(suite.T(), err)
+	assert.NotNil(suite.T(), sig)
+
+	// test bad value
+	sig, err = provider.SignMessage(bytes.NewReader(data), options.WithKeyVersion("3"))
+	assert.NotNil(suite.T(), err)
+	assert.Nil(suite.T(), sig)
+
+	// change minimum to v2
+	_, err = client.Write("/transit/keys/testsignversion/config", map[string]interface{}{
+		"min_encryption_version": 2,
+	})
+	assert.Nil(suite.T(), err)
+
+	// test explicit previous version (should fail as min_encryption_version has been set)
+	sig, err = provider.SignMessage(bytes.NewReader(data), options.WithKeyVersion("1"))
+	assert.NotNil(suite.T(), err)
+	assert.Nil(suite.T(), sig)
+
+	provider2 := suite.GetProvider("testsignversion", options.WithKeyVersion("2"))
+	sig, err = provider2.SignMessage(bytes.NewReader(data))
+	assert.Nil(suite.T(), err)
+	assert.NotNil(suite.T(), sig)
+
+	// test explicit new version
+	sig, err = provider2.SignMessage(bytes.NewReader(data), options.WithKeyVersion("2"))
+	assert.Nil(suite.T(), err)
+	assert.NotNil(suite.T(), sig)
+
+}
+
+func (suite *VaultSuite) TestVerifySpecificKeyVersion() {
+	provider := suite.GetProvider("testverifyversion")
+
+	key, err := provider.CreateKey(context.Background(), hashivault.Algorithm_ECDSA_P256)
+	assert.Nil(suite.T(), err)
+	assert.NotNil(suite.T(), key)
+
+	// test using v1
+	data := []byte("mydata")
+	sig, err := provider.SignMessage(bytes.NewReader(data), options.WithKeyVersion("1"))
+	assert.Nil(suite.T(), err)
+	assert.NotNil(suite.T(), sig)
+
+	// test without specifying key value
+	err = provider.VerifySignature(bytes.NewReader(sig), bytes.NewReader(data))
+	assert.Nil(suite.T(), err)
+
+	// test with explicitly specifying default value
+	err = provider.VerifySignature(bytes.NewReader(sig), bytes.NewReader(data), options.WithKeyVersion("1"))
+	assert.Nil(suite.T(), err)
+
+	// test version that doesn't (yet) exist
+	err = provider.VerifySignature(bytes.NewReader(sig), bytes.NewReader(data), options.WithKeyVersion("2"))
+	assert.NotNil(suite.T(), err)
+
+	// rotate key (now two valid versions)
+	client := suite.vaultclient.Logical()
+	_, err = client.Write("/transit/keys/testverifyversion/rotate", nil)
+	assert.Nil(suite.T(), err)
+
+	// test default version again (implicitly)
+	err = provider.VerifySignature(bytes.NewReader(sig), bytes.NewReader(data))
+	assert.Nil(suite.T(), err)
+
+	// test invalid version (0 is fine for signing, but must be >= 1 for verification)
+	err = provider.VerifySignature(bytes.NewReader(sig), bytes.NewReader(data), options.WithKeyVersion("0"))
+	assert.NotNil(suite.T(), err)
+
+	// test explicit previous version (should still as we haven't set min_decryption_version yet)
+	err = provider.VerifySignature(bytes.NewReader(sig), bytes.NewReader(data), options.WithKeyVersion("1"))
+	assert.Nil(suite.T(), err)
+
+	// test explicit new version (should fail since it doesn't match the v1 key)
+	err = provider.VerifySignature(bytes.NewReader(sig), bytes.NewReader(data), options.WithKeyVersion("2"))
+	assert.NotNil(suite.T(), err)
+
+	// test bad value
+	err = provider.VerifySignature(bytes.NewReader(sig), bytes.NewReader(data), options.WithKeyVersion("3"))
+	assert.NotNil(suite.T(), err)
+
+	// change minimum to v2
+	_, err = client.Write("/transit/keys/testverifyversion/config", map[string]interface{}{
+		"min_decryption_version": 2,
+	})
+	assert.Nil(suite.T(), err)
+
+	// test explicit previous version (should fail as min_decryption_version has been set)
+	err = provider.VerifySignature(bytes.NewReader(sig), bytes.NewReader(data), options.WithKeyVersion("1"))
+	assert.NotNil(suite.T(), err)
 }
 
 func (suite *VaultSuite) TestSignWithDifferentTransitSecretEnginePath() {
@@ -279,6 +429,7 @@ func (suite *VaultSuite) TestBadSignature() {
 	assert.Nil(suite.T(), err)
 
 	err = provider2.VerifySignature(bytes.NewReader(sig1), bytes.NewReader(data))
+	assert.NotNil(suite.T(), err)
 	assert.Contains(suite.T(), err.Error(), "Failed vault verification")
 }
 

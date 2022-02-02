@@ -28,6 +28,7 @@ type RPCOption interface {
 	ApplyContext(*context.Context)
 	ApplyRemoteVerification(*bool)
 	ApplyRPCAuthOpts(opts *options.RPCAuth)
+	ApplyKeyVersion(keyVersion *string)
 }
 
 // PublicKeyOption specifies options to be used when obtaining a public key

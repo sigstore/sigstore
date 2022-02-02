@@ -25,6 +25,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"time"
 
 	"github.com/ReneKroon/ttlcache/v2"
@@ -32,6 +33,7 @@ import (
 	"github.com/mitchellh/go-homedir"
 	"github.com/pkg/errors"
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
+	"github.com/sigstore/sigstore/pkg/signature"
 )
 
 type hashivaultClient struct {
@@ -39,6 +41,7 @@ type hashivaultClient struct {
 	keyPath                 string
 	transitSecretEnginePath string
 	keyCache                *ttlcache.Cache
+	keyVersion              uint64
 }
 
 var (
@@ -76,7 +79,7 @@ func parseReference(resourceID string) (keyPath string, err error) {
 	return
 }
 
-func newHashivaultClient(address, token, transitSecretEnginePath, keyResourceID string) (*hashivaultClient, error) {
+func newHashivaultClient(address, token, transitSecretEnginePath, keyResourceID string, keyVersion uint64) (*hashivaultClient, error) {
 	keyPath, err := parseReference(keyResourceID)
 	if err != nil {
 		return nil, err
@@ -127,6 +130,7 @@ func newHashivaultClient(address, token, transitSecretEnginePath, keyResourceID 
 		keyPath:                 keyPath,
 		transitSecretEnginePath: transitSecretEnginePath,
 		keyCache:                ttlcache.NewCache(),
+		keyVersion:              keyVersion,
 	}
 	hvClient.keyCache.SetLoaderFunction(hvClient.keyCacheLoaderFunction)
 	hvClient.keyCache.SkipTTLExtensionOnHit(true)
@@ -213,12 +217,24 @@ func (h *hashivaultClient) public() (crypto.PublicKey, error) {
 	return h.keyCache.Get(cacheKey)
 }
 
-func (h hashivaultClient) sign(digest []byte, alg crypto.Hash) ([]byte, error) {
+func (h hashivaultClient) sign(digest []byte, alg crypto.Hash, opts ...signature.SignOption) ([]byte, error) {
 	client := h.client.Logical()
 
+	keyVersion := fmt.Sprintf("%d", h.keyVersion)
+	for _, opt := range opts {
+		opt.ApplyKeyVersion(&keyVersion)
+	}
+
+	if keyVersion != "" {
+		if _, err := strconv.ParseUint(keyVersion, 10, 64); err != nil {
+			return nil, errors.Wrap(err, "parsing requested key version")
+		}
+	}
+
 	signResult, err := client.Write(fmt.Sprintf("/%s/sign/%s%s", h.transitSecretEnginePath, h.keyPath, hashString(alg)), map[string]interface{}{
-		"input":     base64.StdEncoding.Strict().EncodeToString(digest),
-		"prehashed": alg != crypto.Hash(0),
+		"input":       base64.StdEncoding.Strict().EncodeToString(digest),
+		"prehashed":   alg != crypto.Hash(0),
+		"key_version": keyVersion,
 	})
 	if err != nil {
 		return nil, errors.Wrap(err, "Transit: failed to sign payload")
@@ -233,13 +249,35 @@ func (h hashivaultClient) sign(digest []byte, alg crypto.Hash) ([]byte, error) {
 
 }
 
-func (h hashivaultClient) verify(sig, digest []byte, alg crypto.Hash) error {
+func (h hashivaultClient) verify(sig, digest []byte, alg crypto.Hash, opts ...signature.VerifyOption) error {
 	client := h.client.Logical()
 	encodedSig := base64.StdEncoding.EncodeToString(sig)
 
-	vaultDataPrefix := os.Getenv("VAULT_KEY_PREFIX")
-	if vaultDataPrefix == "" {
-		vaultDataPrefix = vaultV1DataPrefix
+	keyVersion := ""
+	for _, opt := range opts {
+		opt.ApplyKeyVersion(&keyVersion)
+	}
+
+	var vaultDataPrefix string
+	if keyVersion != "" {
+		// keyVersion >= 1 on verification but can be set to 0 on signing
+		kvUint, err := strconv.ParseUint(keyVersion, 10, 64)
+		if err != nil {
+			return errors.Wrap(err, "parsing requested key version")
+		} else if kvUint == 0 {
+			return errors.New("key version must be >= 1")
+		}
+
+		vaultDataPrefix = fmt.Sprintf("vault:v%d:", kvUint)
+	} else {
+		vaultDataPrefix = os.Getenv("VAULT_KEY_PREFIX")
+		if vaultDataPrefix == "" {
+			if h.keyVersion > 0 {
+				vaultDataPrefix = fmt.Sprintf("vault:v%d:", h.keyVersion)
+			} else {
+				vaultDataPrefix = vaultV1DataPrefix
+			}
+		}
 	}
 
 	result, err := client.Write(fmt.Sprintf("/%s/verify/%s/%s", h.transitSecretEnginePath, h.keyPath, hashString(alg)), map[string]interface{}{
