@@ -19,6 +19,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
+	"regexp"
 
 	"github.com/coreos/go-oidc/v3/oidc"
 	"golang.org/x/oauth2"
@@ -58,7 +59,11 @@ func NewPKCE(provider *oidc.Provider) (*PKCE, error) {
 		}
 	}
 	if chosenMethod == "" {
-		return nil, fmt.Errorf("PKCE is not supported by OIDC provider '%v'", provider.Endpoint().AuthURL)
+		if providerIsAzureBacked(provider) {
+			chosenMethod = PKCES256
+		} else {
+			return nil, fmt.Errorf("PKCE is not supported by OIDC provider '%v'", provider.Endpoint().AuthURL)
+		}
 	}
 
 	// we use two 27 character strings to meet requirements of RFC 7636:
@@ -89,4 +94,16 @@ func (p *PKCE) TokenURLOpts() []oauth2.AuthCodeOption {
 	return []oauth2.AuthCodeOption{
 		oauth2.SetAuthURLParam("code_verifier", p.Value),
 	}
+}
+
+var azureregex = regexp.MustCompile(`^https:\/\/login\.microsoftonline\.(com|us)\/`)
+
+// providerIsAzureBacked returns a boolean indicating whether the provider is Azure-backed;
+// Azure supports PKCE but does not advertise it in their OIDC discovery endpoint
+func providerIsAzureBacked(p *oidc.Provider) bool {
+	// Per https://docs.microsoft.com/en-us/azure/active-directory/develop/authentication-national-cloud#azure-ad-authentication-endpoints
+	// if endpoint starts with any of these strings then we should attempt PKCE anyway as their OIDC discovery doc
+	// does not advertise supporting PKCE but they actually do
+
+	return p != nil && azureregex.MatchString(p.Endpoint().AuthURL)
 }
