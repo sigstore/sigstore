@@ -19,6 +19,7 @@ import (
 	"context"
 	"crypto"
 	"io"
+	"strconv"
 
 	"github.com/pkg/errors"
 	"github.com/sigstore/sigstore/pkg/signature"
@@ -69,19 +70,29 @@ func LoadSignerVerifier(referenceStr string, hashFunc crypto.Hash, opts ...signa
 	h := &SignerVerifier{}
 	ctx := context.Background()
 	rpcAuth := options.RPCAuth{}
+	var keyVersion string
 	for _, opt := range opts {
 		opt.ApplyRPCAuthOpts(&rpcAuth)
 		opt.ApplyContext(&ctx)
+		opt.ApplyKeyVersion(&keyVersion)
 	}
 
+	var keyVersionUint uint64
 	var err error
+	if keyVersion != "" {
+		keyVersionUint, err = strconv.ParseUint(keyVersion, 10, 64)
+		if err != nil {
+			return nil, errors.Wrap(err, "parsing key version")
+		}
+	}
+
 	if rpcAuth.OIDC.Token != "" {
 		rpcAuth.Token, err = oidcLogin(ctx, rpcAuth.Address, rpcAuth.OIDC.Path, rpcAuth.OIDC.Role, rpcAuth.OIDC.Token)
 		if err != nil {
 			return nil, err
 		}
 	}
-	h.client, err = newHashivaultClient(rpcAuth.Address, rpcAuth.Token, rpcAuth.Path, referenceStr)
+	h.client, err = newHashivaultClient(rpcAuth.Address, rpcAuth.Token, rpcAuth.Path, referenceStr, keyVersionUint)
 	if err != nil {
 		return nil, err
 	}
@@ -119,7 +130,7 @@ func (h SignerVerifier) SignMessage(message io.Reader, opts ...signature.SignOpt
 		return nil, err
 	}
 
-	return h.client.sign(digest, hf)
+	return h.client.sign(digest, hf, opts...)
 
 }
 
@@ -161,7 +172,7 @@ func (h SignerVerifier) VerifySignature(sig, message io.Reader, opts ...signatur
 		return errors.Wrap(err, "reading signature")
 	}
 
-	return h.client.verify(sigBytes, digest, hf)
+	return h.client.verify(sigBytes, digest, hf, opts...)
 }
 
 // CreateKey attempts to create a new key in Vault with the specified algorithm.

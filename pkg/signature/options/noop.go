@@ -41,3 +41,6 @@ func (NoOpOptionImpl) ApplyRemoteVerification(remoteVerification *bool) {}
 
 // ApplyRPCAuthOpts is a no-op required to fully implement the requisite interfaces
 func (NoOpOptionImpl) ApplyRPCAuthOpts(opts *RPCAuth) {}
+
+// ApplyKeyVersion is a no-op required to fully implement the requisite interfaces
+func (NoOpOptionImpl) ApplyKeyVersion(keyVersion *string) {}
