@@ -47,7 +47,7 @@ type hashivaultClient struct {
 var (
 	errReference   = errors.New("kms specification should be in the format hashivault://<key>")
 	referenceRegex = regexp.MustCompile(`^hashivault://(?P<path>\w(([\w-.]+)?\w)?)$`)
-	prefixRegex    = regexp.MustCompile("vault:v[0-9]+:")
+	prefixRegex    = regexp.MustCompile("^vault:v[0-9]+:")
 )
 
 const (
@@ -221,8 +221,10 @@ func (h hashivaultClient) sign(digest []byte, alg crypto.Hash, opts ...signature
 	client := h.client.Logical()
 
 	keyVersion := fmt.Sprintf("%d", h.keyVersion)
+	var keyVersionUsedPtr *string
 	for _, opt := range opts {
 		opt.ApplyKeyVersion(&keyVersion)
+		opt.ApplyKeyVersionUsed(&keyVersionUsedPtr)
 	}
 
 	if keyVersion != "" {
@@ -245,7 +247,7 @@ func (h hashivaultClient) sign(digest []byte, alg crypto.Hash, opts ...signature
 		return nil, errors.New("Transit: response corrupted in-transit")
 	}
 
-	return vaultDecode(encodedSignature)
+	return vaultDecode(encodedSignature, keyVersionUsedPtr)
 
 }
 
@@ -308,12 +310,15 @@ func (h hashivaultClient) verify(sig, digest []byte, alg crypto.Hash, opts ...si
 }
 
 // Vault likes to prefix base64 data with a version prefix
-func vaultDecode(data interface{}) ([]byte, error) {
+func vaultDecode(data interface{}, keyVersionUsed *string) ([]byte, error) {
 	encoded, ok := data.(string)
 	if !ok {
 		return nil, errors.New("Received non-string data")
 	}
 
+	if keyVersionUsed != nil {
+		*keyVersionUsed = prefixRegex.FindString(encoded)
+	}
 	return base64.StdEncoding.DecodeString(prefixRegex.ReplaceAllString(encoded, ""))
 }
 

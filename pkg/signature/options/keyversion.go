@@ -31,3 +31,19 @@ func (r RequestKeyVersion) ApplyKeyVersion(keyVersion *string) {
 func WithKeyVersion(keyVersion string) RequestKeyVersion {
 	return RequestKeyVersion{keyVersion: keyVersion}
 }
+
+type RequestKeyVersionUsed struct {
+	NoOpOptionImpl
+	keyVersionUsed *string
+}
+
+// ApplyKeyVersionUsed requests to store the KMS's key version that was used as a functional option
+func (r RequestKeyVersionUsed) ApplyKeyVersionUsed(keyVersionUsed **string) {
+	*keyVersionUsed = r.keyVersionUsed
+}
+
+// ReturnKeyVersionUsed specifies that the specific KMS key version that was used during signing should be stored
+// in the pointer provided
+func ReturnKeyVersionUsed(keyVersionUsed *string) RequestKeyVersionUsed {
+	return RequestKeyVersionUsed{keyVersionUsed: keyVersionUsed}
+}
