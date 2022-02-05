@@ -285,6 +285,32 @@ func (suite *VaultSuite) TestVerifySpecificKeyVersion() {
 	assert.NotNil(suite.T(), err)
 }
 
+func (suite *VaultSuite) TestSignAndRecordKeyVersion() {
+	provider := suite.GetProvider("testrecordsignversion")
+
+	key, err := provider.CreateKey(context.Background(), hashivault.Algorithm_ECDSA_P256)
+	assert.Nil(suite.T(), err)
+	assert.NotNil(suite.T(), key)
+
+	// test for v1
+	data := []byte("mydata")
+	var versionUsed string
+	sig, err := provider.SignMessage(bytes.NewReader(data), options.ReturnKeyVersionUsed(&versionUsed))
+	assert.Nil(suite.T(), err)
+	assert.NotNil(suite.T(), sig)
+	assert.Contains(suite.T(), versionUsed, "vault:v1:")
+
+	// rotate
+	client := suite.vaultclient.Logical()
+	_, err = client.Write("/transit/keys/testrecordsignversion/rotate", nil)
+	assert.Nil(suite.T(), err)
+
+	sig, err = provider.SignMessage(bytes.NewReader(data), options.WithKeyVersion("2"), options.ReturnKeyVersionUsed(&versionUsed))
+	assert.Nil(suite.T(), err)
+	assert.NotNil(suite.T(), sig)
+	assert.Contains(suite.T(), versionUsed, "vault:v2:")
+}
+
 func (suite *VaultSuite) TestSignWithDifferentTransitSecretEnginePath() {
 	provider := suite.GetProvider("testsign")
 	os.Setenv("TRANSIT_SECRET_ENGINE_PATH", "somerandompath")

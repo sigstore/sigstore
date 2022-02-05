@@ -44,3 +44,6 @@ func (NoOpOptionImpl) ApplyRPCAuthOpts(opts *RPCAuth) {}
 
 // ApplyKeyVersion is a no-op required to fully implement the requisite interfaces
 func (NoOpOptionImpl) ApplyKeyVersion(keyVersion *string) {}
+
+// ApplyKeyVersionUsed is a no-op required to fully implement the requisite interfaces
+func (NoOpOptionImpl) ApplyKeyVersionUsed(keyVersion **string) {}

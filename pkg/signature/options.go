@@ -47,6 +47,7 @@ type SignOption interface {
 	RPCOption
 	MessageOption
 	ApplyRand(*io.Reader)
+	ApplyKeyVersionUsed(**string)
 }
 
 // VerifyOption specifies options to be used when verifying a signature
