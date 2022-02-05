@@ -32,6 +32,7 @@ func WithKeyVersion(keyVersion string) RequestKeyVersion {
 	return RequestKeyVersion{keyVersion: keyVersion}
 }
 
+// RequestKeyVersionUsed implements the functional option pattern for obtaining the KMS key version used during signing
 type RequestKeyVersionUsed struct {
 	NoOpOptionImpl
 	keyVersionUsed *string
