@@ -16,6 +16,7 @@
 package oauthflow
 
 import (
+	"context"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
@@ -26,7 +27,6 @@ import (
 	"reflect"
 	"testing"
 
-	"golang.org/x/oauth2"
 	"gopkg.in/square/go-jose.v2"
 )
 
@@ -83,6 +83,7 @@ func sendCodeAndState(t *testing.T, redirectURL *url.URL, code, state string) {
 }
 
 func TestStaticTokenGetter_GetIDToken(t *testing.T) {
+	ctx := context.Background()
 	priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {
 		t.Fatal(err)
@@ -168,7 +169,7 @@ func TestStaticTokenGetter_GetIDToken(t *testing.T) {
 			stg := &StaticTokenGetter{
 				RawToken: token,
 			}
-			got, err := stg.GetIDToken(nil, oauth2.Config{})
+			got, err := stg.GetIDToken(ctx)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("StaticTokenGetter.GetIDToken() error = %v, wantErr %v", err, tt.wantErr)
 				return

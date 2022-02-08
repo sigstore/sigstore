@@ -47,7 +47,7 @@ const (
 
 // TokenGetter provides a way to get an OIDC ID Token from an OIDC IdP
 type TokenGetter interface {
-	GetIDToken(provider *oidc.Provider, config oauth2.Config) (*OIDCIDToken, error)
+	GetIDToken(ctx context.Context) (*OIDCIDToken, error)
 }
 
 // OIDCIDToken represents an OIDC Identity Token
@@ -93,22 +93,6 @@ var PublicInstanceMicrosoftIDTokenGetter = &InteractiveIDTokenGetter{
 	ExtraAuthURLParams: []oauth2.AuthCodeOption{ConnectorIDOpt(PublicInstanceMicrosoftAuthSubURL)},
 }
 
-// OIDConnect requests an OIDC Identity Token from the specified issuer using the specified client credentials and TokenGetter
-func OIDConnect(issuer string, id string, secret string, tg TokenGetter) (*OIDCIDToken, error) {
-	provider, err := oidc.NewProvider(context.Background(), issuer)
-	if err != nil {
-		return nil, err
-	}
-	config := oauth2.Config{
-		ClientID:     id,
-		ClientSecret: secret,
-		Endpoint:     provider.Endpoint(),
-		Scopes:       []string{oidc.ScopeOpenID, "email"},
-	}
-
-	return tg.GetIDToken(provider, config)
-}
-
 type claims struct {
 	Email    string `json:"email"`
 	Verified bool   `json:"email_verified"`
@@ -144,7 +128,7 @@ type StaticTokenGetter struct {
 }
 
 // GetIDToken extracts an OIDCIDToken from the raw token *without verification*
-func (stg *StaticTokenGetter) GetIDToken(_ *oidc.Provider, _ oauth2.Config) (*OIDCIDToken, error) {
+func (stg *StaticTokenGetter) GetIDToken(context.Context) (*OIDCIDToken, error) {
 	unsafeTok, err := jose.ParseSigned(stg.RawToken)
 	if err != nil {
 		return nil, err

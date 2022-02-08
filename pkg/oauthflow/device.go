@@ -53,6 +53,9 @@ type tokenResp struct {
 
 // DeviceFlowTokenGetter fetches an OIDC Identity token using the Device Code Grant flow as specified in RFC8628
 type DeviceFlowTokenGetter struct {
+	OIDP     *oidc.Provider
+	OAuthCfg oauth2.Config
+
 	MessagePrinter func(string)
 	Sleeper        func(time.Duration)
 	Issuer         string
@@ -139,13 +142,14 @@ func (d *DeviceFlowTokenGetter) deviceFlow(clientID string) (string, error) {
 }
 
 // GetIDToken gets an OIDC ID Token from the specified provider using the device code grant flow
-func (d *DeviceFlowTokenGetter) GetIDToken(p *oidc.Provider, cfg oauth2.Config) (*OIDCIDToken, error) {
-	idToken, err := d.deviceFlow(cfg.ClientID)
+func (d *DeviceFlowTokenGetter) GetIDToken(ctx context.Context) (*OIDCIDToken, error) {
+	idToken, err := d.deviceFlow(d.OAuthCfg.ClientID)
 	if err != nil {
 		return nil, err
 	}
-	verifier := p.Verifier(&oidc.Config{ClientID: cfg.ClientID})
-	parsedIDToken, err := verifier.Verify(context.Background(), idToken)
+
+	verifier := d.OIDP.Verifier(&oidc.Config{ClientID: d.OAuthCfg.ClientID})
+	parsedIDToken, err := verifier.Verify(ctx, idToken)
 	if err != nil {
 		return nil, err
 	}

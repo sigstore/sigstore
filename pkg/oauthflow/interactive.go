@@ -35,13 +35,16 @@ const oobRedirectURI = "urn:ietf:wg:oauth:2.0:oob"
 
 // InteractiveIDTokenGetter is a type to get ID tokens for oauth flows
 type InteractiveIDTokenGetter struct {
+	OIDP     *oidc.Provider
+	OAuthCfg oauth2.Config
+
 	MessagePrinter     func(url string)
 	HTMLPage           string
 	ExtraAuthURLParams []oauth2.AuthCodeOption
 }
 
 // GetIDToken gets an OIDC ID Token from the specified provider using an interactive browser session
-func (i *InteractiveIDTokenGetter) GetIDToken(p *oidc.Provider, cfg oauth2.Config) (*OIDCIDToken, error) {
+func (i *InteractiveIDTokenGetter) GetIDToken(ctx context.Context) (*OIDCIDToken, error) {
 	// generate random fields and save them for comparison after OAuth2 dance
 	stateToken := randStr()
 	nonce := randStr()
@@ -59,10 +62,11 @@ func (i *InteractiveIDTokenGetter) GetIDToken(p *oidc.Provider, cfg oauth2.Confi
 		}()
 	}()
 
+	cfg := i.OAuthCfg
 	cfg.RedirectURL = redirectURL.String()
 
 	// require that OIDC provider support PKCE to provide sufficient security for the CLI
-	pkce, err := NewPKCE(p)
+	pkce, err := NewPKCE(i.OIDP)
 	if err != nil {
 		return nil, err
 	}
@@ -76,7 +80,7 @@ func (i *InteractiveIDTokenGetter) GetIDToken(p *oidc.Provider, cfg oauth2.Confi
 	if err := open.Run(authCodeURL); err != nil {
 		// Swap to the out of band flow if we can't open the browser
 		fmt.Fprintf(os.Stderr, "error opening browser: %v\n", err)
-		code = doOobFlow(&cfg, stateToken, opts)
+		code = doOobFlow(&i.OAuthCfg, stateToken, opts)
 	} else {
 		fmt.Fprintf(os.Stderr, "Your browser will now be opened to:\n%s\n", authCodeURL)
 		code, err = getCode(doneCh, errCh)
@@ -85,7 +89,7 @@ func (i *InteractiveIDTokenGetter) GetIDToken(p *oidc.Provider, cfg oauth2.Confi
 			code = doOobFlow(&cfg, stateToken, opts)
 		}
 	}
-	token, err := cfg.Exchange(context.Background(), code, append(pkce.TokenURLOpts(), oidc.Nonce(nonce))...)
+	token, err := cfg.Exchange(ctx, code, append(pkce.TokenURLOpts(), oidc.Nonce(nonce))...)
 	if err != nil {
 		return nil, err
 	}
@@ -97,8 +101,8 @@ func (i *InteractiveIDTokenGetter) GetIDToken(p *oidc.Provider, cfg oauth2.Confi
 	}
 
 	// verify nonce, client ID, access token hash before using it
-	verifier := p.Verifier(&oidc.Config{ClientID: cfg.ClientID})
-	parsedIDToken, err := verifier.Verify(context.Background(), idToken)
+	verifier := i.OIDP.Verifier(&oidc.Config{ClientID: cfg.ClientID})
+	parsedIDToken, err := verifier.Verify(ctx, idToken)
 	if err != nil {
 		return nil, err
 	}
