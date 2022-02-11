@@ -69,9 +69,8 @@ func NewPKCE(provider *oidc.Provider) (*PKCE, error) {
 	// (minimum length of 43 characters and a maximum length of 128 characters)
 	value := randStr() + randStr()
 
-	h := sha256.New()
-	_, _ = h.Write([]byte(value))
-	challenge := base64.RawURLEncoding.EncodeToString(h.Sum(nil))
+	h := sha256.Sum256([]byte(value))
+	challenge := base64.RawURLEncoding.EncodeToString(h[:])
 
 	return &PKCE{
 		Challenge: challenge,
