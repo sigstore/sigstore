@@ -34,7 +34,14 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
 	"github.com/sigstore/sigstore/pkg/signature"
+	sigkms "github.com/sigstore/sigstore/pkg/signature/kms"
 )
+
+func init() {
+	sigkms.AddProvider(ReferenceScheme, func(_ context.Context, keyResourceID string, hashFunc crypto.Hash, opts ...signature.RPCOption) (sigkms.SignerVerifier, error) {
+		return LoadSignerVerifier(keyResourceID, hashFunc, opts...)
+	})
+}
 
 type hashivaultClient struct {
 	client                  *vault.Client

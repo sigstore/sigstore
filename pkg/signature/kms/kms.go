@@ -22,26 +22,7 @@ import (
 	"strings"
 
 	"github.com/sigstore/sigstore/pkg/signature"
-	"github.com/sigstore/sigstore/pkg/signature/kms/aws"
-	"github.com/sigstore/sigstore/pkg/signature/kms/azure"
-	"github.com/sigstore/sigstore/pkg/signature/kms/gcp"
-	"github.com/sigstore/sigstore/pkg/signature/kms/hashivault"
 )
-
-func init() {
-	providersMux.AddProvider(aws.ReferenceScheme, func(ctx context.Context, keyResourceID string, hashFunc crypto.Hash, opts ...signature.RPCOption) (SignerVerifier, error) {
-		return aws.LoadSignerVerifier(keyResourceID)
-	})
-	providersMux.AddProvider(azure.ReferenceScheme, func(ctx context.Context, keyResourceID string, hashFunc crypto.Hash, opts ...signature.RPCOption) (SignerVerifier, error) {
-		return azure.LoadSignerVerifier(ctx, keyResourceID, hashFunc)
-	})
-	providersMux.AddProvider(gcp.ReferenceScheme, func(ctx context.Context, keyResourceID string, _ crypto.Hash, opts ...signature.RPCOption) (SignerVerifier, error) {
-		return gcp.LoadSignerVerifier(ctx, keyResourceID)
-	})
-	providersMux.AddProvider(hashivault.ReferenceScheme, func(ctx context.Context, keyResourceID string, hashFunc crypto.Hash, opts ...signature.RPCOption) (SignerVerifier, error) {
-		return hashivault.LoadSignerVerifier(keyResourceID, hashFunc, opts...)
-	})
-}
 
 type providerInit func(context.Context, string, crypto.Hash, ...signature.RPCOption) (SignerVerifier, error)
 
@@ -50,8 +31,8 @@ type providers struct {
 }
 
 // AddProvider adds the provider implementation into the local cache
-func (p *providers) AddProvider(keyResourceID string, init providerInit) {
-	p.providers[keyResourceID] = init
+func AddProvider(keyResourceID string, init providerInit) {
+	providersMux.providers[keyResourceID] = init
 }
 
 var providersMux = &providers{
