@@ -12,14 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package oauth
+package oidc
 
 import (
 	"context"
 	"fmt"
 	"testing"
 
-	"github.com/coreos/go-oidc/v3/oidc"
+	coreoidc "github.com/coreos/go-oidc/v3/oidc"
 )
 
 func TestProviderIsAzureBacked(t *testing.T) {
@@ -34,7 +34,7 @@ func TestProviderIsAzureBacked(t *testing.T) {
 	}
 	for _, tc := range actualAzureProviders {
 		t.Run(fmt.Sprintf("testing azure provider %v", tc), func(t *testing.T) {
-			p, err := oidc.NewProvider(context.Background(), tc)
+			p, err := coreoidc.NewProvider(context.Background(), tc)
 			if err != nil {
 				t.Error(err)
 			}
@@ -45,7 +45,7 @@ func TestProviderIsAzureBacked(t *testing.T) {
 	}
 	for _, tc := range notAzureProviders {
 		t.Run(fmt.Sprintf("testing invalid azure provider %v", tc), func(t *testing.T) {
-			p, err := oidc.NewProvider(context.Background(), tc)
+			p, err := coreoidc.NewProvider(context.Background(), tc)
 			if err != nil {
 				t.Error(err)
 			}

@@ -168,3 +168,5 @@ func (stg *StaticTokenGetter) GetIDToken(_ *oidc.Provider, _ oauth2.Config) (*OI
 		Subject:   subj,
 	}, nil
 }
+
+func InteractiveTokenFlow(ctx context.Context)

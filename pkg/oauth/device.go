@@ -29,12 +29,15 @@ import (
 
 const (
 	// SigstoreDeviceURL specifies the Device Code endpoint for the public good Sigstore service
-	/* #nosec */
 	SigstoreDeviceURL = "https://oauth2.sigstore.dev/auth/device/code"
 	// SigstoreTokenURL specifies the Token endpoint for the public good Sigstore service
-	/* #nosec */
 	SigstoreTokenURL = "https://oauth2.sigstore.dev/auth/device/token"
 )
+
+type DeviceEndpoint struct {
+	oauth2.Endpoint
+	DeviceURL string
+}
 
 type deviceResp struct {
 	DeviceCode              string `json:"device_code"`

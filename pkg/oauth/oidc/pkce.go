@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package oauth
+package oidc
 
 import (
 	"crypto/sha256"
@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"regexp"
 
-	"github.com/coreos/go-oidc/v3/oidc"
+	coreoidc "github.com/coreos/go-oidc/v3/oidc"
 	"golang.org/x/oauth2"
 )
 
@@ -37,7 +37,7 @@ type PKCE struct {
 }
 
 // NewPKCE creates a new PKCE challenge for the specified provider per its supported methods (obtained through OIDC discovery endpoint)
-func NewPKCE(provider *oidc.Provider) (*PKCE, error) {
+func NewPKCE(provider *coreoidc.Provider) (*PKCE, error) {
 	var providerClaims struct {
 		CodeChallengeMethodsSupported []string `json:"code_challenge_methods_supported"`
 	}
@@ -98,7 +98,7 @@ var azureregex = regexp.MustCompile(`^https:\/\/login\.microsoftonline\.(com|us)
 
 // providerIsAzureBacked returns a boolean indicating whether the provider is Azure-backed;
 // Azure supports PKCE but does not advertise it in their OIDC discovery endpoint
-func providerIsAzureBacked(p *oidc.Provider) bool {
+func providerIsAzureBacked(p *coreoidc.Provider) bool {
 	// Per https://docs.microsoft.com/en-us/azure/active-directory/develop/authentication-national-cloud#azure-ad-authentication-endpoints
 	// if endpoint starts with any of these strings then we should attempt PKCE anyway as their OIDC discovery doc
 	// does not advertise supporting PKCE but they actually do

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package oauth
+package oidc
 
 import (
 	"context"
@@ -23,7 +23,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/coreos/go-oidc/v3/oidc"
+	coreoidc "github.com/coreos/go-oidc/v3/oidc"
 	"github.com/pkg/errors"
 	"github.com/segmentio/ksuid"
 	"github.com/skratchdot/open-golang/open"
@@ -34,13 +34,16 @@ const oobRedirectURI = "urn:ietf:wg:oauth:2.0:oob"
 
 // InteractiveIDTokenGetter is a type to get ID tokens for oauth flows
 type InteractiveIDTokenGetter struct {
+	OAuthConfig oauth2.Config
+	OIDP        *coreoidc.Provider
+
 	MessagePrinter     func(url string)
 	HTMLPage           string
 	ExtraAuthURLParams []oauth2.AuthCodeOption
 }
 
-// GetIDToken gets an OIDC ID Token from the specified provider using an interactive browser session
-func (i *InteractiveIDTokenGetter) GetIDToken(p *oidc.Provider, cfg oauth2.Config) (*OIDCIDToken, error) {
+// IDToken gets an OIDC ID Token from the specified provider using an interactive browser session
+func (i *InteractiveIDTokenGetter) IDToken(ctx context.Context) (*IDToken, error) {
 	// generate random fields and save them for comparison after OAuth2 dance
 	stateToken := randStr()
 	nonce := randStr()
@@ -54,19 +57,21 @@ func (i *InteractiveIDTokenGetter) GetIDToken(p *oidc.Provider, cfg oauth2.Confi
 	}
 	defer func() {
 		go func() {
-			_ = redirectServer.Shutdown(context.Background())
+			_ = redirectServer.Shutdown(ctx)
 		}()
 	}()
+
+	cfg := i.OAuthConfig
 
 	cfg.RedirectURL = redirectURL.String()
 
 	// require that OIDC provider support PKCE to provide sufficient security for the CLI
-	pkce, err := NewPKCE(p)
+	pkce, err := NewPKCE(i.OIDP)
 	if err != nil {
 		return nil, err
 	}
 
-	opts := append(pkce.AuthURLOpts(), oauth2.AccessTypeOnline, oidc.Nonce(nonce))
+	opts := append(pkce.AuthURLOpts(), oauth2.AccessTypeOnline, coreoidc.Nonce(nonce))
 	if len(i.ExtraAuthURLParams) > 0 {
 		opts = append(opts, i.ExtraAuthURLParams...)
 	}
@@ -84,7 +89,7 @@ func (i *InteractiveIDTokenGetter) GetIDToken(p *oidc.Provider, cfg oauth2.Confi
 			code = doOobFlow(&cfg, stateToken, opts)
 		}
 	}
-	token, err := cfg.Exchange(context.Background(), code, append(pkce.TokenURLOpts(), oidc.Nonce(nonce))...)
+	token, err := cfg.Exchange(ctx, code, append(pkce.TokenURLOpts(), coreoidc.Nonce(nonce))...)
 	if err != nil {
 		return nil, err
 	}
@@ -96,8 +101,8 @@ func (i *InteractiveIDTokenGetter) GetIDToken(p *oidc.Provider, cfg oauth2.Confi
 	}
 
 	// verify nonce, client ID, access token hash before using it
-	verifier := p.Verifier(&oidc.Config{ClientID: cfg.ClientID})
-	parsedIDToken, err := verifier.Verify(context.Background(), idToken)
+	verifier := i.OIDP.Verifier(&coreoidc.Config{ClientID: cfg.ClientID})
+	parsedIDToken, err := verifier.Verify(ctx, idToken)
 	if err != nil {
 		return nil, err
 	}
@@ -110,16 +115,7 @@ func (i *InteractiveIDTokenGetter) GetIDToken(p *oidc.Provider, cfg oauth2.Confi
 		}
 	}
 
-	email, err := SubjectFromToken(parsedIDToken)
-	if err != nil {
-		return nil, err
-	}
-
-	returnToken := OIDCIDToken{
-		RawString: idToken,
-		Subject:   email,
-	}
-	return &returnToken, nil
+	return (*IDToken)(parsedIDToken), nil
 }
 
 func doOobFlow(cfg *oauth2.Config, stateToken string, opts []oauth2.AuthCodeOption) string {
