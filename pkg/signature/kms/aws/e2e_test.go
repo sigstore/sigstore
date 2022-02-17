@@ -13,9 +13,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:build e2e
 // +build e2e
 
-package main
+package aws
 
 import (
 	"bytes"
@@ -32,8 +33,6 @@ import (
 
 	awskms "github.com/aws/aws-sdk-go/service/kms"
 	"github.com/sigstore/sigstore/pkg/signature"
-	"github.com/sigstore/sigstore/pkg/signature/kms"
-	"github.com/sigstore/sigstore/pkg/signature/kms/aws"
 	"github.com/sigstore/sigstore/pkg/signature/options"
 )
 
@@ -42,11 +41,11 @@ type AWSSuite struct {
 	endpoint string
 }
 
-func (suite *AWSSuite) GetProvider(key string) *aws.SignerVerifier {
-	provider, err := kms.Get(context.Background(), fmt.Sprintf("awskms://%s/%s", suite.endpoint, key), crypto.SHA256)
+func (suite *AWSSuite) GetProvider(key string) *SignerVerifier {
+	provider, err := LoadSignerVerifier(fmt.Sprintf("awskms://%s/%s", suite.endpoint, key))
 	require.NoError(suite.T(), err)
 	require.NotNil(suite.T(), provider)
-	return provider.(*aws.SignerVerifier)
+	return provider
 }
 
 func (suite *AWSSuite) SetupSuite() {
@@ -59,7 +58,7 @@ func (suite *AWSSuite) TestGetProvider() {
 }
 
 func (suite *AWSSuite) TestInvalidProvider() {
-	provider, err := kms.Get(context.Background(), "awskms://"+suite.endpoint+"/nonsense", crypto.SHA256)
+	provider, err := LoadSignerVerifier("awskms://" + suite.endpoint + "/nonsense")
 	require.Error(suite.T(), err)
 	require.Nil(suite.T(), provider)
 }
