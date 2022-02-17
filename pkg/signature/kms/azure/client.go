@@ -35,7 +35,15 @@ import (
 	"github.com/Azure/azure-sdk-for-go/services/keyvault/v7.1/keyvault"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/to"
+	"github.com/sigstore/sigstore/pkg/signature"
+	sigkms "github.com/sigstore/sigstore/pkg/signature/kms"
 )
+
+func init() {
+	sigkms.AddProvider(ReferenceScheme, func(ctx context.Context, keyResourceID string, hashFunc crypto.Hash, opts ...signature.RPCOption) (sigkms.SignerVerifier, error) {
+		return LoadSignerVerifier(ctx, keyResourceID, hashFunc)
+	})
+}
 
 type azureVaultClient struct {
 	client    *keyvault.BaseClient

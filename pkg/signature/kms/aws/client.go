@@ -35,7 +35,14 @@ import (
 	"github.com/aws/aws-sdk-go/service/kms"
 	"github.com/pkg/errors"
 	"github.com/sigstore/sigstore/pkg/signature"
+	sigkms "github.com/sigstore/sigstore/pkg/signature/kms"
 )
+
+func init() {
+	sigkms.AddProvider(ReferenceScheme, func(_ context.Context, keyResourceID string, _ crypto.Hash, _ ...signature.RPCOption) (sigkms.SignerVerifier, error) {
+		return LoadSignerVerifier(keyResourceID)
+	})
+}
 
 const (
 	cacheKey = "signer"
