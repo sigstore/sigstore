@@ -297,7 +297,7 @@ func (a *awsClient) verify(ctx context.Context, sig, message io.Reader, opts ...
 	return verifier.VerifySignature(sig, message, opts...)
 }
 
-func (a *awsClient) verifyRemotely(ctx context.Context, sig []byte, digest []byte) error {
+func (a *awsClient) verifyRemotely(ctx context.Context, sig, digest []byte) error {
 	cmk, err := a.getCMK(ctx)
 	if err != nil {
 		return err

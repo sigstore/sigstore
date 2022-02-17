@@ -220,7 +220,7 @@ func (suite *AWSSuite) TestKeyTypes() {
 		awskms.CustomerMasterKeySpecEccNistP256,
 		awskms.CustomerMasterKeySpecEccNistP384,
 		awskms.CustomerMasterKeySpecEccNistP521,
-		//awskms.CustomerMasterKeySpecEccSecgP256k1, // unsupported by localstack at the moment
+		// awskms.CustomerMasterKeySpecEccSecgP256k1, // unsupported by localstack at the moment
 	} {
 		suite.T().Run(fmt.Sprintf("KeyType-%s", cmkSpec), func(t *testing.T) {
 			provider := suite.GetProvider("alias/" + cmkSpec)

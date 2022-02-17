@@ -219,7 +219,6 @@ func (suite *VaultSuite) TestSignSpecificKeyVersion() {
 	sig, err = provider2.SignMessage(bytes.NewReader(data), options.WithKeyVersion("2"))
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), sig)
-
 }
 
 func (suite *VaultSuite) TestVerifySpecificKeyVersion() {
