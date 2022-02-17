@@ -22,8 +22,7 @@ import (
 	"os"
 	"testing"
 
-	"bou.ke/monkey"
-
+	"github.com/agiledragon/gomonkey"
 	"github.com/go-rod/rod"
 	"github.com/sigstore/sigstore/pkg/oauthflow"
 	"github.com/skratchdot/open-golang/open"
@@ -38,11 +37,12 @@ type OAuthSuite struct {
 func (suite *OAuthSuite) TestOauthFlow() {
 	urlCh := make(chan string)
 
-	monkey.Patch(open.Run, func(input string) error {
+	// monkey patch this to not actually open a browser
+	patches := gomonkey.ApplyFunc(open.Run, func(input string) error {
 		urlCh <- input
 		return nil
 	})
-	defer monkey.UnpatchAll()
+	defer func() { patches.Reset() }()
 
 	go func() {
 		authCodeURL := <-urlCh
