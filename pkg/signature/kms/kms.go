@@ -49,6 +49,15 @@ func Get(ctx context.Context, keyResourceID string, hashFunc crypto.Hash, opts .
 	return nil, fmt.Errorf("no provider found for that key reference")
 }
 
+// SupportedProviders returns list of initialized providers
+func SupportedProviders() []string {
+	var keys []string
+	for key := range providersMux.providers {
+		keys = append(keys, key)
+	}
+	return keys
+}
+
 // SignerVerifier creates and verifies digital signatures over a message using a KMS service
 type SignerVerifier interface {
 	signature.SignerVerifier
