@@ -58,7 +58,7 @@ func (suite *AWSSuite) TestGetProvider() {
 }
 
 func (suite *AWSSuite) TestInvalidProvider() {
-	provider, err := LoadSignerVerifier("awskms://" + suite.endpoint + "/nonsense")
+	provider, err := LoadSignerVerifier(fmt.Sprintf("awskms://%s/nonsense", suite.endpoint))
 	require.Error(suite.T(), err)
 	require.Nil(suite.T(), provider)
 }
