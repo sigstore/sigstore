@@ -16,7 +16,7 @@
 //go:build e2e
 // +build e2e
 
-package main
+package hashivault
 
 import (
 	"bytes"
@@ -33,8 +33,6 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/sigstore/sigstore/pkg/signature"
-	"github.com/sigstore/sigstore/pkg/signature/kms"
-	"github.com/sigstore/sigstore/pkg/signature/kms/hashivault"
 	"github.com/sigstore/sigstore/pkg/signature/options"
 
 	vault "github.com/hashicorp/vault/api"
@@ -45,11 +43,11 @@ type VaultSuite struct {
 	vaultclient *vault.Client
 }
 
-func (suite *VaultSuite) GetProvider(key string, opts ...signature.RPCOption) *hashivault.SignerVerifier {
-	provider, err := kms.Get(context.Background(), fmt.Sprintf("hashivault://%s", key), crypto.SHA256, opts...)
+func (suite *VaultSuite) GetProvider(key string, opts ...signature.RPCOption) *SignerVerifier {
+	provider, err := LoadSignerVerifier(fmt.Sprintf("hashivault://%s", key), crypto.SHA256, opts...)
 	require.NoError(suite.T(), err)
 	require.NotNil(suite.T(), provider)
-	return provider.(*hashivault.SignerVerifier)
+	return provider
 }
 
 func (suite *VaultSuite) SetupSuite() {
@@ -94,7 +92,7 @@ func (suite *VaultSuite) TestProvider() {
 func (suite *VaultSuite) TestCreateKey() {
 	provider := suite.GetProvider("createkey")
 
-	key, err := provider.CreateKey(context.Background(), hashivault.Algorithm_ECDSA_P256)
+	key, err := provider.CreateKey(context.Background(), Algorithm_ECDSA_P256)
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), key)
 }
@@ -102,7 +100,7 @@ func (suite *VaultSuite) TestCreateKey() {
 func (suite *VaultSuite) TestSign() {
 	provider := suite.GetProvider("testsign")
 
-	key, err := provider.CreateKey(context.Background(), hashivault.Algorithm_ECDSA_P256)
+	key, err := provider.CreateKey(context.Background(), Algorithm_ECDSA_P256)
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), key)
 
@@ -126,7 +124,7 @@ func (suite *VaultSuite) TestSignOpts() {
 	provider := suite.GetProvider("testsign",
 		options.WithRPCAuthOpts(options.RPCAuth{Address: addr, Token: token}))
 
-	key, err := provider.CreateKey(context.Background(), hashivault.Algorithm_ECDSA_P256)
+	key, err := provider.CreateKey(context.Background(), Algorithm_ECDSA_P256)
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), key)
 
@@ -143,7 +141,7 @@ func (suite *VaultSuite) TestSignOpts() {
 func (suite *VaultSuite) TestSignSpecificKeyVersion() {
 	provider := suite.GetProvider("testsignversion")
 
-	key, err := provider.CreateKey(context.Background(), hashivault.Algorithm_ECDSA_P256)
+	key, err := provider.CreateKey(context.Background(), Algorithm_ECDSA_P256)
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), key)
 
@@ -227,7 +225,7 @@ func (suite *VaultSuite) TestSignSpecificKeyVersion() {
 func (suite *VaultSuite) TestVerifySpecificKeyVersion() {
 	provider := suite.GetProvider("testverifyversion")
 
-	key, err := provider.CreateKey(context.Background(), hashivault.Algorithm_ECDSA_P256)
+	key, err := provider.CreateKey(context.Background(), Algorithm_ECDSA_P256)
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), key)
 
@@ -288,7 +286,7 @@ func (suite *VaultSuite) TestVerifySpecificKeyVersion() {
 func (suite *VaultSuite) TestSignAndRecordKeyVersion() {
 	provider := suite.GetProvider("testrecordsignversion")
 
-	key, err := provider.CreateKey(context.Background(), hashivault.Algorithm_ECDSA_P256)
+	key, err := provider.CreateKey(context.Background(), Algorithm_ECDSA_P256)
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), key)
 
@@ -316,7 +314,7 @@ func (suite *VaultSuite) TestSignWithDifferentTransitSecretEnginePath() {
 	os.Setenv("TRANSIT_SECRET_ENGINE_PATH", "somerandompath")
 	defer os.Setenv("TRANSIT_SECRET_ENGINE_PATH", "transit")
 
-	key, err := provider.CreateKey(context.Background(), hashivault.Algorithm_ECDSA_P256)
+	key, err := provider.CreateKey(context.Background(), Algorithm_ECDSA_P256)
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), key)
 
@@ -335,7 +333,7 @@ func (suite *VaultSuite) TestSignWithDifferentTransitSecretEnginePath() {
 func (suite *VaultSuite) TestSignWithDifferentTransitSecretEnginePathOpts() {
 	provider := suite.GetProvider("testsign", options.WithRPCAuthOpts(options.RPCAuth{Path: "somerandompath"}))
 
-	key, err := provider.CreateKey(context.Background(), hashivault.Algorithm_ECDSA_P256)
+	key, err := provider.CreateKey(context.Background(), Algorithm_ECDSA_P256)
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), key)
 
@@ -354,7 +352,7 @@ func (suite *VaultSuite) TestSignWithDifferentTransitSecretEnginePathOpts() {
 func (suite *VaultSuite) TestPubKeyVerify() {
 	provider := suite.GetProvider("testsign")
 
-	key, err := provider.CreateKey(context.Background(), hashivault.Algorithm_ECDSA_P256)
+	key, err := provider.CreateKey(context.Background(), Algorithm_ECDSA_P256)
 	require.Nil(suite.T(), err)
 	require.NotNil(suite.T(), key)
 
@@ -378,7 +376,7 @@ func (suite *VaultSuite) TestPubKeyVerify() {
 func (suite *VaultSuite) TestCryptoSigner() {
 	provider := suite.GetProvider("testsign")
 
-	key, err := provider.CreateKey(context.Background(), hashivault.Algorithm_ECDSA_P256)
+	key, err := provider.CreateKey(context.Background(), Algorithm_ECDSA_P256)
 	require.Nil(suite.T(), err)
 	require.NotNil(suite.T(), key)
 
@@ -404,7 +402,7 @@ func (suite *VaultSuite) TestCryptoSigner() {
 func (suite *VaultSuite) TestVerify() {
 	provider := suite.GetProvider("testverify")
 
-	key, err := provider.CreateKey(context.Background(), hashivault.Algorithm_ECDSA_P256)
+	key, err := provider.CreateKey(context.Background(), Algorithm_ECDSA_P256)
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), key)
 
@@ -420,7 +418,7 @@ func (suite *VaultSuite) TestVerify() {
 func (suite *VaultSuite) TestVerifyBadData() {
 	provider := suite.GetProvider("testverify")
 
-	key, err := provider.CreateKey(context.Background(), hashivault.Algorithm_ECDSA_P256)
+	key, err := provider.CreateKey(context.Background(), Algorithm_ECDSA_P256)
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), key)
 
@@ -438,11 +436,11 @@ func (suite *VaultSuite) TestBadSignature() {
 	provider1 := suite.GetProvider("testverify1")
 	provider2 := suite.GetProvider("testverify2")
 
-	key1, err := provider1.CreateKey(context.Background(), hashivault.Algorithm_ECDSA_P256)
+	key1, err := provider1.CreateKey(context.Background(), Algorithm_ECDSA_P256)
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), key1)
 
-	key2, err := provider2.CreateKey(context.Background(), hashivault.Algorithm_ECDSA_P256)
+	key2, err := provider2.CreateKey(context.Background(), Algorithm_ECDSA_P256)
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), key2)
 
@@ -460,18 +458,18 @@ func (suite *VaultSuite) TestBadSignature() {
 }
 
 func (suite *VaultSuite) TestNoProvider() {
-	provider, err := kms.Get(context.Background(), "hashi://nonsense", crypto.Hash(0))
+	provider, err := LoadSignerVerifier("hashi://nonsense", crypto.Hash(0))
 	require.Error(suite.T(), err)
 	require.Nil(suite.T(), provider)
 }
 
 func (suite *VaultSuite) TestInvalidHost() {
-	provider, err := kms.Get(context.Background(), "hashivault://keyname", crypto.SHA256,
+	provider, err := LoadSignerVerifier("hashivault://keyname", crypto.SHA256,
 		options.WithRPCAuthOpts(options.RPCAuth{Address: "https://unknown.example.com:8200"}))
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), provider)
 
-	_, err = provider.CreateKey(context.Background(), hashivault.Algorithm_ECDSA_P256)
+	_, err = provider.CreateKey(context.Background(), Algorithm_ECDSA_P256)
 	require.Error(suite.T(), err)
 }
 

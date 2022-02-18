@@ -33,6 +33,8 @@ import (
 
 const oobRedirectURI = "urn:ietf:wg:oauth:2.0:oob"
 
+var browserOpener = open.Run
+
 // InteractiveIDTokenGetter is a type to get ID tokens for oauth flows
 type InteractiveIDTokenGetter struct {
 	MessagePrinter     func(url string)
@@ -73,7 +75,7 @@ func (i *InteractiveIDTokenGetter) GetIDToken(p *oidc.Provider, cfg oauth2.Confi
 	}
 	authCodeURL := cfg.AuthCodeURL(stateToken, opts...)
 	var code string
-	if err := open.Run(authCodeURL); err != nil {
+	if err := browserOpener(authCodeURL); err != nil {
 		// Swap to the out of band flow if we can't open the browser
 		fmt.Fprintf(os.Stderr, "error opening browser: %v\n", err)
 		code = doOobFlow(&cfg, stateToken, opts)

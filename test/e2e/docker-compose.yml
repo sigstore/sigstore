@@ -29,10 +29,10 @@ services:
     environment:
       - SERVICES=kms
   dex:
-    image: ghcr.io/dexidp/dex:v2.30.0
+    image: ghcr.io/dexidp/dex:v2.31.0
     ports:
       - "5556:5556"
     volumes:
-      - ./oauthflow/dex-config.yml:/etc/dex/dex-config.yml:z
+      - ./dex-config.yml:/etc/dex/dex-config.yml:z
     command: ["dex", "serve", "/etc/dex/dex-config.yml"]
 
