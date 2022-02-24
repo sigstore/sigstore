@@ -90,6 +90,20 @@ func TestParseReference(t *testing.T) {
 			wantErr:      false,
 		},
 		{
+			in:           "awskms:///arn:aws-us-gov:kms:us-gov-west-1:111122223333:alias/ExampleAlias",
+			wantEndpoint: "",
+			wantKeyID:    "arn:aws-us-gov:kms:us-gov-west-1:111122223333:alias/ExampleAlias",
+			wantAlias:    "alias/ExampleAlias",
+			wantErr:      false,
+		},
+		{
+			in:           "awskms:///arn:aws-us-gov:kms:us-gov-west-1:111122223333:key/1234abcd-12ab-34cd-56ef-1234567890ab",
+			wantEndpoint: "",
+			wantKeyID:    "arn:aws-us-gov:kms:us-gov-west-1:111122223333:key/1234abcd-12ab-34cd-56ef-1234567890ab",
+			wantAlias:    "",
+			wantErr:      false,
+		},
+		{
 			in:           "awskms://localhost:4566/arn:aws:kms:us-east-2:111122223333:alias/ExampleAlias",
 			wantEndpoint: "localhost:4566",
 			wantKeyID:    "arn:aws:kms:us-east-2:111122223333:alias/ExampleAlias",
