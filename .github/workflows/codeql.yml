@@ -21,6 +21,9 @@ on:
     # The branches below must be a subset of the branches above
     branches: [ main ]
 
+permissions:
+  security-events: write
+
 jobs:
   analyze:
     name: Analyze
