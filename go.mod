@@ -5,7 +5,7 @@ go 1.16
 require (
 	cloud.google.com/go/iam v0.1.1 // indirect
 	cloud.google.com/go/kms v1.4.0
-	github.com/Azure/azure-sdk-for-go v62.0.0+incompatible
+	github.com/Azure/azure-sdk-for-go v62.1.0+incompatible
 	github.com/Azure/go-autorest/autorest v0.11.24
 	github.com/Azure/go-autorest/autorest/azure/auth v0.5.11 // indirect
 	github.com/Azure/go-autorest/autorest/to v0.4.0
