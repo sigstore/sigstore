@@ -45,8 +45,8 @@ func doOobFlow(cfg *oauth2.Config, stateToken string, opts []oauth2.AuthCodeOpti
 	return code
 }
 
-func startRedirectListener(state, htmlPage string, doneCh chan string, errCh chan error) (*http.Server, *url.URL, error) {
-	listener, err := net.Listen("tcp", "localhost:0")
+func startRedirectListener(state, htmlPage string, codeCh chan string, errCh chan error) (*http.Server, *url.URL, error) {
+	listener, err := net.Listen("tcp", "localhost:0") // ":0" == OS picks
 	if err != nil {
 		return nil, nil, err
 	}
@@ -72,12 +72,12 @@ func startRedirectListener(state, htmlPage string, doneCh chan string, errCh cha
 			errCh <- errors.New("invalid state token")
 			return
 		}
-		doneCh <- r.FormValue("code")
+		codeCh <- r.FormValue("code")
 		fmt.Fprint(w, htmlPage)
 	})
 
 	go func() {
-		if err := s.Serve(listener); err != nil && err != http.ErrServerClosed {
+		if err := s.Serve(listener); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			errCh <- err
 		}
 	}()
@@ -85,14 +85,13 @@ func startRedirectListener(state, htmlPage string, doneCh chan string, errCh cha
 	return s, url, nil
 }
 
-func getCode(doneCh chan string, errCh chan error) (string, error) {
-	timeoutCh := time.NewTimer(120 * time.Second)
+func getCode(codeCh chan string, errCh chan error) (string, error) {
 	select {
-	case code := <-doneCh:
+	case code := <-codeCh:
 		return code, nil
 	case err := <-errCh:
 		return "", err
-	case <-timeoutCh.C:
+	case <-time.After(120 * time.Second):
 		return "", errors.New("timeout")
 	}
 }
@@ -107,16 +106,18 @@ func doInteractiveIDTokenFlow(ctx context.Context, cfg oauth2.Config, p *coreoid
 	stateToken := newKSUID()
 	nonce := newKSUID()
 
-	doneCh := make(chan string)
+	codeCh := make(chan string)
 	errCh := make(chan error)
 	// starts listener on ephemeral port
-	redirectServer, redirectURL, err := startRedirectListener(stateToken, oauth.InteractiveSuccessHTML, doneCh, errCh)
+	redirectServer, redirectURL, err := startRedirectListener(stateToken, oauth.InteractiveSuccessHTML, codeCh, errCh)
 	if err != nil {
 		return nil, errors.Wrap(err, "starting redirect listener")
 	}
 	defer func() {
 		go func() {
 			_ = redirectServer.Shutdown(context.Background())
+			close(codeCh)
+			close(errCh)
 		}()
 	}()
 
@@ -140,7 +141,7 @@ func doInteractiveIDTokenFlow(ctx context.Context, cfg oauth2.Config, p *coreoid
 		code = doOobFlow(&cfg, stateToken, opts)
 	} else {
 		fmt.Fprintf(os.Stderr, "Your browser will now be opened to:\n%s\n", authCodeURL)
-		code, err = getCode(doneCh, errCh)
+		code, err = getCode(codeCh, errCh)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "error getting code from local server: %v\n", err)
 			code = doOobFlow(&cfg, stateToken, opts)
