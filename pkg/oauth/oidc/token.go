@@ -22,9 +22,10 @@ import (
 	"golang.org/x/oauth2"
 )
 
+// IDToken is a structured representation of an OIDC IDToken.
 type IDToken coreoidc.IDToken
 
-// IDTokenSource provides *IDTokens
+// IDTokenSource provides `IDTokens`.
 type IDTokenSource interface {
 	// IDToken returns an ID token or an error.
 	IDToken(context.Context) (*IDToken, error)
@@ -38,6 +39,7 @@ func (s staticIDTokenSource) IDToken(context.Context) (*IDToken, error) {
 	return s.idt, nil
 }
 
+// StaticIDTokenSource returns an `IDTokenSource` which always returns the given `IDToken`.
 func StaticIDTokenSource(idt *IDToken) IDTokenSource {
 	return staticIDTokenSource{idt: idt}
 }

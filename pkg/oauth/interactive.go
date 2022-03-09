@@ -15,6 +15,7 @@
 package oauth
 
 const (
+	// InteractiveSuccessHTML is the page displayed upon success when using a web browser during an interactive Oauth token flow.
 	InteractiveSuccessHTML = `<html>
 <title>Sigstore Auth</title>
 <body>

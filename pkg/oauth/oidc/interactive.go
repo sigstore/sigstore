@@ -170,6 +170,7 @@ func (idts *interactiveIDTokenSource) IDToken(ctx context.Context) (*IDToken, er
 	return doInteractiveIDTokenFlow(ctx, idts.cfg, idts.oidp, idts.extraAuthCodeOpts, browser.OpenURL)
 }
 
+// InteractiveIDTokenSource returns an `IDTokenSource` which performs an interactive Oauth token flow in order to retrieve an `IDToken`.
 func InteractiveIDTokenSource(cfg oauth2.Config, oidp *coreoidc.Provider, extraAuthCodeOpts []oauth2.AuthCodeOption, allowBrowser bool) IDTokenSource {
 	ts := &interactiveIDTokenSource{cfg: cfg, oidp: oidp, extraAuthCodeOpts: extraAuthCodeOpts, browser: failBrowser}
 	if allowBrowser {
