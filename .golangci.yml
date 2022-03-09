@@ -15,14 +15,24 @@
 
 linters:
   enable:
+  - asciicheck
   - deadcode
+  - depguard
   - errcheck
+  - errorlint
   - gofmt
   - goimports
   - gosec
   - gocritic
+  - importas
+  - prealloc
   - revive
   - misspell
+  - stylecheck
+  - tparallel
+  - unconvert
+  - unparam
+  - whitespace
 output:
   uniq-by-line: false
 issues:
