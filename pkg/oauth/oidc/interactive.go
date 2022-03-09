@@ -111,6 +111,8 @@ func doInteractiveIDTokenFlow(ctx context.Context, cfg oauth2.Config, p *coreoid
 	// starts listener on ephemeral port
 	redirectServer, redirectURL, err := startRedirectListener(stateToken, oauth.InteractiveSuccessHTML, codeCh, errCh)
 	if err != nil {
+		close(codeCh)
+		close(errCh)
 		return nil, errors.Wrap(err, "starting redirect listener")
 	}
 	defer func() {
