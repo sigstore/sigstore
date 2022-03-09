@@ -165,8 +165,10 @@ type interactiveIDTokenSource struct {
 	browser           browserOpener
 }
 
+var errWontOpenBrowser = errors.New("not opening that browser")
+
 func failBrowser(string) error {
-	return errors.New("not opening that browser")
+	return errWontOpenBrowser
 }
 
 func (idts *interactiveIDTokenSource) IDToken(ctx context.Context) (*IDToken, error) {
