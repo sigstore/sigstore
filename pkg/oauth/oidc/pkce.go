@@ -67,7 +67,7 @@ func NewPKCE(provider *coreoidc.Provider) (*PKCE, error) {
 
 	// we use two 27 character strings to meet requirements of RFC 7636:
 	// (minimum length of 43 characters and a maximum length of 128 characters)
-	value := randStr() + randStr()
+	value := newKSUID() + newKSUID()
 
 	h := sha256.Sum256([]byte(value))
 	challenge := base64.RawURLEncoding.EncodeToString(h[:])

@@ -18,33 +18,50 @@ import (
 	"context"
 
 	coreoidc "github.com/coreos/go-oidc/v3/oidc"
+	"github.com/pkg/errors"
 	"golang.org/x/oauth2"
 )
 
 type IDToken coreoidc.IDToken
 
-// IDTokenSource provides a way to get an OIDC ID Token from an OIDC IdP
+// IDTokenSource provides *IDTokens
 type IDTokenSource interface {
 	// IDToken returns an ID token or an error.
 	IDToken(context.Context) (*IDToken, error)
 }
 
-type CachingIDTokenSource struct {
-	TokenSource oauth2.TokenSource
-	OIDP        *coreoidc.Provider
-
-	currentToken   *oauth2.Token
-	currentIDToken *IDToken
+type staticIDTokenSource struct {
+	idt *IDToken
 }
 
-func (s *CachingIDTokenSource) IDToken() (*IDToken, error) {
-	newTok, err := s.TokenSource.Token()
+func (s staticIDTokenSource) IDToken(context.Context) (*IDToken, error) {
+	return s.idt, nil
+}
+
+func StaticIDTokenSource(idt *IDToken) IDTokenSource {
+	return staticIDTokenSource{idt: idt}
+}
+
+// extractAndVerifyIDToken extracts the ID token from the given `oauth2.Token`, then verifies it against the given verifier and nonce.
+func extractAndVerifyIDToken(ctx context.Context, t *oauth2.Token, v *coreoidc.IDTokenVerifier, nonce string) (*IDToken, error) {
+	// requesting 'openid' scope should ensure an id_token is given when exchanging the code for an access token
+	unverifiedIDToken, ok := t.Extra("id_token").(string)
+	if !ok {
+		return nil, errors.New("id_token not present")
+	}
+
+	// verify nonce, client ID, access token hash before using it
+	idToken, err := v.Verify(ctx, unverifiedIDToken)
 	if err != nil {
 		return nil, err
 	}
-	if newTok.AccessToken == s.currentToken.AccessToken {
-		return s.currentIDToken, nil
+	if idToken.Nonce != nonce {
+		return nil, errors.New("nonce does not match value sent")
 	}
-
-	return nil, nil
+	if idToken.AccessTokenHash != "" {
+		if err := idToken.VerifyAccessToken(t.AccessToken); err != nil {
+			return nil, err
+		}
+	}
+	return (*IDToken)(idToken), nil
 }

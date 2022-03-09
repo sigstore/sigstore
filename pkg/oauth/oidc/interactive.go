@@ -24,99 +24,16 @@ import (
 	"time"
 
 	coreoidc "github.com/coreos/go-oidc/v3/oidc"
+	"github.com/pkg/browser"
 	"github.com/pkg/errors"
 	"github.com/segmentio/ksuid"
-	"github.com/skratchdot/open-golang/open"
+	"github.com/sigstore/sigstore/pkg/oauth"
 	"golang.org/x/oauth2"
 )
 
 const oobRedirectURI = "urn:ietf:wg:oauth:2.0:oob"
 
-// InteractiveIDTokenGetter is a type to get ID tokens for oauth flows
-type InteractiveIDTokenGetter struct {
-	OAuthConfig oauth2.Config
-	OIDP        *coreoidc.Provider
-
-	MessagePrinter     func(url string)
-	HTMLPage           string
-	ExtraAuthURLParams []oauth2.AuthCodeOption
-}
-
-// IDToken gets an OIDC ID Token from the specified provider using an interactive browser session
-func (i *InteractiveIDTokenGetter) IDToken(ctx context.Context) (*IDToken, error) {
-	// generate random fields and save them for comparison after OAuth2 dance
-	stateToken := randStr()
-	nonce := randStr()
-
-	doneCh := make(chan string)
-	errCh := make(chan error)
-	// starts listener on ephemeral port
-	redirectServer, redirectURL, err := startRedirectListener(stateToken, i.HTMLPage, doneCh, errCh)
-	if err != nil {
-		return nil, errors.Wrap(err, "starting redirect listener")
-	}
-	defer func() {
-		go func() {
-			_ = redirectServer.Shutdown(ctx)
-		}()
-	}()
-
-	cfg := i.OAuthConfig
-
-	cfg.RedirectURL = redirectURL.String()
-
-	// require that OIDC provider support PKCE to provide sufficient security for the CLI
-	pkce, err := NewPKCE(i.OIDP)
-	if err != nil {
-		return nil, err
-	}
-
-	opts := append(pkce.AuthURLOpts(), oauth2.AccessTypeOnline, coreoidc.Nonce(nonce))
-	if len(i.ExtraAuthURLParams) > 0 {
-		opts = append(opts, i.ExtraAuthURLParams...)
-	}
-	authCodeURL := cfg.AuthCodeURL(stateToken, opts...)
-	var code string
-	if err := open.Run(authCodeURL); err != nil {
-		// Swap to the out of band flow if we can't open the browser
-		fmt.Fprintf(os.Stderr, "error opening browser: %v\n", err)
-		code = doOobFlow(&cfg, stateToken, opts)
-	} else {
-		fmt.Fprintf(os.Stderr, "Your browser will now be opened to:\n%s\n", authCodeURL)
-		code, err = getCode(doneCh, errCh)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "error getting code from local server: %v\n", err)
-			code = doOobFlow(&cfg, stateToken, opts)
-		}
-	}
-	token, err := cfg.Exchange(ctx, code, append(pkce.TokenURLOpts(), coreoidc.Nonce(nonce))...)
-	if err != nil {
-		return nil, err
-	}
-
-	// requesting 'openid' scope should ensure an id_token is given when exchanging the code for an access token
-	idToken, ok := token.Extra("id_token").(string)
-	if !ok {
-		return nil, errors.New("id_token not present")
-	}
-
-	// verify nonce, client ID, access token hash before using it
-	verifier := i.OIDP.Verifier(&coreoidc.Config{ClientID: cfg.ClientID})
-	parsedIDToken, err := verifier.Verify(ctx, idToken)
-	if err != nil {
-		return nil, err
-	}
-	if parsedIDToken.Nonce != nonce {
-		return nil, errors.New("nonce does not match value sent")
-	}
-	if parsedIDToken.AccessTokenHash != "" {
-		if err := parsedIDToken.VerifyAccessToken(token.AccessToken); err != nil {
-			return nil, err
-		}
-	}
-
-	return (*IDToken)(parsedIDToken), nil
-}
+type browserOpener func(url string) error
 
 func doOobFlow(cfg *oauth2.Config, stateToken string, opts []oauth2.AuthCodeOption) string {
 	cfg.RedirectURL = oobRedirectURI
@@ -180,10 +97,83 @@ func getCode(doneCh chan string, errCh chan error) (string, error) {
 	}
 }
 
-func randStr() string {
-	// we use ksuid here to ensure we get globally unique values to mitigate
-	// risk of replay attacks
-
-	// output is a 27 character base62 string which is by default URL-safe
+// newKSUID returns a globally unique, base62 (URL-safe) encoded, 27 character string.
+func newKSUID() string {
 	return ksuid.New().String()
+}
+
+func doInteractiveIDTokenFlow(ctx context.Context, cfg oauth2.Config, p *coreoidc.Provider, extraAuthCodeOpts []oauth2.AuthCodeOption, openBrowser browserOpener) (*IDToken, error) {
+	// generate random fields and save them for comparison after OAuth2 dance
+	stateToken := newKSUID()
+	nonce := newKSUID()
+
+	doneCh := make(chan string)
+	errCh := make(chan error)
+	// starts listener on ephemeral port
+	redirectServer, redirectURL, err := startRedirectListener(stateToken, oauth.InteractiveSuccessHTML, doneCh, errCh)
+	if err != nil {
+		return nil, errors.Wrap(err, "starting redirect listener")
+	}
+	defer func() {
+		go func() {
+			_ = redirectServer.Shutdown(context.Background())
+		}()
+	}()
+
+	cfg.RedirectURL = redirectURL.String()
+
+	// require that OIDC provider support PKCE to provide sufficient security for the CLI
+	pkce, err := NewPKCE(p)
+	if err != nil {
+		return nil, err
+	}
+
+	opts := append(pkce.AuthURLOpts(), oauth2.AccessTypeOnline, coreoidc.Nonce(nonce))
+	if len(extraAuthCodeOpts) > 0 {
+		opts = append(opts, extraAuthCodeOpts...)
+	}
+	authCodeURL := cfg.AuthCodeURL(stateToken, opts...)
+	var code string
+	if err := openBrowser(authCodeURL); err != nil {
+		// Swap to the out of band flow if we can't open the browser
+		fmt.Fprintf(os.Stderr, "error opening browser: %v\n", err)
+		code = doOobFlow(&cfg, stateToken, opts)
+	} else {
+		fmt.Fprintf(os.Stderr, "Your browser will now be opened to:\n%s\n", authCodeURL)
+		code, err = getCode(doneCh, errCh)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "error getting code from local server: %v\n", err)
+			code = doOobFlow(&cfg, stateToken, opts)
+		}
+	}
+	token, err := cfg.Exchange(ctx, code, append(pkce.TokenURLOpts(), coreoidc.Nonce(nonce))...)
+	if err != nil {
+		return nil, err
+	}
+
+	verifier := p.Verifier(&coreoidc.Config{ClientID: cfg.ClientID})
+	return extractAndVerifyIDToken(ctx, token, verifier, nonce)
+}
+
+type interactiveIDTokenSource struct {
+	cfg               oauth2.Config
+	oidp              *coreoidc.Provider
+	extraAuthCodeOpts []oauth2.AuthCodeOption
+	browser           browserOpener
+}
+
+func failBrowser(string) error {
+	return errors.New("not opening that browser")
+}
+
+func (idts *interactiveIDTokenSource) IDToken(ctx context.Context) (*IDToken, error) {
+	return doInteractiveIDTokenFlow(ctx, idts.cfg, idts.oidp, idts.extraAuthCodeOpts, browser.OpenURL)
+}
+
+func InteractiveIDTokenSource(cfg oauth2.Config, oidp *coreoidc.Provider, extraAuthCodeOpts []oauth2.AuthCodeOption, allowBrowser bool) IDTokenSource {
+	ts := &interactiveIDTokenSource{cfg: cfg, oidp: oidp, extraAuthCodeOpts: extraAuthCodeOpts, browser: failBrowser}
+	if allowBrowser {
+		ts.browser = browser.OpenURL
+	}
+	return ts
 }
