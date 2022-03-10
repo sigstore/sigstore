@@ -23,7 +23,9 @@ import (
 )
 
 // IDToken is a structured representation of an OIDC IDToken.
-type IDToken coreoidc.IDToken
+type IDToken struct {
+	coreoidc.IDToken
+}
 
 // IDTokenSource provides `IDTokens`.
 type IDTokenSource interface {
@@ -65,5 +67,5 @@ func extractAndVerifyIDToken(ctx context.Context, t *oauth2.Token, v *coreoidc.I
 			return nil, err
 		}
 	}
-	return (*IDToken)(idToken), nil
+	return &IDToken{*idToken}, nil
 }

@@ -53,7 +53,7 @@ func identityFromClaims(c claims) (string, error) {
 // identityFromIDToken extracts the email or subject claim from an `IDToken``
 func identityFromIDToken(tok *IDToken) (string, error) {
 	claims := claims{}
-	oidcTok := (*coreoidc.IDToken)(tok)
+	oidcTok := tok.IDToken
 	if err := oidcTok.Claims(&claims); err != nil {
 		return "", err
 	}
