@@ -172,7 +172,7 @@ func failBrowser(string) error {
 }
 
 func (idts *interactiveIDTokenSource) IDToken(ctx context.Context) (*IDToken, error) {
-	return doInteractiveIDTokenFlow(ctx, idts.cfg, idts.oidp, idts.extraAuthCodeOpts, browser.OpenURL)
+	return doInteractiveIDTokenFlow(ctx, idts.cfg, idts.oidp, idts.extraAuthCodeOpts, idts.browser)
 }
 
 // InteractiveIDTokenSource returns an `IDTokenSource` which performs an interactive Oauth token flow in order to retrieve an `IDToken`.
