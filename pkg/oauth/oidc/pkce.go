@@ -82,7 +82,7 @@ func NewPKCE(provider *coreoidc.Provider) (*PKCE, error) {
 // AuthURLOpts returns the set of request parameters required during the initial exchange of the OAuth2 flow
 func (p *PKCE) AuthURLOpts() []oauth2.AuthCodeOption {
 	return []oauth2.AuthCodeOption{
-		oauth2.SetAuthURLParam("code_challenge_method", string(p.Method)),
+		oauth2.SetAuthURLParam("code_challenge_method", p.Method),
 		oauth2.SetAuthURLParam("code_challenge", p.Challenge),
 	}
 }
