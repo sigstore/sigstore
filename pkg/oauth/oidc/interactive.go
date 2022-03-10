@@ -155,7 +155,9 @@ func (idts *interactiveIDTokenSource) IDToken(ctx context.Context) (*IDToken, er
 	var code string
 	if err := idts.browser(authCodeURL); err != nil {
 		// Swap to the out of band flow if we can't open the browser
-		fmt.Fprintf(os.Stderr, "error opening browser: %v\n", err)
+		if !errors.Is(err, errWontOpenBrowser) {
+			fmt.Fprintf(os.Stderr, "error opening browser: %v\n", err)
+		}
 		code = doOobFlow(&cfg, stateToken, opts)
 	} else {
 		fmt.Fprintf(os.Stderr, "Your browser will now be opened to:\n%s\n", authCodeURL)
