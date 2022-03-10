@@ -101,7 +101,23 @@ func newKSUID() string {
 	return ksuid.New().String()
 }
 
-func doInteractiveIDTokenFlow(ctx context.Context, cfg oauth2.Config, p *coreoidc.Provider, extraAuthCodeOpts []oauth2.AuthCodeOption, openBrowser browserOpener) (*IDToken, error) {
+type interactiveIDTokenSource struct {
+	cfg               oauth2.Config
+	oidp              *coreoidc.Provider
+	extraAuthCodeOpts []oauth2.AuthCodeOption
+	browser           browserOpener
+}
+
+var errWontOpenBrowser = errors.New("not opening that browser")
+
+func failBrowser(string) error {
+	return errWontOpenBrowser
+}
+
+func (idts *interactiveIDTokenSource) IDToken(ctx context.Context) (*IDToken, error) {
+	cfg := idts.cfg
+	p := idts.oidp
+
 	// generate random fields and save them for comparison after OAuth2 dance
 	stateToken := newKSUID()
 	nonce := newKSUID()
@@ -132,12 +148,12 @@ func doInteractiveIDTokenFlow(ctx context.Context, cfg oauth2.Config, p *coreoid
 	}
 
 	opts := append(pkce.AuthURLOpts(), oauth2.AccessTypeOnline, coreoidc.Nonce(nonce))
-	if len(extraAuthCodeOpts) > 0 {
-		opts = append(opts, extraAuthCodeOpts...)
+	if len(idts.extraAuthCodeOpts) > 0 {
+		opts = append(opts, idts.extraAuthCodeOpts...)
 	}
 	authCodeURL := cfg.AuthCodeURL(stateToken, opts...)
 	var code string
-	if err := openBrowser(authCodeURL); err != nil {
+	if err := idts.browser(authCodeURL); err != nil {
 		// Swap to the out of band flow if we can't open the browser
 		fmt.Fprintf(os.Stderr, "error opening browser: %v\n", err)
 		code = doOobFlow(&cfg, stateToken, opts)
@@ -156,23 +172,6 @@ func doInteractiveIDTokenFlow(ctx context.Context, cfg oauth2.Config, p *coreoid
 
 	verifier := p.Verifier(&coreoidc.Config{ClientID: cfg.ClientID})
 	return extractAndVerifyIDToken(ctx, token, verifier, nonce)
-}
-
-type interactiveIDTokenSource struct {
-	cfg               oauth2.Config
-	oidp              *coreoidc.Provider
-	extraAuthCodeOpts []oauth2.AuthCodeOption
-	browser           browserOpener
-}
-
-var errWontOpenBrowser = errors.New("not opening that browser")
-
-func failBrowser(string) error {
-	return errWontOpenBrowser
-}
-
-func (idts *interactiveIDTokenSource) IDToken(ctx context.Context) (*IDToken, error) {
-	return doInteractiveIDTokenFlow(ctx, idts.cfg, idts.oidp, idts.extraAuthCodeOpts, idts.browser)
 }
 
 // InteractiveIDTokenSource returns an `IDTokenSource` which performs an interactive Oauth token flow in order to retrieve an `IDToken`.
