@@ -1,0 +1,66 @@
+name: Cut Release
+
+on:
+  workflow_call:
+    inputs:
+      release_tag:
+        required: true
+        type: string
+        description: 'Release tag'
+      key_ring:
+        required: true
+        type: string
+        description: 'Key ring for cosign key'
+      key_name:
+        required: true
+        type: string
+        description: 'Key name for cosign key'
+      workload_identity_provider:
+        required: true
+        type: string
+        description: 'Workload idenitty provider to authenticate acceses.'
+      service_account:
+        required: true
+        type: string
+        description: 'Service account to run the release.'
+      repo:
+        required: true
+        type: string
+        description: 'The Sigstore repo to release.'
+
+
+jobs:
+  cut-release:
+    name: Cut release
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    env:
+      PROJECT_ID: 'projectsigstore'
+    steps:
+      - name: Check actor access
+        if: ${{ !contains( fromJson('["bobcallaway","cpanato","dlorenc","lukehinds"]'), github.actor ) }}
+        run: exit 1
+
+      - name: Checkout out repo
+        uses: actions/checkout@a12a3943b4bdde767164f792f33f40b04645d846 # v3
+        with:
+          path: ./src/github.com/sigstore/${{ inputs.repo }}
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@8d125895b958610ec414ca4dae010257eaa814d3 # v0.6.0
+        with:
+          workload_identity_provider: ${{ inputs.workload_identity_provider }}
+          service_account: ${{ inputs.service_account }}
+
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@877d4953d2c70a0ba7ef3290ae968eb24af233bb # v0.6.0
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+          export_default_credentials: true
+
+      - name: Start cloudbuild job
+        working-directory: ./src/github.com/sigstore/${{ inputs.repo }}
+        run: gcloud builds submit --no-source --config release/cloudbuild.yaml --substitutions _GIT_TAG=${{ inputs.release_tag }},_TOOL_ORG=sigstore,_TOOL_REPO=${{ inputs.repo }},_STORAGE_LOCATION=${{ inputs.repo }}-releases,_KEY_RING=${{ inputs.key_ring }},_KEY_NAME=${{ inputs.key_name }},_GITHUB_USER=sigstore-bot --project=${{ env.PROJECT_ID }}
+
