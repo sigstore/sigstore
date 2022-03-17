@@ -190,5 +190,5 @@ func (g *SignerVerifier) SupportedAlgorithms() (result []string) {
 
 // DefaultAlgorithm returns the default algorithm for the GCP KMS service
 func (g *SignerVerifier) DefaultAlgorithm() string {
-	return Algorithm_ECDSA_P256_SHA256
+	return AlgorithmECDSAP256SHA256
 }

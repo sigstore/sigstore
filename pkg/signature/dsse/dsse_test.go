@@ -162,7 +162,6 @@ func TestInvalidThresholdMultiRoundTrip(t *testing.T) {
 	if err := wv.VerifySignature(bytes.NewReader(sig), nil); err == nil {
 		t.Fatalf("Did not fail verification on bogus signature")
 	}
-
 }
 
 func TestInvalidSignature(t *testing.T) {

@@ -94,7 +94,7 @@ func (p *Cosign) UnmarshalJSON(data []byte) error {
 	digestStr := simple.Critical.Identity.DockerReference + "@" + simple.Critical.Image.DockerManifestDigest
 	digest, err := name.NewDigest(digestStr)
 	if err != nil {
-		return fmt.Errorf("could not parse image digest string %q: %v", digestStr, err)
+		return fmt.Errorf("could not parse image digest string %q: %w", digestStr, err)
 	}
 	p.Image = digest
 	p.Annotations = simple.Optional

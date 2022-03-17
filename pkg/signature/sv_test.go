@@ -28,7 +28,8 @@ import (
 	"github.com/sigstore/sigstore/pkg/signature/options"
 )
 
-func testingSigner(t *testing.T, s Signer, alg string, hashFunc crypto.Hash, message []byte) {
+// Per golangci-lint `hashFunc` always receives `crypto.SHA256`
+func testingSigner(t *testing.T, s Signer, alg string, hashFunc crypto.Hash, message []byte) { // nolint: unparam
 	t.Helper()
 
 	isED25519 := alg == "ed25519"
@@ -125,7 +126,8 @@ func assertPublicKeyIsx509Marshalable(t *testing.T, pub crypto.PublicKey) {
 	}
 }
 
-func testingVerifier(t *testing.T, v Verifier, alg string, hashFunc crypto.Hash, signature, message []byte) {
+// Per golangci-lint `hashFunc` always receives `crypto.SHA256`
+func testingVerifier(t *testing.T, v Verifier, alg string, hashFunc crypto.Hash, signature, message []byte) { // nolint: unparam
 	t.Helper()
 
 	isED25519 := alg == "ed25519"

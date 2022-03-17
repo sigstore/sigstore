@@ -85,7 +85,7 @@ func parseReference(resourceID string) (vaultURL, vaultName, keyName string, err
 	return
 }
 
-func newAzureKMS(ctx context.Context, keyResourceID string) (*azureVaultClient, error) {
+func newAzureKMS(_ context.Context, keyResourceID string) (*azureVaultClient, error) {
 	vaultURL, vaultName, keyName, err := parseReference(keyResourceID)
 	if err != nil {
 		return nil, err
@@ -277,7 +277,6 @@ func (a *azureVaultClient) createKey(ctx context.Context) (crypto.PublicKey, err
 }
 
 func (a *azureVaultClient) sign(ctx context.Context, hash []byte) ([]byte, error) {
-
 	params := keyvault.KeySignParameters{
 		Algorithm: keyvault.ES256,
 		Value:     to.StringPtr(base64.RawURLEncoding.EncodeToString(hash)),
@@ -297,7 +296,6 @@ func (a *azureVaultClient) sign(ctx context.Context, hash []byte) ([]byte, error
 }
 
 func (a *azureVaultClient) verify(ctx context.Context, signature, hash []byte) error {
-
 	params := keyvault.KeyVerifyParameters{
 		Algorithm: keyvault.ES256,
 		Digest:    to.StringPtr(base64.RawURLEncoding.EncodeToString(hash)),

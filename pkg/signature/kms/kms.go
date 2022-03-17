@@ -51,7 +51,7 @@ func Get(ctx context.Context, keyResourceID string, hashFunc crypto.Hash, opts .
 
 // SupportedProviders returns list of initialized providers
 func SupportedProviders() []string {
-	var keys []string
+	keys := make([]string, 0, len(providersMux.providers))
 	for key := range providersMux.providers {
 		keys = append(keys, key)
 	}

@@ -33,7 +33,7 @@ type wrappedMultiSigner struct {
 
 // WrapMultiSigner returns a signature.Signer that uses the DSSE encoding format
 func WrapMultiSigner(payloadType string, sL ...signature.Signer) signature.Signer {
-	var signerAdapterL []dsse.SignVerifier
+	signerAdapterL := make([]dsse.SignVerifier, 0, len(sL))
 	for _, s := range sL {
 		pub, err := s.PublicKey()
 		if err != nil {
@@ -52,7 +52,6 @@ func WrapMultiSigner(payloadType string, sL ...signature.Signer) signature.Signe
 		}
 
 		signerAdapterL = append(signerAdapterL, signerAdapter)
-
 	}
 
 	return &wrappedMultiSigner{
@@ -63,7 +62,7 @@ func WrapMultiSigner(payloadType string, sL ...signature.Signer) signature.Signe
 
 // PublicKey returns the public key associated with the signer
 func (wL *wrappedMultiSigner) PublicKey(opts ...signature.PublicKeyOption) (crypto.PublicKey, error) {
-	return nil, errors.New("Not supported for multi signatures")
+	return nil, errors.New("not supported for multi signatures")
 }
 
 // SignMessage signs the provided stream in the reader using the DSSE encoding format
@@ -95,7 +94,7 @@ type wrappedMultiVerifier struct {
 
 // WrapMultiVerifier returns a signature.Verifier that uses the DSSE encoding format
 func WrapMultiVerifier(payloadType string, threshold int, vL ...signature.Verifier) signature.Verifier {
-	var verifierAdapterL []dsse.Verifier
+	verifierAdapterL := make([]dsse.Verifier, 0, len(vL))
 	for _, v := range vL {
 		pub, err := v.PublicKey()
 		if err != nil {
@@ -114,7 +113,6 @@ func WrapMultiVerifier(payloadType string, threshold int, vL ...signature.Verifi
 		}
 
 		verifierAdapterL = append(verifierAdapterL, verifierAdapter)
-
 	}
 
 	return &wrappedMultiVerifier{
@@ -126,7 +124,7 @@ func WrapMultiVerifier(payloadType string, threshold int, vL ...signature.Verifi
 
 // PublicKey returns the public key associated with the signer
 func (wL *wrappedMultiVerifier) PublicKey(opts ...signature.PublicKeyOption) (crypto.PublicKey, error) {
-	return nil, errors.New("Not supported for multi signatures")
+	return nil, errors.New("not supported for multi signatures")
 }
 
 // VerifySignature verifies the signature specified in an DSSE envelope
@@ -152,9 +150,8 @@ func (wL *wrappedMultiVerifier) VerifySignature(s io.Reader, _ io.Reader, opts .
 
 // WrapMultiSignerVerifier returns a signature.SignerVerifier that uses the DSSE encoding format
 func WrapMultiSignerVerifier(payloadType string, threshold int, svL ...signature.SignerVerifier) signature.SignerVerifier {
-
-	var signerL []signature.Signer
-	var verifierL []signature.Verifier
+	signerL := make([]signature.Signer, 0, len(svL))
+	verifierL := make([]signature.Verifier, 0, len(svL))
 	for _, sv := range svL {
 		signerL = append(signerL, sv)
 		verifierL = append(verifierL, sv)

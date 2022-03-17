@@ -35,11 +35,11 @@ var azureSupportedHashFuncs = []crypto.Hash{
 
 //nolint:revive
 const (
-	Algorithm_ES256 = "ES256"
+	AlgorithmES256 = "ES256"
 )
 
 var azureSupportedAlgorithms = []string{
-	Algorithm_ES256,
+	AlgorithmES256,
 }
 
 // SignerVerifier creates and verifies digital signatures over a message using Azure KMS service
@@ -232,5 +232,5 @@ func (*SignerVerifier) SupportedAlgorithms() []string {
 
 // DefaultAlgorithm returns the default algorithm for the Azure KMS service
 func (*SignerVerifier) DefaultAlgorithm() string {
-	return Algorithm_ES256
+	return AlgorithmES256
 }
