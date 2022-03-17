@@ -79,6 +79,7 @@ func TestMarshalCosign(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.desc, func(t *testing.T) {
+			t.Parallel()
 			payload, err := json.Marshal(tc.imgPayload)
 			if err != nil {
 				t.Fatalf("json.Marshal returned error: %v", err)
@@ -132,6 +133,7 @@ func TestUnmarshalCosign(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.desc, func(t *testing.T) {
+			t.Parallel()
 			var imgPayload Cosign
 			err := json.Unmarshal([]byte(tc.payload), &imgPayload)
 			if err != nil {

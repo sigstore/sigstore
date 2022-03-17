@@ -53,7 +53,6 @@ func (td *testDriver) handler(w http.ResponseWriter, r *http.Request) {
 }
 
 func TestDeviceFlowTokenGetter_deviceFlow(t *testing.T) {
-
 	td := testDriver{
 		respCh: make(chan interface{}, 3),
 		t:      t,

@@ -47,29 +47,29 @@ func init() {
 
 //nolint:revive
 const (
-	Algorithm_ECDSA_P256_SHA256        = "ecdsa-p256-sha256"
-	Algorithm_ECDSA_P384_SHA384        = "ecdsa-p384-sha384"
-	Algorithm_RSA_PKCS1v15_2048_SHA256 = "rsa-pkcs1v15-2048-sha256"
-	Algorithm_RSA_PKCS1v15_3072_SHA256 = "rsa-pkcs1v15-3072-sha256"
-	Algorithm_RSA_PKCS1v15_4096_SHA256 = "rsa-pkcs1v15-4096-sha256"
-	Algorithm_RSA_PKCS1v15_4096_SHA512 = "rsa-pkcs1v15-4096-sha512"
-	Algorithm_RSA_PSS_2048_SHA256      = "rsa-pss-2048-sha256"
-	Algorithm_RSA_PSS_3072_SHA256      = "rsa-pss-3072-sha256"
-	Algorithm_RSA_PSS_4096_SHA256      = "rsa-pss-4096-sha256"
-	Algorithm_RSA_PSS_4096_SHA512      = "rsa-pss-4096-sha512"
+	AlgorithmECDSAP256SHA256       = "ecdsa-p256-sha256"
+	AlgorithmECDSAP384SHA384       = "ecdsa-p384-sha384"
+	AlgorithmRSAPKCS1v152048SHA256 = "rsa-pkcs1v15-2048-sha256"
+	AlgorithmRSAPKCS1v153072SHA256 = "rsa-pkcs1v15-3072-sha256"
+	AlgorithmRSAPKCS1v154096SHA256 = "rsa-pkcs1v15-4096-sha256"
+	AlgorithmRSAPKCS1v154096SHA512 = "rsa-pkcs1v15-4096-sha512"
+	AlgorithmRSAPSS2048SHA256      = "rsa-pss-2048-sha256"
+	AlgorithmRSAPSS3072SHA256      = "rsa-pss-3072-sha256"
+	AlgorithmRSAPSS4096SHA256      = "rsa-pss-4096-sha256"
+	AlgorithmRSAPSS4096SHA512      = "rsa-pss-4096-sha512"
 )
 
 var algorithmMap = map[string]kmspb.CryptoKeyVersion_CryptoKeyVersionAlgorithm{
-	Algorithm_ECDSA_P256_SHA256:        kmspb.CryptoKeyVersion_EC_SIGN_P256_SHA256,
-	Algorithm_ECDSA_P384_SHA384:        kmspb.CryptoKeyVersion_EC_SIGN_P384_SHA384,
-	Algorithm_RSA_PKCS1v15_2048_SHA256: kmspb.CryptoKeyVersion_RSA_SIGN_PKCS1_2048_SHA256,
-	Algorithm_RSA_PKCS1v15_3072_SHA256: kmspb.CryptoKeyVersion_RSA_SIGN_PKCS1_3072_SHA256,
-	Algorithm_RSA_PKCS1v15_4096_SHA256: kmspb.CryptoKeyVersion_RSA_SIGN_PKCS1_4096_SHA256,
-	Algorithm_RSA_PKCS1v15_4096_SHA512: kmspb.CryptoKeyVersion_RSA_SIGN_PKCS1_4096_SHA512,
-	Algorithm_RSA_PSS_2048_SHA256:      kmspb.CryptoKeyVersion_RSA_SIGN_PSS_2048_SHA256,
-	Algorithm_RSA_PSS_3072_SHA256:      kmspb.CryptoKeyVersion_RSA_SIGN_PSS_3072_SHA256,
-	Algorithm_RSA_PSS_4096_SHA256:      kmspb.CryptoKeyVersion_RSA_SIGN_PSS_4096_SHA256,
-	Algorithm_RSA_PSS_4096_SHA512:      kmspb.CryptoKeyVersion_RSA_SIGN_PSS_4096_SHA512,
+	AlgorithmECDSAP256SHA256:       kmspb.CryptoKeyVersion_EC_SIGN_P256_SHA256,
+	AlgorithmECDSAP384SHA384:       kmspb.CryptoKeyVersion_EC_SIGN_P384_SHA384,
+	AlgorithmRSAPKCS1v152048SHA256: kmspb.CryptoKeyVersion_RSA_SIGN_PKCS1_2048_SHA256,
+	AlgorithmRSAPKCS1v153072SHA256: kmspb.CryptoKeyVersion_RSA_SIGN_PKCS1_3072_SHA256,
+	AlgorithmRSAPKCS1v154096SHA256: kmspb.CryptoKeyVersion_RSA_SIGN_PKCS1_4096_SHA256,
+	AlgorithmRSAPKCS1v154096SHA512: kmspb.CryptoKeyVersion_RSA_SIGN_PKCS1_4096_SHA512,
+	AlgorithmRSAPSS2048SHA256:      kmspb.CryptoKeyVersion_RSA_SIGN_PSS_2048_SHA256,
+	AlgorithmRSAPSS3072SHA256:      kmspb.CryptoKeyVersion_RSA_SIGN_PSS_3072_SHA256,
+	AlgorithmRSAPSS4096SHA256:      kmspb.CryptoKeyVersion_RSA_SIGN_PSS_4096_SHA256,
+	AlgorithmRSAPSS4096SHA512:      kmspb.CryptoKeyVersion_RSA_SIGN_PSS_4096_SHA512,
 }
 
 type gcpClient struct {
@@ -337,7 +337,6 @@ func (g *gcpClient) public(ctx context.Context) (crypto.PublicKey, error) {
 		return nil, errors.Wrap(err, "transient error getting info from KMS")
 	}
 	return crv.Verifier.PublicKey(options.WithContext(ctx))
-
 }
 
 func (g *gcpClient) verify(sig, message io.Reader, opts ...signature.VerifyOption) error {

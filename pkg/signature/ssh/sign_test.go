@@ -160,7 +160,7 @@ func TestFromOpenSSH(t *testing.T) {
 			td := t.TempDir()
 
 			data := []byte("hello, ssh world")
-			dataPath := write(t, []byte(data), td, "data")
+			dataPath := write(t, data, td, "data")
 
 			privPath := write(t, []byte(tt.priv), td, "id")
 			write(t, []byte(tt.pub), td, "id.pub")
@@ -219,14 +219,14 @@ func TestToOpenSSH(t *testing.T) {
 			td := t.TempDir()
 
 			data := []byte("hello, ssh world")
-			write(t, []byte(data), td, "data")
+			write(t, data, td, "data")
 
 			armored, err := Sign(tt.priv, bytes.NewReader(data))
 			if err != nil {
 				t.Fatal(err)
 			}
 
-			sigPath := write(t, []byte(armored), td, "oursig")
+			sigPath := write(t, armored, td, "oursig")
 
 			// Create an allowed_signers file with two keys to check against.
 			allowedSigner := "test@rekor.dev " + tt.pub + "\n"
@@ -318,7 +318,6 @@ func TestRoundTrip(t *testing.T) {
 			}
 		})
 	}
-
 }
 
 func write(t *testing.T, d []byte, fp ...string) string {

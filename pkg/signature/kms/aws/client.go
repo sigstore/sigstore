@@ -135,7 +135,6 @@ func (a *awsClient) setupClient() (err error) {
 		config.HTTPClient = &http.Client{
 			Transport: &http.Transport{
 				TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}} // nolint: gosec
-
 	}
 	sess, err = session.NewSession(config)
 	if err != nil {
@@ -162,6 +161,7 @@ func (c *cmk) HashFunc() crypto.Hash {
 		return 0
 	}
 }
+
 func (c *cmk) Verifier() (signature.Verifier, error) {
 	switch *c.KeyMetadata.SigningAlgorithms[0] {
 	case kms.SigningAlgorithmSpecRsassaPssSha256, kms.SigningAlgorithmSpecRsassaPssSha384, kms.SigningAlgorithmSpecRsassaPssSha512:
@@ -178,6 +178,7 @@ func (c *cmk) Verifier() (signature.Verifier, error) {
 func (a *awsClient) keyCacheLoaderFunction(key string) (cmk interface{}, ttl time.Duration, err error) {
 	return a.keyCacheLoaderFunctionWithContext(context.Background())(key)
 }
+
 func (a *awsClient) keyCacheLoaderFunctionWithContext(ctx context.Context) ttlcache.LoaderFunction {
 	return func(key string) (cmk interface{}, ttl time.Duration, err error) {
 		cmk, err = a.fetchCMK(ctx)
@@ -185,6 +186,7 @@ func (a *awsClient) keyCacheLoaderFunctionWithContext(ctx context.Context) ttlca
 		return
 	}
 }
+
 func (a *awsClient) fetchCMK(ctx context.Context) (*cmk, error) {
 	var err error
 	cmk := &cmk{}
@@ -198,6 +200,7 @@ func (a *awsClient) fetchCMK(ctx context.Context) (*cmk, error) {
 	}
 	return cmk, nil
 }
+
 func (a *awsClient) getHashFunc(ctx context.Context) (crypto.Hash, error) {
 	cmk, err := a.getCMK(ctx)
 	if err != nil {
@@ -205,6 +208,7 @@ func (a *awsClient) getHashFunc(ctx context.Context) (crypto.Hash, error) {
 	}
 	return cmk.HashFunc(), nil
 }
+
 func (a *awsClient) getCMK(ctx context.Context) (*cmk, error) {
 	c, err := a.keyCache.GetByLoader(cacheKey, a.keyCacheLoaderFunctionWithContext(ctx))
 	if err != nil {
@@ -213,6 +217,7 @@ func (a *awsClient) getCMK(ctx context.Context) (*cmk, error) {
 
 	return c.(*cmk), nil
 }
+
 func (a *awsClient) createKey(ctx context.Context, algorithm string) (crypto.PublicKey, error) {
 	if a.alias == "" {
 		return nil, errors.New("must use alias key format")
@@ -223,8 +228,10 @@ func (a *awsClient) createKey(ctx context.Context, algorithm string) (crypto.Pub
 	if err == nil {
 		return out, nil
 	}
+
 	// return error if not *kms.NotFoundException
-	if _, ok := errors.Cause(err).(*kms.NotFoundException); !ok {
+	var errNotFound *kms.NotFoundException
+	if !errors.As(err, &errNotFound) {
 		return nil, errors.Wrap(err, "looking up key")
 	}
 
@@ -249,6 +256,7 @@ func (a *awsClient) createKey(ctx context.Context, algorithm string) (crypto.Pub
 
 	return a.public(ctx)
 }
+
 func (a *awsClient) verify(ctx context.Context, sig, message io.Reader, opts ...signature.VerifyOption) error {
 	cmk, err := a.getCMK(ctx)
 	if err != nil {
@@ -260,6 +268,7 @@ func (a *awsClient) verify(ctx context.Context, sig, message io.Reader, opts ...
 	}
 	return verifier.VerifySignature(sig, message, opts...)
 }
+
 func (a *awsClient) verifyRemotely(ctx context.Context, sig []byte, digest []byte) error {
 	cmk, err := a.getCMK(ctx)
 	if err != nil {
@@ -276,6 +285,7 @@ func (a *awsClient) verifyRemotely(ctx context.Context, sig []byte, digest []byt
 	})
 	return errors.Wrap(err, "unable to verify signature")
 }
+
 func (a *awsClient) public(ctx context.Context) (crypto.PublicKey, error) {
 	key, err := a.keyCache.GetByLoader(cacheKey, a.keyCacheLoaderFunctionWithContext(ctx))
 	if err != nil {
@@ -283,7 +293,8 @@ func (a *awsClient) public(ctx context.Context) (crypto.PublicKey, error) {
 	}
 	return key.(*cmk).PublicKey, nil
 }
-func (a *awsClient) sign(ctx context.Context, digest []byte, algorithm crypto.Hash) ([]byte, error) {
+
+func (a *awsClient) sign(ctx context.Context, digest []byte, _ crypto.Hash) ([]byte, error) {
 	cmk, err := a.getCMK(ctx)
 	if err != nil {
 		return nil, err

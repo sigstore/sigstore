@@ -29,23 +29,23 @@ import (
 // Taken from https://www.vaultproject.io/api/secret/transit
 //nolint:revive
 const (
-	Algorithm_ECDSA_P256 = "ecdsa-p256"
-	Algorithm_ECDSA_P384 = "ecdsa-p384"
-	Algorithm_ECDSA_P521 = "ecdsa-p521"
-	Algorithm_ED25519    = "ed25519"
-	Algorithm_RSA_2048   = "rsa-2048"
-	Algorithm_RSA_3072   = "rsa-3072"
-	Algorithm_RSA_4096   = "rsa-4096"
+	AlgorithmECDSAP256 = "ecdsa-p256"
+	AlgorithmECDSAP384 = "ecdsa-p384"
+	AlgorithmECDSAP521 = "ecdsa-p521"
+	AlgorithmED25519   = "ed25519"
+	AlgorithmRSA2048   = "rsa-2048"
+	AlgorithmRSA3072   = "rsa-3072"
+	AlgorithmRSA4096   = "rsa-4096"
 )
 
 var hvSupportedAlgorithms = []string{
-	Algorithm_ECDSA_P256,
-	Algorithm_ECDSA_P384,
-	Algorithm_ECDSA_P521,
-	Algorithm_ED25519,
-	Algorithm_RSA_2048,
-	Algorithm_RSA_3072,
-	Algorithm_RSA_4096,
+	AlgorithmECDSAP256,
+	AlgorithmECDSAP384,
+	AlgorithmECDSAP521,
+	AlgorithmED25519,
+	AlgorithmRSA2048,
+	AlgorithmRSA3072,
+	AlgorithmRSA4096,
 }
 
 var hvSupportedHashFuncs = []crypto.Hash{
@@ -131,7 +131,6 @@ func (h SignerVerifier) SignMessage(message io.Reader, opts ...signature.SignOpt
 	}
 
 	return h.client.sign(digest, hf, opts...)
-
 }
 
 // PublicKey returns the public key that can be used to verify signatures created by
@@ -229,5 +228,5 @@ func (h *SignerVerifier) SupportedAlgorithms() []string {
 
 // DefaultAlgorithm returns the default algorithm for the Hashicorp Vault service
 func (h *SignerVerifier) DefaultAlgorithm() string {
-	return Algorithm_ECDSA_P256
+	return AlgorithmECDSAP256
 }

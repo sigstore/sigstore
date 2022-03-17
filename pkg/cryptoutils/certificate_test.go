@@ -161,7 +161,6 @@ func TestCertificatesFromPEM(t *testing.T) {
 				}
 				assertCertsEqual(t, tc.expected, got)
 			})
-
 		})
 	}
 }
@@ -249,7 +248,7 @@ func TestMarshalCertificatesToPEM(t *testing.T) {
 }
 
 func errorsEqual(a, b error) bool {
-	if a == b {
+	if errors.Is(a, b) {
 		// both are nil
 		return true
 	}

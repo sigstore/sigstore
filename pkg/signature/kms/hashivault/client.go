@@ -145,7 +145,7 @@ func newHashivaultClient(address, token, transitSecretEnginePath, keyResourceID 
 	return hvClient, nil
 }
 
-func oidcLogin(ctx context.Context, address, path, role, token string) (string, error) {
+func oidcLogin(_ context.Context, address, path, role, token string) (string, error) {
 	if address == "" {
 		address = os.Getenv("VAULT_ADDR")
 	}
@@ -255,7 +255,6 @@ func (h hashivaultClient) sign(digest []byte, alg crypto.Hash, opts ...signature
 	}
 
 	return vaultDecode(encodedSignature, keyVersionUsedPtr)
-
 }
 
 func (h hashivaultClient) verify(sig, digest []byte, alg crypto.Hash, opts ...signature.VerifyOption) error {
