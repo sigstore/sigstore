@@ -171,3 +171,86 @@ func TestEqualKeys(t *testing.T) {
 		t.Fatalf("expected error for unsupported key type, got %v", err)
 	}
 }
+
+func TestValidatePubKeyUnsupported(t *testing.T) {
+	// Fails with unexpected key type
+	type PublicKey struct {
+	}
+	err := ValidatePubKey(PublicKey{})
+	if err == nil || err.Error() != "unsupported public key type" {
+		t.Errorf("expected unsupported public key type, got %v", err)
+	}
+}
+
+func TestValidatePubKeyRsa(t *testing.T) {
+	// Validate common RSA key sizes
+	for _, bits := range []int{2048, 3072, 4096} {
+		priv, err := rsa.GenerateKey(rand.Reader, bits)
+		if err != nil {
+			t.Fatalf("rsa.GenerateKey failed: %v", err)
+		}
+		if err := ValidatePubKey(priv.Public()); err != nil {
+			t.Errorf("unexpected error validating public key: %v", err)
+		}
+	}
+	// Fails with small key size
+	priv, err := rsa.GenerateKey(rand.Reader, 1024)
+	if err != nil {
+		t.Fatalf("rsa.GenerateKey failed: %v", err)
+	}
+	if err := ValidatePubKey(priv.Public()); err == nil || err.Error() != "key too small: 1024" {
+		t.Errorf("expected rsa key size too small, got %v", err)
+	}
+	// Fails with large key size
+	priv, err = rsa.GenerateKey(rand.Reader, 5000)
+	if err != nil {
+		t.Fatalf("rsa.GenerateKey failed: %v", err)
+	}
+	if err := ValidatePubKey(priv.Public()); err == nil || err.Error() != "key too large: 5000 > 4096" {
+		t.Errorf("expected rsa key size too large, got %v", err)
+	}
+	// Fails with key size that's not a multiple of 8
+	priv, err = rsa.GenerateKey(rand.Reader, 4095)
+	if err != nil {
+		t.Fatalf("rsa.GenerateKey failed: %v", err)
+	}
+	if err := ValidatePubKey(priv.Public()); err == nil || err.Error() != "key length wasn't a multiple of 8: 4095" {
+		t.Errorf("expected rsa key multiple error, got %v", err)
+	}
+}
+
+func TestValidatePubKeyEcdsa(t *testing.T) {
+	for _, curve := range []elliptic.Curve{elliptic.P256(), elliptic.P384(), elliptic.P521()} {
+		priv, err := ecdsa.GenerateKey(curve, rand.Reader)
+		if err != nil {
+			t.Fatalf("ecdsa.GenerateKey failed: %v", err)
+		}
+		if err := ValidatePubKey(priv.Public()); err != nil {
+			t.Errorf("unexpected error validating public key: %v", err)
+		}
+	}
+	// Fails with smalller curve
+	priv, err := ecdsa.GenerateKey(elliptic.P224(), rand.Reader)
+	if err != nil {
+		t.Fatalf("ecdsa.GenerateKey failed: %v", err)
+	}
+	if err := ValidatePubKey(priv.Public()); err == nil || err.Error() != "unsupported ec curve, expected NIST P-256, P-384, or P-521" {
+		t.Errorf("expected unsupported curve, got %v", err)
+	}
+	// Fails with unknown curve
+	err = ValidatePubKey(&ecdsa.PublicKey{})
+	if err == nil || err.Error() != "unexpected ec curve" {
+		t.Errorf("expected unexpected curve, got %v", err)
+	}
+}
+
+func TestValidatePubKeyEd25519(t *testing.T) {
+	pub, _, err := ed25519.GenerateKey(rand.Reader)
+	if err != nil {
+		t.Fatalf("ed25519.GenerateKey failed: %v", err)
+	}
+	if err := ValidatePubKey(pub); err != nil {
+		t.Errorf("unexpected error validating public key: %v", err)
+	}
+	// Only success, ED25519 keys do not support customization
+}
