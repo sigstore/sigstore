@@ -17,12 +17,17 @@ package cryptoutils
 
 import (
 	"crypto"
+	"crypto/ecdsa"
+	"crypto/ed25519"
+	"crypto/rsa"
 	"crypto/sha1" // nolint:gosec
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/asn1"
+	"encoding/hex"
 	"encoding/pem"
 	"errors"
+	"fmt"
 )
 
 const (
@@ -77,4 +82,41 @@ func SKID(pub crypto.PublicKey) ([]byte, error) {
 	}
 	skid := sha1.Sum(spki.SubjectPublicKey.Bytes) // nolint:gosec
 	return skid[:], nil
+}
+
+// EqualKeys compares two public keys. Supports RSA, ECDSA and ED25519.
+// If not equal, the error message contains hex-encoded SHA1 hashes of the DER-encoded keys
+func EqualKeys(first, second crypto.PublicKey) error {
+	switch pub := first.(type) {
+	case *rsa.PublicKey:
+		if !pub.Equal(second) {
+			return fmt.Errorf(genErrMsg(first, second, "rsa"))
+		}
+	case *ecdsa.PublicKey:
+		if !pub.Equal(second) {
+			return fmt.Errorf(genErrMsg(first, second, "ecdsa"))
+		}
+	case ed25519.PublicKey:
+		if !pub.Equal(second) {
+			return fmt.Errorf(genErrMsg(first, second, "ed25519"))
+		}
+	default:
+		return errors.New("unsupported key type")
+	}
+	return nil
+}
+
+// genErrMsg generates an error message for EqualKeys
+func genErrMsg(first, second crypto.PublicKey, keyType string) string {
+	msg := fmt.Sprintf("%s public keys are not equal", keyType)
+	// Calculate SKID to include in error message
+	firstSKID, err := SKID(first)
+	if err != nil {
+		return msg
+	}
+	secondSKID, err := SKID(second)
+	if err != nil {
+		return msg
+	}
+	return fmt.Sprintf("%s (%s, %s)", msg, hex.EncodeToString(firstSKID), hex.EncodeToString(secondSKID))
 }
