@@ -40,6 +40,7 @@ type InteractiveIDTokenGetter struct {
 	MessagePrinter     func(url string)
 	HTMLPage           string
 	ExtraAuthURLParams []oauth2.AuthCodeOption
+	OIDCCallbackPort   int
 }
 
 // GetIDToken gets an OIDC ID Token from the specified provider using an interactive browser session
@@ -51,7 +52,7 @@ func (i *InteractiveIDTokenGetter) GetIDToken(p *oidc.Provider, cfg oauth2.Confi
 	doneCh := make(chan string)
 	errCh := make(chan error)
 	// starts listener on ephemeral port
-	redirectServer, redirectURL, err := startRedirectListener(stateToken, i.HTMLPage, doneCh, errCh)
+	redirectServer, redirectURL, err := startRedirectListener(stateToken, i.HTMLPage, i.OIDCCallbackPort, doneCh, errCh)
 	if err != nil {
 		return nil, errors.Wrap(err, "starting redirect listener")
 	}
@@ -135,8 +136,8 @@ func doOobFlow(cfg *oauth2.Config, stateToken string, opts []oauth2.AuthCodeOpti
 	return code
 }
 
-func startRedirectListener(state, htmlPage string, doneCh chan string, errCh chan error) (*http.Server, *url.URL, error) {
-	listener, err := net.Listen("tcp", "localhost:0")
+func startRedirectListener(state, htmlPage string, oidcCallbackPort int, doneCh chan string, errCh chan error) (*http.Server, *url.URL, error) {
+	listener, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", oidcCallbackPort))
 	if err != nil {
 		return nil, nil, err
 	}

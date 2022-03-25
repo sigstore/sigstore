@@ -45,8 +45,8 @@ func doOobFlow(cfg *oauth2.Config, stateToken string, opts []oauth2.AuthCodeOpti
 	return code
 }
 
-func startRedirectListener(state, htmlPage string, codeCh chan string, errCh chan error) (*http.Server, *url.URL, error) {
-	listener, err := net.Listen("tcp", "localhost:0") // ":0" == OS picks
+func startRedirectListener(state, htmlPage string, oidcCallbackPort int, codeCh chan string, errCh chan error) (*http.Server, *url.URL, error) {
+	listener, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", oidcCallbackPort))
 	if err != nil {
 		return nil, nil, err
 	}
