@@ -26,6 +26,7 @@ require (
 	github.com/hashicorp/go-version v1.4.0 // indirect
 	github.com/hashicorp/vault/api v1.5.0
 	github.com/hashicorp/yamux v0.0.0-20211028200310-0bc27b27de87 // indirect
+	github.com/letsencrypt/boulder v0.0.0-20220322173223-dd8be8d7b02c
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/mitchellh/go-testing-interface v1.14.1 // indirect
