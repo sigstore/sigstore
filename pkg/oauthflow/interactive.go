@@ -50,8 +50,8 @@ func (i *InteractiveIDTokenGetter) GetIDToken(p *oidc.Provider, cfg oauth2.Confi
 
 	doneCh := make(chan string)
 	errCh := make(chan error)
-	// starts listener on ephemeral port
-	redirectServer, redirectURL, err := startRedirectListener(stateToken, i.HTMLPage, doneCh, errCh)
+	// starts listener using the redirect_uri, otherwise stars on ephemeral port
+	redirectServer, redirectURL, err := startRedirectListener(stateToken, i.HTMLPage, cfg.RedirectURL, doneCh, errCh)
 	if err != nil {
 		return nil, errors.Wrap(err, "starting redirect listener")
 	}
@@ -135,27 +135,42 @@ func doOobFlow(cfg *oauth2.Config, stateToken string, opts []oauth2.AuthCodeOpti
 	return code
 }
 
-func startRedirectListener(state, htmlPage string, doneCh chan string, errCh chan error) (*http.Server, *url.URL, error) {
-	listener, err := net.Listen("tcp", "localhost:0")
-	if err != nil {
-		return nil, nil, err
-	}
+func startRedirectListener(state, htmlPage, redirectURI string, doneCh chan string, errCh chan error) (*http.Server, *url.URL, error) {
+	var listener net.Listener
+	var urlListener *url.URL
+	var err error
 
-	port := listener.Addr().(*net.TCPAddr).Port
+	if redirectURI == "" {
+		listener, err = net.Listen("tcp", "localhost:0")
+		if err != nil {
+			return nil, nil, err
+		}
 
-	url := &url.URL{
-		Scheme: "http",
-		Host:   fmt.Sprintf("localhost:%d", port),
-		Path:   "/auth/callback",
+		port := listener.Addr().(*net.TCPAddr).Port
+		urlListener = &url.URL{
+			Scheme: "http",
+			Host:   fmt.Sprintf("localhost:%d", port),
+			Path:   "/auth/callback",
+		}
+	} else {
+		urlListener, err = url.Parse(redirectURI)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		listener, err = net.Listen("tcp", urlListener.Host)
+		if err != nil {
+			return nil, nil, err
+		}
 	}
 
 	m := http.NewServeMux()
 	s := &http.Server{
-		Addr:    url.Host,
+		Addr:    urlListener.Host,
 		Handler: m,
 	}
 
-	m.HandleFunc(url.Path, func(w http.ResponseWriter, r *http.Request) {
+	m.HandleFunc(urlListener.Path, func(w http.ResponseWriter, r *http.Request) {
 		// even though these are fetched from the FormValue method,
 		// these are supplied as query parameters
 		if r.FormValue("state") != state {
@@ -172,7 +187,7 @@ func startRedirectListener(state, htmlPage string, doneCh chan string, errCh cha
 		}
 	}()
 
-	return s, url, nil
+	return s, urlListener, nil
 }
 
 func getCode(doneCh chan string, errCh chan error) (string, error) {
