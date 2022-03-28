@@ -71,7 +71,7 @@ func TestDeviceFlowTokenGetter_deviceFlow(t *testing.T) {
 
 	tokenCh, errCh := make(chan string), make(chan error)
 	go func() {
-		token, err := dtg.deviceFlow("sigstore")
+		token, err := dtg.deviceFlow("sigstore", "")
 		tokenCh <- token
 		errCh <- err
 	}()
