@@ -24,14 +24,22 @@ GO-FUZZ-BUILD := $(TOOLS_BIN_DIR)/go-fuzz-build
 GENSRC = pkg/generated/models/%.go pkg/generated/client/%.go
 SRCS = $(shell find pkg -iname "*.go"|grep -v pkg/generated) $(GENSRC)
 
+GOLANGCI_LINT_DIR = $(shell pwd)/bin
+GOLANGCI_LINT_BIN = $(GOLANGCI_LINT_DIR)/golangci-lint
+
 LDFLAGS ?=
 
 # TODO: pin this reference to the openapi file to a specific fulcio release tag
 $(GENSRC): $(SWAGGER) ## Build openapi spec
 	$(SWAGGER) generate client -f https://raw.githubusercontent.com/sigstore/fulcio/main/openapi.yaml -r COPYRIGHT.txt -t pkg/generated -P github.com/coreos/go-oidc/v3/oidc.IDToken
 
-lint: ## Run golangci-lint
-	$(GOBIN)/golangci-lint run -v --new-from-rev=HEAD~ ./...
+golangci-lint:
+	rm -f $(GOLANGCI_LINT_BIN) || :
+	set -e ;\
+	GOBIN=$(GOLANGCI_LINT_DIR) go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.45.2 ;\
+
+lint: golangci-lint ## Run golangci-lint
+	$(GOLANGCI_LINT_BIN) run -v --new-from-rev=HEAD~ ./...
 
 pkg: ## Build pkg
 	CGO_ENABLED=0 go build -trimpath -ldflags "$(LDFLAGS)" ./...
