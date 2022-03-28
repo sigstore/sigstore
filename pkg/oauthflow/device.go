@@ -72,12 +72,12 @@ func NewDeviceFlowTokenGetter(issuer, codeURL, tokenURL string) *DeviceFlowToken
 }
 
 func (d *DeviceFlowTokenGetter) deviceFlow(clientID, redirectURI string) (string, error) {
-
 	data := url.Values{
 		"client_id": []string{clientID},
 		"scope":     []string{"openid email"},
 	}
 	if redirectURI != "" {
+		// If a redirect uri is provided then use it
 		data["redirect_uri"] = []string{redirectURI}
 	}
 
