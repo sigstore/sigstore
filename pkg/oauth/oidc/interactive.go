@@ -45,12 +45,12 @@ func doOobFlow(cfg *oauth2.Config, stateToken string, opts []oauth2.AuthCodeOpti
 	return code
 }
 
-func startRedirectListener(state, htmlPage, redirectURI string, codeCh chan string, errCh chan error) (*http.Server, *url.URL, error) {
+func startRedirectListener(state, htmlPage, redirectURL string, codeCh chan string, errCh chan error) (*http.Server, *url.URL, error) {
 	var listener net.Listener
 	var urlListener *url.URL
 	var err error
 
-	if redirectURI == "" {
+	if redirectURL == "" {
 		listener, err = net.Listen("tcp", "localhost:0") // ":0" == OS picks
 		if err != nil {
 			return nil, nil, err
@@ -63,7 +63,7 @@ func startRedirectListener(state, htmlPage, redirectURI string, codeCh chan stri
 			Path:   "/auth/callback",
 		}
 	} else {
-		urlListener, err = url.Parse(redirectURI)
+		urlListener, err = url.Parse(redirectURL)
 		if err != nil {
 			return nil, nil, err
 		}
