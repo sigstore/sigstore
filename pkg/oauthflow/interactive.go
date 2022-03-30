@@ -50,7 +50,7 @@ func (i *InteractiveIDTokenGetter) GetIDToken(p *oidc.Provider, cfg oauth2.Confi
 
 	doneCh := make(chan string)
 	errCh := make(chan error)
-	// starts listener using the redirect_uri, otherwise stars on ephemeral port
+	// starts listener using the redirect_uri, otherwise starts on ephemeral port
 	redirectServer, redirectURL, err := startRedirectListener(stateToken, i.HTMLPage, cfg.RedirectURL, doneCh, errCh)
 	if err != nil {
 		return nil, errors.Wrap(err, "starting redirect listener")

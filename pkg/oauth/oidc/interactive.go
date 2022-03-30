@@ -138,7 +138,7 @@ func (idts *interactiveIDTokenSource) IDToken(ctx context.Context) (*IDToken, er
 
 	codeCh := make(chan string)
 	errCh := make(chan error)
-	// starts listener using the redirect_uri, otherwise stars on ephemeral port
+	// starts listener using the redirect_uri, otherwise starts on ephemeral port
 	redirectServer, redirectURL, err := startRedirectListener(stateToken, oauth.InteractiveSuccessHTML, cfg.RedirectURL, codeCh, errCh)
 	if err != nil {
 		close(codeCh)
