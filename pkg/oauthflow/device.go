@@ -71,10 +71,14 @@ func NewDeviceFlowTokenGetter(issuer, codeURL, tokenURL string) *DeviceFlowToken
 	}
 }
 
-func (d *DeviceFlowTokenGetter) deviceFlow(clientID string) (string, error) {
+func (d *DeviceFlowTokenGetter) deviceFlow(clientID, redirectURL string) (string, error) {
 	data := url.Values{
 		"client_id": []string{clientID},
 		"scope":     []string{"openid email"},
+	}
+	if redirectURL != "" {
+		// If a redirect uri is provided then use it
+		data["redirect_uri"] = []string{redirectURL}
 	}
 
 	/* #nosec */
@@ -140,7 +144,7 @@ func (d *DeviceFlowTokenGetter) deviceFlow(clientID string) (string, error) {
 
 // GetIDToken gets an OIDC ID Token from the specified provider using the device code grant flow
 func (d *DeviceFlowTokenGetter) GetIDToken(p *oidc.Provider, cfg oauth2.Config) (*OIDCIDToken, error) {
-	idToken, err := d.deviceFlow(cfg.ClientID)
+	idToken, err := d.deviceFlow(cfg.ClientID, cfg.RedirectURL)
 	if err != nil {
 		return nil, err
 	}

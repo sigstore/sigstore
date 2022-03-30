@@ -51,6 +51,7 @@ func (suite *OAuthSuite) TestOauthFlow() {
 		os.Getenv("OIDC_ISSUER"),
 		os.Getenv("OIDC_ID"),
 		"",
+		"",
 		DefaultIDTokenGetter,
 	)
 
