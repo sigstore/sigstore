@@ -24,33 +24,49 @@ import (
 	"github.com/sigstore/sigstore/pkg/signature/options"
 )
 
+// KmsCtxKey is used to look up the private key in the struct.
+type KmsCtxKey struct{}
+
 // SignerVerifier creates and verifies digital signatures over a message using an in-memory signer
 type SignerVerifier struct {
-	signer *signature.ECDSASignerVerifier
+	signer signature.SignerVerifier
 }
 
 // ReferenceScheme is a scheme for fake KMS keys. Do not use in production.
 const ReferenceScheme = "fakekms://"
 
 func init() {
-	sigkms.AddProvider(ReferenceScheme, func(_ context.Context, _ string, _ crypto.Hash, _ ...signature.RPCOption) (sigkms.SignerVerifier, error) {
-		return LoadSignerVerifier()
+	sigkms.AddProvider(ReferenceScheme, func(ctx context.Context, _ string, hf crypto.Hash, _ ...signature.RPCOption) (sigkms.SignerVerifier, error) {
+		return LoadSignerVerifier(ctx, hf)
 	})
 }
 
-// LoadSignerVerifier generates signatures using the default ECDSA signer.
-func LoadSignerVerifier() (*SignerVerifier, error) {
-	signer, _, err := signature.NewDefaultECDSASignerVerifier()
+// LoadSignerVerifier generates a signer/verifier using the default ECDSA signer or loads
+// a signer from a provided private key and hash. The context should contain a mapping from
+// a string "priv" to a crypto.PrivateKey (RSA, ECDSA, or ED25519).
+func LoadSignerVerifier(ctx context.Context, hf crypto.Hash) (*SignerVerifier, error) {
+	val := ctx.Value(KmsCtxKey{})
+	if val == nil {
+		signer, _, err := signature.NewDefaultECDSASignerVerifier()
+		if err != nil {
+			return nil, err
+		}
+		sv := &SignerVerifier{
+			signer: signer,
+		}
+		return sv, nil
+	}
+	signer, err := signature.LoadSignerVerifier(val.(crypto.PrivateKey), hf)
 	if err != nil {
 		return nil, err
 	}
-	g := &SignerVerifier{
+	sv := &SignerVerifier{
 		signer: signer,
 	}
-	return g, nil
+	return sv, nil
 }
 
-// SignMessage signs the provided message using the in-memory -signer.
+// SignMessage signs the provided message using the in-memory signer.
 func (g *SignerVerifier) SignMessage(message io.Reader, opts ...signature.SignOption) ([]byte, error) {
 	return g.signer.SignMessage(message, opts...)
 }
@@ -78,7 +94,11 @@ func (g *SignerVerifier) VerifySignature(signature, message io.Reader, opts ...s
 
 // CreateKey returns the signer's public key.
 func (g *SignerVerifier) CreateKey(etx context.Context, algorithm string) (crypto.PublicKey, error) {
-	return g.signer.Public(), nil
+	pub, err := g.signer.PublicKey()
+	if err != nil {
+		return nil, err
+	}
+	return pub, nil
 }
 
 type cryptoSignerWrapper struct {
