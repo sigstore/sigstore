@@ -120,9 +120,9 @@ func newGCPClient(ctx context.Context, refStr string) (*gcpClient, error) {
 }
 
 var (
-	errKMSReference = errors.New("kms specification should be in the format gcpkms://projects/[PROJECT_ID]/locations/[LOCATION]/keyRings/[KEY_RING]/cryptoKeys/[KEY]/versions/[VERSION]")
+	errKMSReference = errors.New("kms specification should be in the format gcpkms://projects/[PROJECT_ID]/locations/[LOCATION]/keyRings/[KEY_RING]/cryptoKeys/[KEY]/cryptoKeyVersions/[VERSION]")
 
-	re = regexp.MustCompile(`^gcpkms://projects/([^/]+)/locations/([^/]+)/keyRings/([^/]+)/cryptoKeys/([^/]+)(?:/versions/([^/]+))?$`)
+	re = regexp.MustCompile(`^gcpkms://projects/([^/]+)/locations/([^/]+)/keyRings/([^/]+)/cryptoKeys/([^/]+)(?:/(?:cryptoKeyVersions|versions)/([^/]+))?$`)
 )
 
 // ReferenceScheme schemes for various KMS services are copied from https://github.com/google/go-cloud/tree/master/secrets

@@ -45,6 +45,15 @@ func TestParseReference(t *testing.T) {
 			wantErr:        false,
 		},
 		{
+			in:             "gcpkms://projects/pp/locations/ll/keyRings/rr/cryptoKeys/kk/cryptoKeyVersions/1",
+			wantProjectID:  "pp",
+			wantLocationID: "ll",
+			wantKeyRing:    "rr",
+			wantKeyName:    "kk",
+			wantKeyVersion: "1",
+			wantErr:        false,
+		},
+		{
 			in:      "gcpkms://projects/p1/p2/locations/l1/l2/keyRings/r1/r2/cryptoKeys/k1/k2",
 			wantErr: true,
 		},
