@@ -51,7 +51,7 @@ jobs:
           path: ./src/github.com/sigstore/${{ inputs.repo }}
 
       - name: Set release tag if not specified
-        if: ${{ inputs.release_tag = '' }}
+        if: ${{ inputs.release_tag == '' }}
         run: |
           git fetch --all --tags
           LATEST_DIGEST=`git rev-list --tags --max-count=1`
