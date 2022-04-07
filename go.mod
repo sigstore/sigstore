@@ -1,6 +1,6 @@
 module github.com/sigstore/sigstore
 
-go 1.16
+go 1.17
 
 require (
 	cloud.google.com/go/iam v0.1.1 // indirect
