@@ -14,7 +14,7 @@ require (
 	github.com/aws/aws-sdk-go v1.43.34
 	github.com/cenkalti/backoff/v3 v3.2.2 // indirect
 	github.com/coreos/go-oidc/v3 v3.1.0
-	github.com/go-rod/rod v0.104.4
+	github.com/go-rod/rod v0.105.0
 	github.com/go-test/deep v1.0.8
 	github.com/google/go-cmp v0.5.7
 	github.com/google/go-containerregistry v0.8.0
