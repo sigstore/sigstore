@@ -25,7 +25,7 @@ on:
     branches: [ main ]
 
 env:
-  GO_VERSION: 1.17.7
+  GO_VERSION: 1.18
 
 jobs:
   unit_test:
