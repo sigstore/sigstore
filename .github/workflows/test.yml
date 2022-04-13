@@ -24,20 +24,24 @@ on:
   pull_request:
     branches: [ main ]
 
-env:
-  GO_VERSION: 1.18
-
 jobs:
   unit_test:
     name: unit tests
     runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        go-version:
+          - 1.18.x
+          - 1.17.x
+
     steps:
     - uses: actions/checkout@a12a3943b4bdde767164f792f33f40b04645d846 # v3
 
     - name: Set up Go
       uses: actions/setup-go@f6164bd8c8acb4a71fb2791a8b6c4024ff038dab # v2.2.0
       with:
-        go-version: ${{ env.GO_VERSION }}
+        go-version: ${{ matrix.go-version }}
     - name: Cache Modules
       uses: actions/cache@48af2dc4a9e8278b89d7fa154b955c30c6aaab09 # v3.0.2
       with:
