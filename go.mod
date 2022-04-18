@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	cloud.google.com/go/kms v1.4.0
-	github.com/Azure/azure-sdk-for-go v63.2.0+incompatible
+	github.com/Azure/azure-sdk-for-go v63.3.0+incompatible
 	github.com/Azure/go-autorest/autorest v0.11.25
 	github.com/Azure/go-autorest/autorest/to v0.4.0
 	github.com/ReneKroon/ttlcache/v2 v2.11.0
