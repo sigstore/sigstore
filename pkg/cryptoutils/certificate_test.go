@@ -23,6 +23,7 @@ import (
 	"crypto/x509/pkix"
 	"encoding/pem"
 	"errors"
+	"math/big"
 	"strings"
 	"testing"
 	"time"
@@ -362,5 +363,23 @@ func TestParseCSR(t *testing.T) {
 	_, err = ParseCSR(pemCSR)
 	if err == nil || !strings.Contains(err.Error(), "DER type BEGIN CERTIFICATE is not of any type") {
 		t.Fatalf("expected error parsing invalid CSR, got %v", err)
+	}
+}
+
+func TestGenerateSerialNumber(t *testing.T) {
+	serialNumber, err := GenerateSerialNumber()
+	if err != nil {
+		t.Fatalf("unexpected error generating serial number: %v", err)
+	}
+	if serialNumber.Cmp(big.NewInt(0)) == -1 {
+		t.Fatalf("serial number is negative: %v", serialNumber)
+	}
+	if serialNumber.Cmp(big.NewInt(0)) == 0 {
+		t.Fatalf("serial number is 0: %v", serialNumber)
+	}
+	maxSerial := (&big.Int{}).Exp(big.NewInt(2), big.NewInt(159), nil)
+	// Serial number must be less than max serial number.
+	if serialNumber.Cmp(maxSerial) >= 0 {
+		t.Fatalf("serial number is too large: %v", serialNumber)
 	}
 }
