@@ -16,8 +16,14 @@ package cryptoutils
 
 import (
 	"bytes"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
 	"crypto/x509"
+	"crypto/x509/pkix"
+	"encoding/pem"
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
@@ -302,5 +308,59 @@ func TestCheckExpiration(t *testing.T) {
 				t.Errorf("CheckExpiration() should have returned: %v, got: %v", tc.expected, err)
 			}
 		})
+	}
+}
+
+func TestParseCSR(t *testing.T) {
+	priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	csrTmpl := &x509.CertificateRequest{Subject: pkix.Name{CommonName: "test"}}
+	derCSR, err := x509.CreateCertificateRequest(rand.Reader, csrTmpl, priv)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// success with type CERTIFICATE REQUEST
+	pemCSR := pem.EncodeToMemory(&pem.Block{
+		Type:  "CERTIFICATE REQUEST",
+		Bytes: derCSR,
+	})
+	parsedCSR, err := ParseCSR(pemCSR)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if parsedCSR.Subject.CommonName != "test" {
+		t.Fatalf("unexpected CSR common name")
+	}
+
+	// success with type NEW CERTIFICATE REQUEST
+	pemCSR = pem.EncodeToMemory(&pem.Block{
+		Type:  "NEW CERTIFICATE REQUEST",
+		Bytes: derCSR,
+	})
+	parsedCSR, err = ParseCSR(pemCSR)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if parsedCSR.Subject.CommonName != "test" {
+		t.Fatalf("unexpected CSR common name")
+	}
+
+	// fails with invalid PEM encoded block
+	_, err = ParseCSR([]byte{1, 2, 3})
+	if err == nil || !strings.Contains(err.Error(), "no CSR found while decoding") {
+		t.Fatalf("expected error parsing invalid CSR, got %v", err)
+	}
+
+	// fails with invalid DER type
+	pemCSR = pem.EncodeToMemory(&pem.Block{
+		Type:  "BEGIN CERTIFICATE",
+		Bytes: derCSR,
+	})
+	_, err = ParseCSR(pemCSR)
+	if err == nil || !strings.Contains(err.Error(), "DER type BEGIN CERTIFICATE is not of any type") {
+		t.Fatalf("expected error parsing invalid CSR, got %v", err)
 	}
 }

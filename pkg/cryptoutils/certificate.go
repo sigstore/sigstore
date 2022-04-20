@@ -104,3 +104,23 @@ func CheckExpiration(cert *x509.Certificate, epoch time.Time) error {
 	}
 	return nil
 }
+
+// ParseCSR parses a PKCS#10 PEM-encoded CSR.
+func ParseCSR(csr []byte) (*x509.CertificateRequest, error) {
+	derBlock, _ := pem.Decode(csr)
+	if derBlock == nil || derBlock.Bytes == nil {
+		return nil, errors.New("no CSR found while decoding")
+	}
+	correctType := false
+	acceptedHeaders := []string{"CERTIFICATE REQUEST", "NEW CERTIFICATE REQUEST"}
+	for _, v := range acceptedHeaders {
+		if derBlock.Type == v {
+			correctType = true
+		}
+	}
+	if !correctType {
+		return nil, fmt.Errorf("DER type %v is not of any type %v for CSR", derBlock.Type, acceptedHeaders)
+	}
+
+	return x509.ParseCertificateRequest(derBlock.Bytes)
+}
