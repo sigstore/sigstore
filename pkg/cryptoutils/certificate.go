@@ -17,11 +17,13 @@ package cryptoutils
 
 import (
 	"bytes"
+	"crypto/rand"
 	"crypto/x509"
 	"encoding/pem"
 	"errors"
 	"fmt"
 	"io"
+	"math/big"
 	"time"
 )
 
@@ -123,4 +125,17 @@ func ParseCSR(csr []byte) (*x509.CertificateRequest, error) {
 	}
 
 	return x509.ParseCertificateRequest(derBlock.Bytes)
+}
+
+// GenerateSerialNumber creates a compliant serial number as per RFC 5280 4.1.2.2.
+// Serial numbers must be positive, and can be no longer than 20 bytes.
+// The serial number is generated with 159 bits, so that the first bit will always
+// be 0, resulting in a positive serial number.
+func GenerateSerialNumber() (*big.Int, error) {
+	// Pick a random number from 0 to 2^159.
+	serial, err := rand.Int(rand.Reader, (&big.Int{}).Exp(big.NewInt(2), big.NewInt(159), nil))
+	if err != nil {
+		return nil, errors.New("error generating serial number")
+	}
+	return serial, nil
 }
