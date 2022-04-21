@@ -20,6 +20,7 @@ all: pkg fuzz
 TOOLS_DIR := hack/tools
 TOOLS_BIN_DIR := $(abspath $(TOOLS_DIR)/bin)
 FUZZ_DIR := ./test/fuzz
+INTEGRATION_TEST_DIR := ./test/e2e
 GO-FUZZ-BUILD := $(TOOLS_BIN_DIR)/go-fuzz-build
 GENSRC = pkg/generated/models/%.go pkg/generated/client/%.go
 SRCS = $(shell find pkg -iname "*.go"|grep -v pkg/generated) $(GENSRC)
@@ -48,7 +49,7 @@ test: ## Run Tests
 	go test ./...
 
 test-e2e: ## Run E2E Tests
-	go test -tags e2e ./test/e2e/...
+	cd $(INTEGRATION_TEST_DIR); ./e2e-test.sh
 
 fuzz: $(GO-FUZZ-BUILD) ## Run Fuzz tests
 	cd $(FUZZ_DIR);$(GO-FUZZ-BUILD) -o pem-fuzz.zip ./pem 
