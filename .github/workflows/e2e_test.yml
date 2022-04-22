@@ -55,5 +55,4 @@ jobs:
       run: docker-compose build
 
     - name: Integration test
-      working-directory: ./test/e2e
-      run: ./e2e-test.sh
+      run: make test-e2e
