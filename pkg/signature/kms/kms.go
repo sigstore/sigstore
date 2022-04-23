@@ -24,6 +24,14 @@ import (
 	"github.com/sigstore/sigstore/pkg/signature"
 )
 
+type ProviderNotFoundError struct {
+	ref string
+}
+
+func (e *ProviderNotFoundError) Error() string {
+	return fmt.Sprintf("no kms provider found for key reference: %s", e.ref)
+}
+
 type providerInit func(context.Context, string, crypto.Hash, ...signature.RPCOption) (SignerVerifier, error)
 
 type providers struct {
@@ -46,7 +54,7 @@ func Get(ctx context.Context, keyResourceID string, hashFunc crypto.Hash, opts .
 			return providerInit(ctx, keyResourceID, hashFunc, opts...)
 		}
 	}
-	return nil, fmt.Errorf("no provider found for that key reference")
+	return nil, &ProviderNotFoundError{ref: keyResourceID}
 }
 
 // SupportedProviders returns list of initialized providers
