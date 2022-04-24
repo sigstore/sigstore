@@ -24,6 +24,7 @@ import (
 	"github.com/sigstore/sigstore/pkg/signature"
 )
 
+// ProviderNotFoundError indicates that no matching KMS provider was found
 type ProviderNotFoundError struct {
 	ref string
 }
@@ -47,7 +48,9 @@ var providersMux = &providers{
 	providers: map[string]providerInit{},
 }
 
-// Get returns a KMS SignerVerifier for the given resource string and hash function
+// Get returns a KMS SignerVerifier for the given resource string and hash function.
+// If no matching provider is found, Get returns a ProviderNotFoundError. It
+// also returns an error if initializing the SignerVerifier fails.
 func Get(ctx context.Context, keyResourceID string, hashFunc crypto.Hash, opts ...signature.RPCOption) (SignerVerifier, error) {
 	for ref, providerInit := range providersMux.providers {
 		if strings.HasPrefix(keyResourceID, ref) {
