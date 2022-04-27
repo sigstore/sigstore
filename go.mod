@@ -13,7 +13,7 @@ require (
 	github.com/coreos/go-oidc/v3 v3.1.0
 	github.com/go-rod/rod v0.106.1
 	github.com/go-test/deep v1.0.8
-	github.com/google/go-cmp v0.5.7
+	github.com/google/go-cmp v0.5.8
 	github.com/google/go-containerregistry v0.8.0
 	github.com/hashicorp/vault/api v1.5.0
 	github.com/letsencrypt/boulder v0.0.0-20220331220046-b23ab962616e
