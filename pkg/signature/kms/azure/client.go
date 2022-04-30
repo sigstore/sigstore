@@ -86,6 +86,9 @@ func parseReference(resourceID string) (vaultURL, vaultName, keyName string, err
 }
 
 func newAzureKMS(_ context.Context, keyResourceID string) (*azureVaultClient, error) {
+	if err := ValidReference(keyResourceID); err != nil {
+		return nil, err
+	}
 	vaultURL, vaultName, keyName, err := parseReference(keyResourceID)
 	if err != nil {
 		return nil, err

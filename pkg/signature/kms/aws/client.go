@@ -107,22 +107,25 @@ func parseReference(resourceID string) (endpoint, keyID, alias string, err error
 	return
 }
 
-func newAWSClient(keyResourceID string) (a *awsClient, err error) {
-	a = &awsClient{}
+func newAWSClient(keyResourceID string) (*awsClient, error) {
+	if err := ValidReference(keyResourceID); err != nil {
+		return nil, err
+	}
+	a := &awsClient{}
+	var err error
 	a.endpoint, a.keyID, a.alias, err = parseReference(keyResourceID)
 	if err != nil {
 		return nil, err
 	}
 
-	err = a.setupClient()
-	if err != nil {
+	if err := a.setupClient(); err != nil {
 		return nil, err
 	}
 
 	a.keyCache = ttlcache.NewCache()
 	a.keyCache.SetLoaderFunction(a.keyCacheLoaderFunction)
 	a.keyCache.SkipTTLExtensionOnHit(true)
-	return
+	return a, nil
 }
 
 func (a *awsClient) setupClient() (err error) {
