@@ -85,8 +85,7 @@ type gcpClient struct {
 }
 
 func newGCPClient(ctx context.Context, refStr string) (*gcpClient, error) {
-	var err error
-	if err = ValidReference(refStr); err != nil {
+	if err := ValidReference(refStr); err != nil {
 		return nil, err
 	}
 
@@ -99,6 +98,7 @@ func newGCPClient(ctx context.Context, refStr string) (*gcpClient, error) {
 		refString:  refStr,
 		kvCache:    ttlcache.NewCache(),
 	}
+	var err error
 	g.projectID, g.locationID, g.keyRing, g.keyName, g.version, err = parseReference(refStr)
 	if err != nil {
 		return nil, err

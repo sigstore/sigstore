@@ -87,6 +87,10 @@ func parseReference(resourceID string) (keyPath string, err error) {
 }
 
 func newHashivaultClient(address, token, transitSecretEnginePath, keyResourceID string, keyVersion uint64) (*hashivaultClient, error) {
+	if err := ValidReference(keyResourceID); err != nil {
+		return nil, err
+	}
+
 	keyPath, err := parseReference(keyResourceID)
 	if err != nil {
 		return nil, err
