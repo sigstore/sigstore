@@ -157,6 +157,17 @@ func TestCertificatesFromPEM(t *testing.T) {
 				}
 				assertCertsEqual(t, tc.expected, got)
 			})
+			t.Run("UnmarshalLimited", func(t *testing.T) {
+				got, err := UnmarshalCertificatesFromPEMLimited(tc.pemBytes, 10 /*iterations*/)
+				if err != nil {
+					if !tc.expectErr {
+						t.Fatalf("UnmarshalCertificatesFromPEM() returned unexpected error: %v", err)
+					}
+				} else if tc.expectErr {
+					t.Fatalf("UnmarshalCertificatesFromPEM() should have returned an error, got: %v", got)
+				}
+				assertCertsEqual(t, tc.expected, got)
+			})
 			t.Run("Load", func(t *testing.T) {
 				got, err := LoadCertificatesFromPEM(bytes.NewReader(tc.pemBytes))
 				if err != nil {
@@ -169,6 +180,28 @@ func TestCertificatesFromPEM(t *testing.T) {
 				assertCertsEqual(t, tc.expected, got)
 			})
 		})
+	}
+}
+
+func TestUnmarshalCertificatesFromPEMLimited(t *testing.T) {
+	var pemCerts []byte
+	iterations := 10
+	for i := 0; i < iterations; i++ {
+		pemCerts = append(pemCerts, []byte(cert1PEM)...)
+	}
+	certs, err := UnmarshalCertificatesFromPEMLimited(pemCerts, iterations)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if len(certs) != iterations {
+		t.Fatalf("unexpected number of certificates, expected %d, got %d", iterations, len(certs))
+	}
+
+	// append one more certificate to cause a failure
+	pemCerts = append(pemCerts, []byte(cert1PEM)...)
+	_, err = UnmarshalCertificatesFromPEMLimited(pemCerts, iterations)
+	if err == nil || err.Error() != "too many certificates specified in PEM block" {
+		t.Fatalf("expected error with too many certificates, got %v", err)
 	}
 }
 
