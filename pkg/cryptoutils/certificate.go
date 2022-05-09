@@ -78,7 +78,7 @@ func UnmarshalCertificatesFromPEM(pemBytes []byte) ([]*x509.Certificate, error) 
 
 // UnmarshalCertificatesFromPEMLimited extracts one or more X509 certificates from the provided
 // byte slice, which is assumed to be in PEM-encoded format. Fails after a specified
-// number of iterations.
+// number of iterations. A reasonable limit is 10 iterations.
 func UnmarshalCertificatesFromPEMLimited(pemBytes []byte, iterations int) ([]*x509.Certificate, error) {
 	result := []*x509.Certificate{}
 	remaining := pemBytes
