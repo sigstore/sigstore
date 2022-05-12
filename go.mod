@@ -10,7 +10,7 @@ require (
 	github.com/ReneKroon/ttlcache/v2 v2.11.0
 	github.com/aws/aws-sdk-go v1.44.12
 	github.com/cenkalti/backoff/v3 v3.2.2 // indirect
-	github.com/coreos/go-oidc/v3 v3.1.0
+	github.com/coreos/go-oidc/v3 v3.2.0
 	github.com/go-rod/rod v0.106.6
 	github.com/go-test/deep v1.0.8
 	github.com/google/go-cmp v0.5.8
