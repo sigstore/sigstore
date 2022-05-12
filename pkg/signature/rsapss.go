@@ -25,7 +25,16 @@ import (
 	"github.com/sigstore/sigstore/pkg/signature/options"
 )
 
+// checked on LoadSigner, LoadVerifier, and SignMessage
 var rsaSupportedHashFuncs = []crypto.Hash{
+	crypto.SHA256,
+	crypto.SHA384,
+	crypto.SHA512,
+}
+
+// checked on VerifySignature. Supports SHA1 verification.
+var rsaSupportedVerifyHashFuncs = []crypto.Hash{
+	crypto.SHA1,
 	crypto.SHA256,
 	crypto.SHA384,
 	crypto.SHA512,
@@ -171,7 +180,7 @@ func (r RSAPSSVerifier) PublicKey(_ ...PublicKeyOption) (crypto.PublicKey, error
 //
 // All other options are ignored if specified.
 func (r RSAPSSVerifier) VerifySignature(signature, message io.Reader, opts ...VerifyOption) error {
-	digest, hf, err := ComputeDigestForVerifying(message, r.hashFunc, rsaSupportedHashFuncs, opts...)
+	digest, hf, err := ComputeDigestForVerifying(message, r.hashFunc, rsaSupportedVerifyHashFuncs, opts...)
 	if err != nil {
 		return err
 	}

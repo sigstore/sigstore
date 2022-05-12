@@ -153,7 +153,7 @@ func (r RSAPKCS1v15Verifier) PublicKey(_ ...PublicKeyOption) (crypto.PublicKey, 
 //
 // All other options are ignored if specified.
 func (r RSAPKCS1v15Verifier) VerifySignature(signature, message io.Reader, opts ...VerifyOption) error {
-	digest, hf, err := ComputeDigestForVerifying(message, r.hashFunc, rsaSupportedHashFuncs, opts...)
+	digest, hf, err := ComputeDigestForVerifying(message, r.hashFunc, rsaSupportedVerifyHashFuncs, opts...)
 	if err != nil {
 		return err
 	}
