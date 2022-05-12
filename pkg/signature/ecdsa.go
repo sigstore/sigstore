@@ -26,7 +26,16 @@ import (
 	"github.com/sigstore/sigstore/pkg/signature/options"
 )
 
+// checked on LoadSigner, LoadVerifier and SignMessage
 var ecdsaSupportedHashFuncs = []crypto.Hash{
+	crypto.SHA256,
+	crypto.SHA512,
+	crypto.SHA384,
+	crypto.SHA224,
+}
+
+// checked on VerifySignature. Supports SHA1 verification.
+var ecdsaSupportedVerifyHashFuncs = []crypto.Hash{
 	crypto.SHA256,
 	crypto.SHA512,
 	crypto.SHA384,
@@ -128,6 +137,10 @@ func LoadECDSAVerifier(pub *ecdsa.PublicKey, hashFunc crypto.Hash) (*ECDSAVerifi
 		return nil, errors.New("invalid ECDSA public key specified")
 	}
 
+	if !isSupportedAlg(hashFunc, ecdsaSupportedHashFuncs) {
+		return nil, errors.New("invalid hash function specified")
+	}
+
 	return &ECDSAVerifier{
 		publicKey: pub,
 		hashFunc:  hashFunc,
@@ -153,7 +166,7 @@ func (e ECDSAVerifier) PublicKey(_ ...PublicKeyOption) (crypto.PublicKey, error)
 //
 // All other options are ignored if specified.
 func (e ECDSAVerifier) VerifySignature(signature, message io.Reader, opts ...VerifyOption) error {
-	digest, _, err := ComputeDigestForVerifying(message, e.hashFunc, ecdsaSupportedHashFuncs, opts...)
+	digest, _, err := ComputeDigestForVerifying(message, e.hashFunc, ecdsaSupportedVerifyHashFuncs, opts...)
 	if err != nil {
 		return err
 	}

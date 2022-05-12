@@ -19,6 +19,7 @@ import (
 	"crypto"
 	"crypto/ecdsa"
 	"encoding/base64"
+	"strings"
 	"testing"
 
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
@@ -65,4 +66,25 @@ func TestECDSASignerVerifier(t *testing.T) {
 		t.Errorf("unexpected error creating verifier: %v", err)
 	}
 	testingVerifier(t, v, "ecdsa", crypto.SHA256, sig, message)
+}
+
+func TestECDSASignerVerifierUnsupportedHash(t *testing.T) {
+	privateKey, err := cryptoutils.UnmarshalPEMToPrivateKey([]byte(ecdsaPriv), cryptoutils.SkipPassword)
+	if err != nil {
+		t.Errorf("unexpected error unmarshalling private key: %v", err)
+	}
+	publicKey, err := cryptoutils.UnmarshalPEMToPublicKey([]byte(ecdsaPub))
+	if err != nil {
+		t.Errorf("unexpected error unmarshalling public key key: %v", err)
+	}
+
+	_, err = LoadECDSASigner(privateKey.(*ecdsa.PrivateKey), crypto.SHA1)
+	if !strings.Contains(err.Error(), "invalid hash function specified") {
+		t.Errorf("expected error 'invalid hash function specified', got: %v", err.Error())
+	}
+
+	_, err = LoadECDSAVerifier(publicKey.(*ecdsa.PublicKey), crypto.SHA1)
+	if !strings.Contains(err.Error(), "invalid hash function specified") {
+		t.Errorf("expected error 'invalid hash function specified', got: %v", err.Error())
+	}
 }
