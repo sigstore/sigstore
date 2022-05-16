@@ -250,12 +250,12 @@ func (h hashivaultClient) sign(digest []byte, alg crypto.Hash, opts ...signature
 		"key_version": keyVersion,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("Transit: failed to sign payload: %w", err)
+		return nil, fmt.Errorf("transit: failed to sign payload: %w", err)
 	}
 
 	encodedSignature, ok := signResult.Data["signature"]
 	if !ok {
-		return nil, errors.New("Transit: response corrupted in-transit")
+		return nil, errors.New("transit: response corrupted in-transit")
 	}
 
 	return vaultDecode(encodedSignature, keyVersionUsedPtr)
@@ -355,7 +355,7 @@ func (h hashivaultClient) createKey(typeStr string) (crypto.PublicKey, error) {
 	if _, err := client.Write(fmt.Sprintf("/%s/keys/%s", h.transitSecretEnginePath, h.keyPath), map[string]interface{}{
 		"type": typeStr,
 	}); err != nil {
-		return nil, fmt.Errorf("Failed to create transit key: %w", err)
+		return nil, fmt.Errorf("failed to create transit key: %w", err)
 	}
 	return h.public()
 }
