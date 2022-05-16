@@ -279,14 +279,16 @@ func (a *awsClient) verifyRemotely(ctx context.Context, sig []byte, digest []byt
 	}
 	alg := cmk.KeyMetadata.SigningAlgorithms[0]
 	messageType := kms.MessageTypeDigest
-	_, err = a.client.VerifyWithContext(ctx, &kms.VerifyInput{
+	if _, err := a.client.VerifyWithContext(ctx, &kms.VerifyInput{
 		KeyId:            &a.keyID,
 		Message:          digest,
 		MessageType:      &messageType,
 		Signature:        sig,
 		SigningAlgorithm: alg,
-	})
-	return fmt.Errorf("unable to verify signature: %w", err)
+	}); err != nil {
+		return fmt.Errorf("unable to verify signature: %w", err)
+	}
+	return nil
 }
 
 func (a *awsClient) public(ctx context.Context) (crypto.PublicKey, error) {
