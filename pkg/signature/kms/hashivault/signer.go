@@ -18,10 +18,11 @@ package hashivault
 import (
 	"context"
 	"crypto"
+	"errors"
+	"fmt"
 	"io"
 	"strconv"
 
-	"github.com/pkg/errors"
 	"github.com/sigstore/sigstore/pkg/signature"
 	"github.com/sigstore/sigstore/pkg/signature/options"
 )
@@ -82,7 +83,7 @@ func LoadSignerVerifier(referenceStr string, hashFunc crypto.Hash, opts ...signa
 	if keyVersion != "" {
 		keyVersionUint, err = strconv.ParseUint(keyVersion, 10, 64)
 		if err != nil {
-			return nil, errors.Wrap(err, "parsing key version")
+			return nil, fmt.Errorf("parsing key version: %w", err)
 		}
 	}
 
@@ -168,7 +169,7 @@ func (h SignerVerifier) VerifySignature(sig, message io.Reader, opts ...signatur
 
 	sigBytes, err := io.ReadAll(sig)
 	if err != nil {
-		return errors.Wrap(err, "reading signature")
+		return fmt.Errorf("reading signature: %w", err)
 	}
 
 	return h.client.verify(sigBytes, digest, hf, opts...)

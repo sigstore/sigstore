@@ -16,6 +16,7 @@ package oidc
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -25,7 +26,6 @@ import (
 
 	coreoidc "github.com/coreos/go-oidc/v3/oidc"
 	"github.com/pkg/browser"
-	"github.com/pkg/errors"
 	"github.com/segmentio/ksuid"
 	"github.com/sigstore/sigstore/pkg/oauth"
 	"golang.org/x/oauth2"
@@ -145,7 +145,7 @@ func (idts *interactiveIDTokenSource) IDToken(ctx context.Context) (*IDToken, er
 	if err != nil {
 		close(codeCh)
 		close(errCh)
-		return nil, errors.Wrap(err, "starting redirect listener")
+		return nil, fmt.Errorf("starting redirect listener: %w", err)
 	}
 	defer func() {
 		go func() {

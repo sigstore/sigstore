@@ -18,10 +18,10 @@ package gcp
 import (
 	"context"
 	"crypto"
+	"fmt"
 	"hash/crc32"
 	"io"
 
-	"github.com/pkg/errors"
 	"github.com/sigstore/sigstore/pkg/signature"
 	"github.com/sigstore/sigstore/pkg/signature/options"
 )
@@ -76,7 +76,7 @@ func (g *SignerVerifier) SignMessage(message io.Reader, opts ...signature.SignOp
 
 	signerOpts, err = g.client.getHashFunc()
 	if err != nil {
-		return nil, errors.Wrap(err, "getting fetching default hash function")
+		return nil, fmt.Errorf("getting fetching default hash function: %w", err)
 	}
 
 	for _, opt := range opts {
@@ -167,7 +167,7 @@ func (c cryptoSignerWrapper) Sign(_ io.Reader, digest []byte, opts crypto.Signer
 func (g *SignerVerifier) CryptoSigner(ctx context.Context, errFunc func(error)) (crypto.Signer, crypto.SignerOpts, error) {
 	defaultHf, err := g.client.getHashFunc()
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "getting fetching default hash function")
+		return nil, nil, fmt.Errorf("getting fetching default hash function: %w", err)
 	}
 
 	csw := &cryptoSignerWrapper{

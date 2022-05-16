@@ -21,6 +21,7 @@ import (
 	"crypto/ecdsa"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"regexp"
@@ -28,7 +29,6 @@ import (
 	"time"
 
 	"github.com/ReneKroon/ttlcache/v2"
-	"github.com/pkg/errors"
 	jose "gopkg.in/square/go-jose.v2"
 
 	kvauth "github.com/Azure/azure-sdk-for-go/services/keyvault/auth"
@@ -76,7 +76,7 @@ func ValidReference(ref string) error {
 func parseReference(resourceID string) (vaultURL, vaultName, keyName string, err error) {
 	v := referenceRegex.FindStringSubmatch(resourceID)
 	if len(v) != 3 {
-		err = errors.Errorf("invalid azurekms format %q", resourceID)
+		err = fmt.Errorf("invalid azurekms format %q", resourceID)
 		return
 	}
 
@@ -96,7 +96,7 @@ func newAzureKMS(_ context.Context, keyResourceID string) (*azureVaultClient, er
 
 	client, err := getKeysClient()
 	if err != nil {
-		return nil, errors.Wrap(err, "new azure kms client")
+		return nil, fmt.Errorf("new azure kms client: %w", err)
 	}
 
 	azClient := &azureVaultClient{
@@ -211,18 +211,18 @@ func (a *azureVaultClient) keyCacheLoaderFunction(key string) (data interface{},
 func (a *azureVaultClient) fetchPublicKey(ctx context.Context) (crypto.PublicKey, error) {
 	key, err := a.getKey(ctx)
 	if err != nil {
-		return nil, errors.Wrap(err, "public key")
+		return nil, fmt.Errorf("public key: %w", err)
 	}
 
 	jwkJSON, err := json.Marshal(*key.Key)
 	if err != nil {
-		return nil, errors.Wrap(err, "encoding the jsonWebKey")
+		return nil, fmt.Errorf("encoding the jsonWebKey: %w", err)
 	}
 
 	jwk := jose.JSONWebKey{}
 	err = jwk.UnmarshalJSON(jwkJSON)
 	if err != nil {
-		return nil, errors.Wrap(err, "decoding the jsonWebKey")
+		return nil, fmt.Errorf("decoding the jsonWebKey: %w", err)
 	}
 
 	pub, ok := jwk.Key.(*ecdsa.PublicKey)
@@ -238,7 +238,7 @@ func (a *azureVaultClient) fetchPublicKey(ctx context.Context) (crypto.PublicKey
 func (a *azureVaultClient) getKey(ctx context.Context) (keyvault.KeyBundle, error) {
 	key, err := a.client.GetKey(ctx, a.vaultURL, a.keyName, "")
 	if err != nil {
-		return keyvault.KeyBundle{}, errors.Wrap(err, "public key")
+		return keyvault.KeyBundle{}, fmt.Errorf("public key: %w", err)
 	}
 
 	return key, err
@@ -287,12 +287,12 @@ func (a *azureVaultClient) sign(ctx context.Context, hash []byte) ([]byte, error
 
 	result, err := a.client.Sign(ctx, a.vaultURL, a.keyName, "", params)
 	if err != nil {
-		return nil, errors.Wrap(err, "signing the payload")
+		return nil, fmt.Errorf("signing the payload: %w", err)
 	}
 
 	decResult, err := base64.RawURLEncoding.DecodeString(*result.Result)
 	if err != nil {
-		return nil, errors.Wrap(err, "decoding the result")
+		return nil, fmt.Errorf("decoding the result: %w", err)
 	}
 
 	return decResult, nil
@@ -307,7 +307,7 @@ func (a *azureVaultClient) verify(ctx context.Context, signature, hash []byte) e
 
 	result, err := a.client.Verify(ctx, a.vaultURL, a.keyName, "", params)
 	if err != nil {
-		return errors.Wrap(err, "verify")
+		return fmt.Errorf("verify: %w", err)
 	}
 
 	if !*result.Value {

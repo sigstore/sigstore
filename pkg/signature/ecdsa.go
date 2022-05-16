@@ -20,9 +20,10 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
+	"errors"
+	"fmt"
 	"io"
 
-	"github.com/pkg/errors"
 	"github.com/sigstore/sigstore/pkg/signature/options"
 )
 
@@ -177,11 +178,11 @@ func (e ECDSAVerifier) VerifySignature(signature, message io.Reader, opts ...Ver
 
 	sigBytes, err := io.ReadAll(signature)
 	if err != nil {
-		return errors.Wrap(err, "reading signature")
+		return fmt.Errorf("reading signature: %w", err)
 	}
 
 	if !ecdsa.VerifyASN1(e.publicKey, digest, sigBytes) {
-		return errors.New("failed to verify signature")
+		return fmt.Errorf("failed to verify signature: %w", err)
 	}
 	return nil
 }
@@ -197,11 +198,11 @@ type ECDSASignerVerifier struct {
 func LoadECDSASignerVerifier(priv *ecdsa.PrivateKey, hf crypto.Hash) (*ECDSASignerVerifier, error) {
 	signer, err := LoadECDSASigner(priv, hf)
 	if err != nil {
-		return nil, errors.Wrap(err, "initializing signer")
+		return nil, fmt.Errorf("initializing signer: %w", err)
 	}
 	verifier, err := LoadECDSAVerifier(&priv.PublicKey, hf)
 	if err != nil {
-		return nil, errors.Wrap(err, "initializing verifier")
+		return nil, fmt.Errorf("initializing verifier: %w", err)
 	}
 
 	return &ECDSASignerVerifier{
