@@ -22,6 +22,7 @@ import (
 	"crypto/rsa"
 	"crypto/tls"
 	"crypto/x509"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -33,7 +34,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/kms"
-	"github.com/pkg/errors"
 	"github.com/sigstore/sigstore/pkg/signature"
 	sigkms "github.com/sigstore/sigstore/pkg/signature/kms"
 )
@@ -103,7 +103,7 @@ func parseReference(resourceID string) (endpoint, keyID, alias string, err error
 			return
 		}
 	}
-	err = errors.Errorf("invalid awskms format %q", resourceID)
+	err = fmt.Errorf("invalid awskms format %q", resourceID)
 	return
 }
 
@@ -141,7 +141,7 @@ func (a *awsClient) setupClient() (err error) {
 	}
 	sess, err = session.NewSession(config)
 	if err != nil {
-		return errors.Wrap(err, "new aws session")
+		return fmt.Errorf("new aws session: %w", err)
 	}
 	a.client = kms.New(sess)
 	return
@@ -235,7 +235,7 @@ func (a *awsClient) createKey(ctx context.Context, algorithm string) (crypto.Pub
 	// return error if not *kms.NotFoundException
 	var errNotFound *kms.NotFoundException
 	if !errors.As(err, &errNotFound) {
-		return nil, errors.Wrap(err, "looking up key")
+		return nil, fmt.Errorf("looking up key: %w", err)
 	}
 
 	usage := kms.KeyUsageTypeSignVerify
@@ -246,7 +246,7 @@ func (a *awsClient) createKey(ctx context.Context, algorithm string) (crypto.Pub
 		Description:           &description,
 	})
 	if err != nil {
-		return nil, errors.Wrap(err, "creating key")
+		return nil, fmt.Errorf("creating key: %w", err)
 	}
 
 	_, err = a.client.CreateAliasWithContext(ctx, &kms.CreateAliasInput{
@@ -254,7 +254,7 @@ func (a *awsClient) createKey(ctx context.Context, algorithm string) (crypto.Pub
 		TargetKeyId: key.KeyMetadata.KeyId,
 	})
 	if err != nil {
-		return nil, errors.Wrapf(err, "creating alias %q", a.alias)
+		return nil, fmt.Errorf("creating alias %q: %w", a.alias, err)
 	}
 
 	return a.public(ctx)
@@ -279,14 +279,16 @@ func (a *awsClient) verifyRemotely(ctx context.Context, sig []byte, digest []byt
 	}
 	alg := cmk.KeyMetadata.SigningAlgorithms[0]
 	messageType := kms.MessageTypeDigest
-	_, err = a.client.VerifyWithContext(ctx, &kms.VerifyInput{
+	if _, err := a.client.VerifyWithContext(ctx, &kms.VerifyInput{
 		KeyId:            &a.keyID,
 		Message:          digest,
 		MessageType:      &messageType,
 		Signature:        sig,
 		SigningAlgorithm: alg,
-	})
-	return errors.Wrap(err, "unable to verify signature")
+	}); err != nil {
+		return fmt.Errorf("unable to verify signature: %w", err)
+	}
+	return nil
 }
 
 func (a *awsClient) public(ctx context.Context) (crypto.PublicKey, error) {
@@ -312,7 +314,7 @@ func (a *awsClient) sign(ctx context.Context, digest []byte, _ crypto.Hash) ([]b
 		SigningAlgorithm: alg,
 	})
 	if err != nil {
-		return nil, errors.Wrap(err, "signing with kms")
+		return nil, fmt.Errorf("signing with kms: %w", err)
 	}
 	return out.Signature, nil
 }
@@ -322,11 +324,11 @@ func (a *awsClient) fetchPublicKey(ctx context.Context) (crypto.PublicKey, error
 		KeyId: &a.keyID,
 	})
 	if err != nil {
-		return nil, errors.Wrap(err, "getting public key")
+		return nil, fmt.Errorf("getting public key: %w", err)
 	}
 	key, err := x509.ParsePKIXPublicKey(out.PublicKey)
 	if err != nil {
-		return nil, errors.Wrap(err, "parsing public key")
+		return nil, fmt.Errorf("parsing public key: %w", err)
 	}
 	return key, nil
 }
@@ -336,7 +338,7 @@ func (a *awsClient) fetchKeyMetadata(ctx context.Context) (*kms.KeyMetadata, err
 		KeyId: &a.keyID,
 	})
 	if err != nil {
-		return nil, errors.Wrap(err, "getting key metadata")
+		return nil, fmt.Errorf("getting key metadata: %w", err)
 	}
 	return out.KeyMetadata, nil
 }

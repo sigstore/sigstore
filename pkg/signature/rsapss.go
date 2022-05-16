@@ -19,9 +19,10 @@ import (
 	"crypto"
 	"crypto/rand"
 	"crypto/rsa"
+	"errors"
+	"fmt"
 	"io"
 
-	"github.com/pkg/errors"
 	"github.com/sigstore/sigstore/pkg/signature/options"
 )
 
@@ -191,7 +192,7 @@ func (r RSAPSSVerifier) VerifySignature(signature, message io.Reader, opts ...Ve
 
 	sigBytes, err := io.ReadAll(signature)
 	if err != nil {
-		return errors.Wrap(err, "reading signature")
+		return fmt.Errorf("reading signature: %w", err)
 	}
 
 	// rsa.VerifyPSS ignores pssOpts.Hash, so we don't set it
@@ -216,11 +217,11 @@ type RSAPSSSignerVerifier struct {
 func LoadRSAPSSSignerVerifier(priv *rsa.PrivateKey, hf crypto.Hash, opts *rsa.PSSOptions) (*RSAPSSSignerVerifier, error) {
 	signer, err := LoadRSAPSSSigner(priv, hf, opts)
 	if err != nil {
-		return nil, errors.Wrap(err, "initializing signer")
+		return nil, fmt.Errorf("initializing signer: %w", err)
 	}
 	verifier, err := LoadRSAPSSVerifier(&priv.PublicKey, hf, opts)
 	if err != nil {
-		return nil, errors.Wrap(err, "initializing verifier")
+		return nil, fmt.Errorf("initializing verifier: %w", err)
 	}
 
 	return &RSAPSSSignerVerifier{

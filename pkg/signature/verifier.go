@@ -20,11 +20,11 @@ import (
 	"crypto/ecdsa"
 	"crypto/ed25519"
 	"crypto/rsa"
+	"errors"
 	"io"
 	"io/ioutil"
 	"path/filepath"
 
-	"github.com/pkg/errors"
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
 )
 
