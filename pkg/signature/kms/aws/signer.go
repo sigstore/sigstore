@@ -18,10 +18,10 @@ package aws
 import (
 	"context"
 	"crypto"
+	"fmt"
 	"io"
 
 	"github.com/aws/aws-sdk-go/service/kms"
-	"github.com/pkg/errors"
 	"github.com/sigstore/sigstore/pkg/signature"
 	"github.com/sigstore/sigstore/pkg/signature/options"
 )
@@ -87,7 +87,7 @@ func (a *SignerVerifier) SignMessage(message io.Reader, opts ...signature.SignOp
 	var signerOpts crypto.SignerOpts
 	signerOpts, err = a.client.getHashFunc(ctx)
 	if err != nil {
-		return nil, errors.Wrap(err, "getting fetching default hash function")
+		return nil, fmt.Errorf("getting fetching default hash function: %w", err)
 	}
 	for _, opt := range opts {
 		opt.ApplyCryptoSignerOpts(&signerOpts)
@@ -154,7 +154,7 @@ func (a *SignerVerifier) VerifySignature(sig, message io.Reader, opts ...signatu
 	var signerOpts crypto.SignerOpts
 	signerOpts, err = a.client.getHashFunc(ctx)
 	if err != nil {
-		return errors.Wrap(err, "getting hash func")
+		return fmt.Errorf("getting hash func: %w", err)
 	}
 	for _, opt := range opts {
 		opt.ApplyCryptoSignerOpts(&signerOpts)
@@ -170,7 +170,7 @@ func (a *SignerVerifier) VerifySignature(sig, message io.Reader, opts ...signatu
 
 	sigBytes, err := io.ReadAll(sig)
 	if err != nil {
-		return errors.Wrap(err, "reading signature")
+		return fmt.Errorf("reading signature: %w", err)
 	}
 	return a.client.verifyRemotely(ctx, sigBytes, digest)
 }
@@ -214,7 +214,7 @@ func (c cryptoSignerWrapper) Sign(_ io.Reader, digest []byte, opts crypto.Signer
 func (a *SignerVerifier) CryptoSigner(ctx context.Context, errFunc func(error)) (crypto.Signer, crypto.SignerOpts, error) {
 	defaultHf, err := a.client.getHashFunc(ctx)
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "getting fetching default hash function")
+		return nil, nil, fmt.Errorf("getting fetching default hash function: %w", err)
 	}
 
 	csw := &cryptoSignerWrapper{

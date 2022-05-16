@@ -18,10 +18,11 @@ package azure
 import (
 	"context"
 	"crypto"
+	"errors"
+	"fmt"
 	"io"
 	"math/big"
 
-	"github.com/pkg/errors"
 	"golang.org/x/crypto/cryptobyte"
 	"golang.org/x/crypto/cryptobyte/asn1"
 
@@ -148,7 +149,7 @@ func (a *SignerVerifier) VerifySignature(sig, message io.Reader, opts ...signatu
 
 	sigBytes, err := io.ReadAll(sig)
 	if err != nil {
-		return errors.Wrap(err, "reading signature")
+		return fmt.Errorf("reading signature: %w", err)
 	}
 
 	// Convert the ANS.1 Sequence to a concantenated r||s byte string

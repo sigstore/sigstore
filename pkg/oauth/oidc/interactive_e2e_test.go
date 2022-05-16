@@ -19,12 +19,12 @@ package oidc
 
 import (
 	"context"
+	"errors"
 	"os"
 	"testing"
 
 	coreoidc "github.com/coreos/go-oidc/v3/oidc"
 	"github.com/go-rod/rod"
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"golang.org/x/oauth2"
