@@ -23,7 +23,7 @@ require (
 	github.com/segmentio/ksuid v1.0.4
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966
 	github.com/stretchr/testify v1.7.1
-	github.com/theupdateframework/go-tuf v0.0.0-20220127213825-87caa18db2a6
+	github.com/theupdateframework/go-tuf v0.3.0
 	golang.org/x/crypto v0.0.0-20220131195533-30dcbda58838
 	golang.org/x/oauth2 v0.0.0-20220411215720-9780585627b5
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211
