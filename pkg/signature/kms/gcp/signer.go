@@ -24,6 +24,7 @@ import (
 
 	"github.com/sigstore/sigstore/pkg/signature"
 	"github.com/sigstore/sigstore/pkg/signature/options"
+	"google.golang.org/api/option"
 )
 
 var gcpSupportedHashFuncs = []crypto.Hash{
@@ -41,13 +42,13 @@ type SignerVerifier struct {
 // LoadSignerVerifier generates signatures using the specified key object in GCP KMS and hash algorithm.
 //
 // It also can verify signatures locally using the public key. hashFunc must not be crypto.Hash(0).
-func LoadSignerVerifier(defaultCtx context.Context, referenceStr string) (*SignerVerifier, error) {
+func LoadSignerVerifier(defaultCtx context.Context, referenceStr string, opts ...option.ClientOption) (*SignerVerifier, error) {
 	g := &SignerVerifier{
 		defaultCtx: defaultCtx,
 	}
 
 	var err error
-	g.client, err = newGCPClient(defaultCtx, referenceStr)
+	g.client, err = newGCPClient(defaultCtx, referenceStr, opts...)
 	if err != nil {
 		return nil, err
 	}
