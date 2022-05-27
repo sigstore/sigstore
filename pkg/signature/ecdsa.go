@@ -182,8 +182,9 @@ func (e ECDSAVerifier) VerifySignature(signature, message io.Reader, opts ...Ver
 	}
 
 	if !ecdsa.VerifyASN1(e.publicKey, digest, sigBytes) {
-		return fmt.Errorf("failed to verify signature: %w", err)
+		return errors.New("invalid signature when validating ASN.1 encoded signature")
 	}
+
 	return nil
 }
 
