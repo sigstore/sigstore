@@ -206,7 +206,7 @@ func (suite *AWSSuite) TestBadSignature() {
 	require.NotNil(suite.T(), sig)
 
 	err = provider2.VerifySignature(bytes.NewReader(sig), bytes.NewReader(data))
-	assert.Contains(suite.T(), err.Error(), "failed to verify signature")
+	assert.Contains(suite.T(), err.Error(), "invalid signature when validating ASN.1 encoded signature")
 
 	err = provider2.VerifySignature(bytes.NewReader(sig), bytes.NewReader(data), options.WithRemoteVerification(true))
 	assert.Contains(suite.T(), err.Error(), "KMSInvalidSignatureException")
