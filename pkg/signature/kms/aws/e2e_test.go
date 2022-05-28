@@ -42,7 +42,7 @@ type AWSSuite struct {
 }
 
 func (suite *AWSSuite) GetProvider(key string) *SignerVerifier {
-	provider, err := LoadSignerVerifier(fmt.Sprintf("awskms://%s/%s", suite.endpoint, key))
+	provider, err := LoadSignerVerifier(context.Background(), fmt.Sprintf("awskms://%s/%s", suite.endpoint, key))
 	require.NoError(suite.T(), err)
 	require.NotNil(suite.T(), provider)
 	return provider
@@ -58,7 +58,7 @@ func (suite *AWSSuite) TestGetProvider() {
 }
 
 func (suite *AWSSuite) TestInvalidProvider() {
-	provider, err := LoadSignerVerifier(fmt.Sprintf("awskms://%s/nonsense", suite.endpoint))
+	provider, err := LoadSignerVerifier(context.Background(), fmt.Sprintf("awskms://%s/nonsense", suite.endpoint))
 	require.Error(suite.T(), err)
 	require.Nil(suite.T(), provider)
 }

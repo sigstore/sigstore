@@ -21,18 +21,19 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/aws/aws-sdk-go/service/kms"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/kms/types"
 	"github.com/sigstore/sigstore/pkg/signature"
 	"github.com/sigstore/sigstore/pkg/signature/options"
 )
 
-var awsSupportedAlgorithms = []string{
-	kms.CustomerMasterKeySpecRsa2048,
-	kms.CustomerMasterKeySpecRsa3072,
-	kms.CustomerMasterKeySpecRsa4096,
-	kms.CustomerMasterKeySpecEccNistP256,
-	kms.CustomerMasterKeySpecEccNistP384,
-	kms.CustomerMasterKeySpecEccNistP521,
+var awsSupportedAlgorithms = []types.CustomerMasterKeySpec{
+	types.CustomerMasterKeySpecRsa2048,
+	types.CustomerMasterKeySpecRsa3072,
+	types.CustomerMasterKeySpecRsa4096,
+	types.CustomerMasterKeySpecEccNistP256,
+	types.CustomerMasterKeySpecEccNistP384,
+	types.CustomerMasterKeySpecEccNistP521,
 }
 
 var awsSupportedHashFuncs = []crypto.Hash{
@@ -49,11 +50,11 @@ type SignerVerifier struct {
 // LoadSignerVerifier generates signatures using the specified key object in AWS KMS and hash algorithm.
 //
 // It also can verify signatures locally using the public key. hashFunc must not be crypto.Hash(0).
-func LoadSignerVerifier(referenceStr string) (*SignerVerifier, error) {
+func LoadSignerVerifier(ctx context.Context, referenceStr string, opts ...func(*config.LoadOptions) error) (*SignerVerifier, error) {
 	a := &SignerVerifier{}
 
 	var err error
-	a.client, err = newAWSClient(referenceStr)
+	a.client, err = newAWSClient(ctx, referenceStr, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -229,10 +230,14 @@ func (a *SignerVerifier) CryptoSigner(ctx context.Context, errFunc func(error)) 
 
 // SupportedAlgorithms returns the list of algorithms supported by the AWS KMS service
 func (*SignerVerifier) SupportedAlgorithms() []string {
-	return awsSupportedAlgorithms
+	s := make([]string, len(awsSupportedAlgorithms))
+	for i := range awsSupportedAlgorithms {
+		s[i] = string(awsSupportedAlgorithms[i])
+	}
+	return s
 }
 
 // DefaultAlgorithm returns the default algorithm for the AWS KMS service
 func (*SignerVerifier) DefaultAlgorithm() string {
-	return kms.CustomerMasterKeySpecEccNistP256
+	return string(types.CustomerMasterKeySpecEccNistP256)
 }
