@@ -29,6 +29,7 @@ import (
 	"time"
 
 	gcpkms "cloud.google.com/go/kms/apiv1"
+	"google.golang.org/api/option"
 	kmspb "google.golang.org/genproto/googleapis/cloud/kms/v1"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
@@ -84,7 +85,7 @@ type gcpClient struct {
 	kmsClient  *gcpkms.KeyManagementClient
 }
 
-func newGCPClient(ctx context.Context, refStr string) (*gcpClient, error) {
+func newGCPClient(ctx context.Context, refStr string, opts ...option.ClientOption) (*gcpClient, error) {
 	if err := ValidReference(refStr); err != nil {
 		return nil, err
 	}
@@ -104,7 +105,7 @@ func newGCPClient(ctx context.Context, refStr string) (*gcpClient, error) {
 		return nil, err
 	}
 
-	g.kmsClient, err = gcpkms.NewKeyManagementClient(ctx)
+	g.kmsClient, err = gcpkms.NewKeyManagementClient(ctx, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("new gcp kms client: %w", err)
 	}

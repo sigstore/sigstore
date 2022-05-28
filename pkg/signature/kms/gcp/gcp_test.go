@@ -15,7 +15,13 @@
 
 package gcp
 
-import "testing"
+import (
+	"context"
+	"testing"
+
+	"golang.org/x/oauth2"
+	"google.golang.org/api/option"
+)
 
 func TestParseReference(t *testing.T) {
 	tests := []struct {
@@ -94,4 +100,11 @@ func TestParseReference(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestOptionsWork(t *testing.T) {
+	// Check that we can pass options into LoadSignerVerifier
+	// (this is mostly a compile-time check)
+	ts := oauth2.StaticTokenSource(&oauth2.Token{})
+	LoadSignerVerifier(context.Background(), "gcpkms://projects/a-project/locations/global/keyRings/a-keyring/cryptoKeys/key-name", option.WithTokenSource(ts))
 }
