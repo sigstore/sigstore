@@ -139,19 +139,19 @@ func TestParseReference(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.in, func(t *testing.T) {
-			gotEndpoint, gotKeyID, gotAlias, err := parseReference(tt.in)
+			gotEndpoint, gotKeyID, gotAlias, err := ParseReference(tt.in)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("parseReference() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("ParseReference() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if gotEndpoint != tt.wantEndpoint {
-				t.Errorf("parseReference() gotEndpoint = %v, want %v", gotEndpoint, tt.wantEndpoint)
+				t.Errorf("ParseReference() gotEndpoint = %v, want %v", gotEndpoint, tt.wantEndpoint)
 			}
 			if gotKeyID != tt.wantKeyID {
-				t.Errorf("parseReference() gotKeyID = %v, want %v", gotKeyID, tt.wantKeyID)
+				t.Errorf("ParseReference() gotKeyID = %v, want %v", gotKeyID, tt.wantKeyID)
 			}
 			if gotAlias != tt.wantAlias {
-				t.Errorf("parseReference() gotAlias = %v, want %v", gotAlias, tt.wantAlias)
+				t.Errorf("ParseReference() gotAlias = %v, want %v", gotAlias, tt.wantAlias)
 			}
 		})
 	}
