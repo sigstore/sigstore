@@ -429,7 +429,7 @@ func (suite *VaultSuite) TestVerifyBadData() {
 
 	dataInvalid := []byte("mydata-invalid")
 	err = provider.VerifySignature(bytes.NewReader(sig), bytes.NewReader(dataInvalid))
-	assert.Contains(suite.T(), err.Error(), "Failed vault verification")
+	assert.Contains(suite.T(), err.Error(), "failed vault verification")
 }
 
 func (suite *VaultSuite) TestBadSignature() {
@@ -454,7 +454,7 @@ func (suite *VaultSuite) TestBadSignature() {
 
 	err = provider2.VerifySignature(bytes.NewReader(sig1), bytes.NewReader(data))
 	assert.NotNil(suite.T(), err)
-	assert.Contains(suite.T(), err.Error(), "Failed vault verification")
+	assert.Contains(suite.T(), err.Error(), "failed vault verification")
 }
 
 func (suite *VaultSuite) TestNoProvider() {
