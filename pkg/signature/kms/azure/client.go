@@ -311,7 +311,7 @@ func (a *azureVaultClient) verify(ctx context.Context, signature, hash []byte) e
 	}
 
 	if !*result.Value {
-		return errors.New("Failed vault verification")
+		return errors.New("failed vault verification")
 	}
 
 	return nil

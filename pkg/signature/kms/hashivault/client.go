@@ -202,23 +202,23 @@ func (h *hashivaultClient) fetchPublicKey(_ context.Context) (crypto.PublicKey, 
 	keysData, hasKeys := keyResult.Data["keys"]
 	latestVersion, hasVersion := keyResult.Data["latest_version"]
 	if !hasKeys || !hasVersion {
-		return nil, errors.New("Failed to read transit key keys: corrupted response")
+		return nil, errors.New("failed to read transit key keys: corrupted response")
 	}
 
 	keys, ok := keysData.(map[string]interface{})
 	if !ok {
-		return nil, errors.New("Failed to read transit key keys: Invalid keys map")
+		return nil, errors.New("failed to read transit key keys: Invalid keys map")
 	}
 
 	keyVersion := latestVersion.(json.Number)
 	keyData, ok := keys[string(keyVersion)]
 	if !ok {
-		return nil, errors.New("Failed to read transit key keys: corrupted response")
+		return nil, errors.New("failed to read transit key keys: corrupted response")
 	}
 
 	publicKeyPem, ok := keyData.(map[string]interface{})["public_key"]
 	if !ok {
-		return nil, errors.New("Failed to read transit key keys: corrupted response")
+		return nil, errors.New("failed to read transit key keys: corrupted response")
 	}
 
 	return cryptoutils.UnmarshalPEMToPublicKey([]byte(publicKeyPem.(string)))
@@ -313,7 +313,7 @@ func (h hashivaultClient) verify(sig, digest []byte, alg crypto.Hash, opts ...si
 	}
 
 	if !isValid {
-		return errors.New("Failed vault verification")
+		return errors.New("failed vault verification")
 	}
 
 	return nil
@@ -323,7 +323,7 @@ func (h hashivaultClient) verify(sig, digest []byte, alg crypto.Hash, opts ...si
 func vaultDecode(data interface{}, keyVersionUsed *string) ([]byte, error) {
 	encoded, ok := data.(string)
 	if !ok {
-		return nil, errors.New("Received non-string data")
+		return nil, errors.New("received non-string data")
 	}
 
 	if keyVersionUsed != nil {
