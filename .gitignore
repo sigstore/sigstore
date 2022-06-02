@@ -3,3 +3,4 @@
 sigstore
 *fuzz.zip
 bin*
+.vscode/*
