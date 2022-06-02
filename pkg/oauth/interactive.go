@@ -20,7 +20,12 @@ const (
 <title>Sigstore Auth</title>
 <body>
 <h1>Sigstore Auth Successful</h1>
-<p>You may now close this page.</p>
+<p>You may now close this page. This page will automatically close in 5 seconds.</p>
+<script>
+  setTimeout(function() {
+      window.close()
+  }, 5000);
+</script>
 </body>
 </html>
 `
