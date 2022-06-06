@@ -21,7 +21,7 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/sigstore/cosign/pkg/providers"
+	"github.com/sigstore/sigstore/pkg/oauth/providers"
 )
 
 func init() {
@@ -33,8 +33,10 @@ type githubActions struct{}
 var _ providers.Interface = (*githubActions)(nil)
 
 const (
+	// RequestTokenEnvKey is the GitHub Actions environment variable name for the Bearer token for the request to the OIDC provider.
 	RequestTokenEnvKey = "ACTIONS_ID_TOKEN_REQUEST_TOKEN"
-	RequestURLEnvKey   = "ACTIONS_ID_TOKEN_REQUEST_URL"
+	// RequestURLEnvKey is the GitHub Actions environment variable name for the URL for GitHub's OIDC provider.
+	RequestURLEnvKey = "ACTIONS_ID_TOKEN_REQUEST_URL"
 )
 
 // Enabled implements providers.Interface

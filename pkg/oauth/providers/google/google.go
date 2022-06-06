@@ -20,10 +20,9 @@ import (
 	"os"
 	"strings"
 
+	"github.com/sigstore/sigstore/pkg/oauth/providers"
 	"google.golang.org/api/idtoken"
 	"google.golang.org/api/impersonate"
-
-	"github.com/sigstore/cosign/pkg/providers"
 )
 
 func init() {

@@ -16,13 +16,13 @@
 package all
 
 import (
-	"github.com/sigstore/cosign/pkg/providers"
+	"github.com/sigstore/sigstore/pkg/oauth/providers"
 
 	// Link in all of the providers.
-	_ "github.com/sigstore/cosign/pkg/providers/filesystem"
-	_ "github.com/sigstore/cosign/pkg/providers/github"
-	_ "github.com/sigstore/cosign/pkg/providers/google"
-	_ "github.com/sigstore/cosign/pkg/providers/spiffe"
+	_ "github.com/sigstore/sigstore/pkg/oauth/providers/filesystem"
+	_ "github.com/sigstore/sigstore/pkg/oauth/providers/github"
+	_ "github.com/sigstore/sigstore/pkg/oauth/providers/google"
+	_ "github.com/sigstore/sigstore/pkg/oauth/providers/spiffe"
 )
 
 // Alias these methods, so that folks can import this to get all providers.

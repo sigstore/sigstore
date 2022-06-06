@@ -19,9 +19,9 @@ import (
 	"context"
 	"os"
 
+	"github.com/sigstore/sigstore/pkg/oauth/providers"
 	"github.com/spiffe/go-spiffe/v2/svid/jwtsvid"
 
-	"github.com/sigstore/cosign/pkg/providers"
 	"github.com/spiffe/go-spiffe/v2/workloadapi"
 )
 

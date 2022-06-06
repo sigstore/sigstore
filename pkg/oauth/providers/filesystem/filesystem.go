@@ -19,7 +19,7 @@ import (
 	"context"
 	"os"
 
-	"github.com/sigstore/cosign/pkg/providers"
+	"github.com/sigstore/sigstore/pkg/oauth/providers"
 )
 
 func init() {

@@ -36,6 +36,7 @@ require (
 	github.com/aws/aws-sdk-go-v2 v1.16.5
 	github.com/aws/aws-sdk-go-v2/config v1.15.10
 	github.com/aws/aws-sdk-go-v2/service/kms v1.17.3
+	github.com/spiffe/go-spiffe/v2 v2.1.0
 	google.golang.org/api v0.83.0
 )
 
@@ -51,6 +52,7 @@ require (
 	github.com/Azure/go-autorest/autorest/validation v0.3.1 // indirect
 	github.com/Azure/go-autorest/logger v0.2.1 // indirect
 	github.com/Azure/go-autorest/tracing v0.6.0 // indirect
+	github.com/Microsoft/go-winio v0.5.2 // indirect
 	github.com/armon/go-metrics v0.3.10 // indirect
 	github.com/armon/go-radix v1.0.0 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.12.5 // indirect
@@ -103,6 +105,7 @@ require (
 	github.com/ysmood/goob v0.4.0 // indirect
 	github.com/ysmood/gson v0.7.1 // indirect
 	github.com/ysmood/leakless v0.7.0 // indirect
+	github.com/zeebo/errs v1.2.2 // indirect
 	go.opencensus.io v0.23.0 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
 	golang.org/x/net v0.0.0-20220607020251-c690dde0001d // indirect
