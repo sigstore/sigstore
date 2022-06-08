@@ -1,5 +1,5 @@
 //
-// Copyright 2021 The Sigstore Authors.
+// Copyright 2022 The Sigstore Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -364,15 +364,15 @@ func TestUpdatedTargetNamesEmbedded(t *testing.T) {
 	// Set the TUF_ROOT so we don't interact with other tests and local TUF roots.
 	t.Setenv("TUF_ROOT", td)
 
-	origEmbedded := GetEmbedded
-	origDefaultRemote := GetRemoteRoot
+	origEmbedded := getEmbedded
+	origDefaultRemote := getRemoteRoot
 
 	// Create an "expired" embedded repository that does not contain newTarget.
 	ctx := context.Background()
 	store, r := newTufCustomRepo(t, td, "foo")
 	repository := filepath.FromSlash(filepath.Join(td, "repository"))
 	mapfs := makeMapFS(repository)
-	GetEmbedded = func() fs.FS { return mapfs }
+	getEmbedded = func() fs.FS { return mapfs }
 
 	oldIsExpired := isExpiredTimestamp
 	isExpiredTimestamp = func(metadata []byte) bool {
@@ -382,14 +382,14 @@ func TestUpdatedTargetNamesEmbedded(t *testing.T) {
 		return metadataExpires.Sub(*timestampExpires) <= 0
 	}
 	defer func() {
-		GetEmbedded = origEmbedded
-		GetRemoteRoot = origDefaultRemote
+		getEmbedded = origEmbedded
+		getRemoteRoot = origDefaultRemote
 		isExpiredTimestamp = oldIsExpired
 	}()
 
 	// Assert that the embedded repository does not contain the newTarget.
 	newTarget := "fooNew.txt"
-	rd, ok := GetEmbedded().(fs.ReadFileFS)
+	rd, ok := getEmbedded().(fs.ReadFileFS)
 	if !ok {
 		t.Fatal("fs.ReadFileFS unimplemented for embedded repo")
 	}
@@ -401,7 +401,7 @@ func TestUpdatedTargetNamesEmbedded(t *testing.T) {
 	addNewCustomTarget(t, td, r, map[string]string{newTarget: "newdata"})
 	s := httptest.NewServer(http.FileServer(http.Dir(repository)))
 	defer s.Close()
-	GetRemoteRoot = func() string { return s.URL }
+	getRemoteRoot = func() string { return s.URL }
 
 	// Initialize.
 	tufObj, err := NewFromEnv(ctx)

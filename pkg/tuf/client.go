@@ -1,5 +1,5 @@
 //
-// Copyright 2021 The Sigstore Authors.
+// Copyright 2022 The Sigstore Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -42,9 +42,14 @@ import (
 )
 
 const (
+	// DefaultRemoteRoot is the default remote TUF root location.
 	DefaultRemoteRoot = "https://sigstore-tuf-root.storage.googleapis.com"
-	TufRootEnv        = "TUF_ROOT"
-	SigstoreNoCache   = "SIGSTORE_NO_CACHE"
+
+	// TufRootEnv is the name of the environment variable that locates an alternate local TUF root location.
+	TufRootEnv = "TUF_ROOT"
+
+	// SigstoreNoCache is the name of the environment variable that, if set, configures this code to only store root data in memory.
+	SigstoreNoCache = "SIGSTORE_NO_CACHE"
 )
 
 var (
@@ -55,9 +60,8 @@ var (
 	singletonTUFErr  error
 )
 
-var GetRemoteRoot = func() string {
-	return DefaultRemoteRoot
-}
+// getRemoteRoot is a var for testing.
+var getRemoteRoot = func() string { return DefaultRemoteRoot }
 
 type TUF struct {
 	client   *client.Client
@@ -298,7 +302,7 @@ func initializeTUF(mirror string, root []byte, embedded fs.FS, forceUpdate bool)
 // TODO: Remove ctx arg.
 func NewFromEnv(_ context.Context) (*TUF, error) {
 	// Check for the current remote mirror.
-	mirror := GetRemoteRoot()
+	mirror := getRemoteRoot()
 	b, err := os.ReadFile(cachedRemote(rootCacheDir()))
 	if err == nil {
 		remoteInfo := remoteCache{}
@@ -308,12 +312,12 @@ func NewFromEnv(_ context.Context) (*TUF, error) {
 	}
 
 	// Initializes a new TUF object from the local cache or defaults.
-	return initializeTUF(mirror, nil, GetEmbedded(), false)
+	return initializeTUF(mirror, nil, getEmbedded(), false)
 }
 
 func Initialize(ctx context.Context, mirror string, root []byte) error {
 	// Initialize the client. Force an update with remote.
-	if _, err := initializeTUF(mirror, root, GetEmbedded(), true); err != nil {
+	if _, err := initializeTUF(mirror, root, getEmbedded(), true); err != nil {
 		return err
 	}
 
@@ -602,9 +606,8 @@ func newLocalStore() (client.LocalStore, error) {
 //go:embed repository
 var embeddedRootRepo embed.FS
 
-var GetEmbedded = func() fs.FS {
-	return embeddedRootRepo
-}
+// getEmbedded is a var for testing.
+var getEmbedded = func() fs.FS { return embeddedRootRepo }
 
 // Target Implementations
 type targetImpl interface {
