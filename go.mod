@@ -33,7 +33,7 @@ require (
 )
 
 require (
-	github.com/aws/aws-sdk-go-v2 v1.16.4
+	github.com/aws/aws-sdk-go-v2 v1.16.5
 	github.com/aws/aws-sdk-go-v2/config v1.15.9
 	github.com/aws/aws-sdk-go-v2/service/kms v1.17.2
 	google.golang.org/api v0.83.0
@@ -61,7 +61,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.9.5 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sso v1.11.7 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.16.6 // indirect
-	github.com/aws/smithy-go v1.11.2 // indirect
+	github.com/aws/smithy-go v1.11.3 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dimchansky/utfbom v1.1.1 // indirect
 	github.com/fatih/color v1.13.0 // indirect
