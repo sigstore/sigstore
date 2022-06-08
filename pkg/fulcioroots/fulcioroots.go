@@ -1,5 +1,5 @@
 //
-// Copyright 2021 The Sigstore Authors.
+// Copyright 2022 The Sigstore Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -21,11 +21,10 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
-	"os"
 	"sync"
 
-	"github.com/sigstore/cosign/pkg/cosign/tuf"
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
+	"github.com/sigstore/sigstore/pkg/tuf"
 )
 
 var (
@@ -83,71 +82,36 @@ func GetIntermediates() (*x509.CertPool, error) {
 }
 
 func initRoots() (*x509.CertPool, *x509.CertPool, error) {
-	var rootPool *x509.CertPool
-	var intermediatePool *x509.CertPool
-
-	rootEnv := os.Getenv(altRoot)
-	if rootEnv != "" {
-		raw, err := os.ReadFile(rootEnv)
-		if err != nil {
-			return nil, nil, fmt.Errorf("error reading root PEM file: %w", err)
-		}
-		certs, err := cryptoutils.UnmarshalCertificatesFromPEM(raw)
+	tufClient, err := tuf.NewFromEnv(context.Background())
+	if err != nil {
+		return nil, nil, fmt.Errorf("initializing tuf: %w", err)
+	}
+	// Retrieve from the embedded or cached TUF root. If expired, a network
+	// call is made to update the root.
+	targets, err := tufClient.GetTargetsByMeta(tuf.Fulcio, []string{fulcioTargetStr, fulcioV1TargetStr})
+	if err != nil {
+		return nil, nil, fmt.Errorf("error getting targets: %w", err)
+	}
+	if len(targets) == 0 {
+		return nil, nil, errors.New("none of the Fulcio roots have been found")
+	}
+	rootPool := x509.NewCertPool()
+	intermediatePool := x509.NewCertPool()
+	for _, t := range targets {
+		certs, err := cryptoutils.UnmarshalCertificatesFromPEM(t.Target)
 		if err != nil {
 			return nil, nil, fmt.Errorf("error unmarshalling certificates: %w", err)
 		}
 		for _, cert := range certs {
 			// root certificates are self-signed
 			if bytes.Equal(cert.RawSubject, cert.RawIssuer) {
-				if rootPool == nil {
-					rootPool = x509.NewCertPool()
-				}
 				rootPool.AddCert(cert)
 			} else {
-				if intermediatePool == nil {
-					intermediatePool = x509.NewCertPool()
-				}
 				intermediatePool.AddCert(cert)
 			}
 		}
-	} else {
-		tufClient, err := tuf.NewFromEnv(context.Background())
-		if err != nil {
-			return nil, nil, fmt.Errorf("initializing tuf: %w", err)
-		}
-		// Retrieve from the embedded or cached TUF root. If expired, a network
-		// call is made to update the root.
-		targets, err := tufClient.GetTargetsByMeta(tuf.Fulcio, []string{fulcioTargetStr, fulcioV1TargetStr})
-		if err != nil {
-			return nil, nil, fmt.Errorf("error getting targets: %w", err)
-		}
-		if len(targets) == 0 {
-			return nil, nil, errors.New("none of the Fulcio roots have been found")
-		}
-		for _, t := range targets {
-			certs, err := cryptoutils.UnmarshalCertificatesFromPEM(t.Target)
-			if err != nil {
-				return nil, nil, fmt.Errorf("error unmarshalling certificates: %w", err)
-			}
-			for _, cert := range certs {
-				// root certificates are self-signed
-				if bytes.Equal(cert.RawSubject, cert.RawIssuer) {
-					if rootPool == nil {
-						rootPool = x509.NewCertPool()
-					}
-					rootPool.AddCert(cert)
-				} else {
-					if intermediatePool == nil {
-						intermediatePool = x509.NewCertPool()
-					}
-					intermediatePool.AddCert(cert)
-				}
-			}
-		}
-		if intermediatePool == nil {
-			intermediatePool = x509.NewCertPool()
-		}
-		intermediatePool.AppendCertsFromPEM([]byte(fulcioIntermediateV1))
 	}
+	intermediatePool.AppendCertsFromPEM([]byte(fulcioIntermediateV1))
+
 	return rootPool, intermediatePool, nil
 }
