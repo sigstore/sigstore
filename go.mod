@@ -35,7 +35,7 @@ require (
 require (
 	github.com/aws/aws-sdk-go-v2 v1.16.5
 	github.com/aws/aws-sdk-go-v2/config v1.15.10
-	github.com/aws/aws-sdk-go-v2/service/kms v1.17.2
+	github.com/aws/aws-sdk-go-v2/service/kms v1.17.3
 	google.golang.org/api v0.83.0
 )
 
