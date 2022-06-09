@@ -77,17 +77,13 @@ type Root struct {
 	ConsistentSnapshot bool `json:"consistent_snapshot"`
 }
 
-func DefaultExpires(role string) time.Time {
-	// Default expires in 3 months
-	return time.Now().AddDate(0, 3, 0).UTC().Round(time.Second)
-}
-
 func NewRoot() *Root {
 	return &Root{
-		Type:               "root",
-		SpecVersion:        "1.0",
-		Version:            1,
-		Expires:            DefaultExpires("root"),
+		Type:        "root",
+		SpecVersion: "1.0",
+		Version:     1,
+		// Default expires in 3 months
+		Expires:            time.Now().AddDate(0, 3, 0).UTC().Round(time.Second),
 		Keys:               make(map[string]*Key),
 		Roles:              make(map[string]*Role),
 		ConsistentSnapshot: true,

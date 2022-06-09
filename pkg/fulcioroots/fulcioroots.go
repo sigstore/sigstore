@@ -57,10 +57,7 @@ nZU84/9DZdnFvvxmAjBOt6QpBlc4J/0DxvkTCqpclvziL6BCCPnjdlIB3Pu3BxsP
 mygUY7Ii2zbdCdliiow=
 -----END CERTIFICATE-----`
 
-const (
-	altRoot = "SIGSTORE_ROOT_FILE"
-)
-
+// Get returns the Fulcio root certificate.
 func Get() (*x509.CertPool, error) {
 	rootsOnce.Do(func() {
 		roots, intermediates, singletonRootErr = initRoots()
@@ -71,6 +68,7 @@ func Get() (*x509.CertPool, error) {
 	return roots, singletonRootErr
 }
 
+// GetIntermediates returns the Fulcio intermediate certificates.
 func GetIntermediates() (*x509.CertPool, error) {
 	rootsOnce.Do(func() {
 		roots, intermediates, singletonRootErr = initRoots()
