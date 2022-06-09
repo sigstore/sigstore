@@ -54,4 +54,3 @@ jobs:
         timeout-minutes: 5
         with:
           version: latest
-          only-new-issues: true  # Only fail PRs on new findings.
