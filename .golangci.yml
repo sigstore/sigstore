@@ -47,6 +47,9 @@ issues:
     linters:
     - errcheck
     - gosec
+  - path: pkg/tuf
+    linters:
+      revive
   max-issues-per-linter: 0
   max-same-issues: 0
 run:
