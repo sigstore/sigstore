@@ -15,7 +15,7 @@ require (
 	github.com/go-test/deep v1.0.8
 	github.com/google/go-cmp v0.5.8
 	github.com/google/go-containerregistry v0.9.0
-	github.com/hashicorp/vault/api v1.7.1
+	github.com/hashicorp/vault/api v1.7.2
 	github.com/letsencrypt/boulder v0.0.0-20220331220046-b23ab962616e
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/pkg/browser v0.0.0-20210911075715-681adbf594b8
@@ -86,7 +86,7 @@ require (
 	github.com/hashicorp/go-version v1.4.0 // indirect
 	github.com/hashicorp/golang-lru v0.5.4 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
-	github.com/hashicorp/vault/sdk v0.5.0 // indirect
+	github.com/hashicorp/vault/sdk v0.5.1 // indirect
 	github.com/hashicorp/yamux v0.0.0-20211028200310-0bc27b27de87 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/mattn/go-colorable v0.1.12 // indirect
