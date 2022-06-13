@@ -55,6 +55,19 @@ func UnmarshalPEMToPublicKey(pemBytes []byte) (crypto.PublicKey, error) {
 	return x509.ParsePKIXPublicKey(derBytes.Bytes)
 }
 
+// UnmarshalPEMToECDSAKey converts a PEM-encoded byte slice into an *ecdsa.PublicKey.
+func UnmarshalPEMToECDSAKey(pemBytes []byte) (*ecdsa.PublicKey, error) {
+	pub, err := UnmarshalPEMToPublicKey(pemBytes)
+	if err != nil {
+		return nil, err
+	}
+	ecdsaPub, ok := pub.(*ecdsa.PublicKey)
+	if !ok {
+		return nil, fmt.Errorf("invalid public key: was %T, require *ecdsa.PublicKey", pub)
+	}
+	return ecdsaPub, nil
+}
+
 // MarshalPublicKeyToDER converts a crypto.PublicKey into a PKIX, ASN.1 DER byte slice
 func MarshalPublicKeyToDER(pub crypto.PublicKey) ([]byte, error) {
 	if pub == nil {
