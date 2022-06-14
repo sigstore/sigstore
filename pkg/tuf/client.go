@@ -64,6 +64,7 @@ var (
 var getRemoteRoot = func() string { return DefaultRemoteRoot }
 
 type TUF struct {
+	sync.Mutex
 	client   *client.Client
 	targets  targetImpl
 	local    client.LocalStore
@@ -348,6 +349,8 @@ func isValidTarget(testTarget []byte, validMeta data.TargetFileMeta) bool {
 }
 
 func (t *TUF) GetTarget(name string) ([]byte, error) {
+	t.Lock()
+	defer t.Unlock()
 	// Get valid target metadata. Does a local verification.
 	validMeta, err := t.client.Target(name)
 	if err != nil {
@@ -368,7 +371,9 @@ func (t *TUF) GetTarget(name string) ([]byte, error) {
 // Get target files by a custom usage metadata tag. If there are no files found,
 // use the fallback target names to fetch the targets by name.
 func (t *TUF) GetTargetsByMeta(usage UsageKind, fallbacks []string) ([]TargetFile, error) {
+	t.Lock()
 	targets, err := t.client.Targets()
+	t.Unlock()
 	if err != nil {
 		return nil, fmt.Errorf("error getting targets: %w", err)
 	}
