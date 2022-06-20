@@ -330,6 +330,16 @@ func (suite *VaultSuite) TestSignWithDifferentTransitSecretEnginePath() {
 	assert.Nil(suite.T(), err)
 }
 
+func (suite *VaultSuite) TestInvalidPublicKey() {
+	var provider *SignerVerifier
+	var err error
+	assert.NotPanics(suite.T(), func() {
+		provider, _ = LoadSignerVerifier("hashivault://pki_int", crypto.SHA256)
+		_, err = provider.client.fetchPublicKey(context.Background())
+	})
+	assert.NotNil(suite.T(), err)
+}
+
 func (suite *VaultSuite) TestSignWithDifferentTransitSecretEnginePathOpts() {
 	provider := suite.GetProvider("testsign", options.WithRPCAuthOpts(options.RPCAuth{Path: "somerandompath"}))
 

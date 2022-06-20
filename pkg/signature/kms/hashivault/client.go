@@ -194,9 +194,15 @@ func (h *hashivaultClient) keyCacheLoaderFunction(key string) (data interface{},
 func (h *hashivaultClient) fetchPublicKey(_ context.Context) (crypto.PublicKey, error) {
 	client := h.client.Logical()
 
-	keyResult, err := client.Read(fmt.Sprintf("/%s/keys/%s", h.transitSecretEnginePath, h.keyPath))
+	path := fmt.Sprintf("/%s/keys/%s", h.transitSecretEnginePath, h.keyPath)
+
+	keyResult, err := client.Read(path)
 	if err != nil {
 		return nil, fmt.Errorf("public key: %w", err)
+	}
+
+	if keyResult == nil {
+		return nil, fmt.Errorf("could not read data from transit key path: %s", path)
 	}
 
 	keysData, hasKeys := keyResult.Data["keys"]
