@@ -71,10 +71,18 @@ func NewDeviceFlowTokenGetter(issuer, codeURL, tokenURL string) *DeviceFlowToken
 	}
 }
 
-func (d *DeviceFlowTokenGetter) deviceFlow(clientID, redirectURL string) (string, error) {
+func (d *DeviceFlowTokenGetter) deviceFlow(p *oidc.Provider, clientID, redirectURL string) (string, error) {
+	// require that OIDC provider support PKCE to provide sufficient security for the CLI
+	pkce, err := NewPKCE(p)
+	if err != nil {
+		return "", err
+	}
+
 	data := url.Values{
-		"client_id": []string{clientID},
-		"scope":     []string{"openid email"},
+		"client_id":             []string{clientID},
+		"scope":                 []string{"openid email"},
+		"code_challenge_method": []string{pkce.Method},
+		"code_challenge":        []string{pkce.Challenge},
 	}
 	if redirectURL != "" {
 		// If a redirect uri is provided then use it
@@ -105,9 +113,10 @@ func (d *DeviceFlowTokenGetter) deviceFlow(clientID, redirectURL string) (string
 	for {
 		// Some providers use a secret here, we don't need for sigstore oauth one so leave it off.
 		data := url.Values{
-			"grant_type":  []string{"urn:ietf:params:oauth:grant-type:device_code"},
-			"device_code": []string{parsed.DeviceCode},
-			"scope":       []string{"openid", "email"},
+			"grant_type":    []string{"urn:ietf:params:oauth:grant-type:device_code"},
+			"device_code":   []string{parsed.DeviceCode},
+			"scope":         []string{"openid", "email"},
+			"code_verifier": []string{pkce.Value},
 		}
 
 		/* #nosec */
@@ -144,7 +153,7 @@ func (d *DeviceFlowTokenGetter) deviceFlow(clientID, redirectURL string) (string
 
 // GetIDToken gets an OIDC ID Token from the specified provider using the device code grant flow
 func (d *DeviceFlowTokenGetter) GetIDToken(p *oidc.Provider, cfg oauth2.Config) (*OIDCIDToken, error) {
-	idToken, err := d.deviceFlow(cfg.ClientID, cfg.RedirectURL)
+	idToken, err := d.deviceFlow(p, cfg.ClientID, cfg.RedirectURL)
 	if err != nil {
 		return nil, err
 	}
