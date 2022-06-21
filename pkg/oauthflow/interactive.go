@@ -23,6 +23,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"os"
 	"time"
 
 	"github.com/coreos/go-oidc/v3/oidc"
@@ -78,13 +79,13 @@ func (i *InteractiveIDTokenGetter) GetIDToken(p *oidc.Provider, cfg oauth2.Confi
 	var code string
 	if err := browserOpener(authCodeURL); err != nil {
 		// Swap to the out of band flow if we can't open the browser
-		fmt.Fprintf(i.Output, "error opening browser: %v\n", err)
+		fmt.Fprintf(i.GetOutput(), "error opening browser: %v\n", err)
 		code = i.doOobFlow(&cfg, stateToken, opts)
 	} else {
-		fmt.Fprintf(i.Output, "Your browser will now be opened to:\n%s\n", authCodeURL)
+		fmt.Fprintf(i.GetOutput(), "Your browser will now be opened to:\n%s\n", authCodeURL)
 		code, err = getCode(doneCh, errCh)
 		if err != nil {
-			fmt.Fprintf(i.Output, "error getting code from local server: %v\n", err)
+			fmt.Fprintf(i.GetOutput(), "error getting code from local server: %v\n", err)
 			code = i.doOobFlow(&cfg, stateToken, opts)
 		}
 	}
@@ -131,11 +132,29 @@ func (i *InteractiveIDTokenGetter) doOobFlow(cfg *oauth2.Config, stateToken stri
 		cfg.RedirectURL = oobRedirectURI
 	}
 	authURL := cfg.AuthCodeURL(stateToken, opts...)
-	fmt.Fprintln(i.Output, "Go to the following link in a browser:\n\n\t", authURL)
-	fmt.Fprintf(i.Output, "Enter verification code: ")
+	fmt.Fprintln(i.GetOutput(), "Go to the following link in a browser:\n\n\t", authURL)
+	fmt.Fprintf(i.GetOutput(), "Enter verification code: ")
 	var code string
-	fmt.Fscanln(i.Input, &code)
+	fmt.Fscanln(i.GetInput(), &code)
 	return code
+}
+
+// GetInput returns the input reader for the token getter. If one is not set,
+// it defaults to stdin.
+func (i *InteractiveIDTokenGetter) GetInput() io.Reader {
+	if i.Input == nil {
+		return os.Stdin
+	}
+	return i.Input
+}
+
+// GetOutput returns the output writer for the token getter. If one is not set,
+// it defaults to stderr.
+func (i *InteractiveIDTokenGetter) GetOutput() io.Writer {
+	if i.Output == nil {
+		return os.Stderr
+	}
+	return i.GetOutput()
 }
 
 func startRedirectListener(state, htmlPage, redirectURL string, doneCh chan string, errCh chan error) (*http.Server, *url.URL, error) {

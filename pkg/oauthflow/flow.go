@@ -19,7 +19,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"os"
 
 	"github.com/coreos/go-oidc/v3/oidc"
 	soauth "github.com/sigstore/sigstore/pkg/oauth"
@@ -57,8 +56,6 @@ func ConnectorIDOpt(prov string) oauth2.AuthCodeOption {
 // The HTML page and message printed to the terminal can be customized.
 var DefaultIDTokenGetter = &InteractiveIDTokenGetter{
 	HTMLPage: soauth.InteractiveSuccessHTML,
-	Input:    os.Stdin,
-	Output:   os.Stderr,
 }
 
 // PublicInstanceGithubIDTokenGetter is a `oauth2.sigstore.dev` flow selecting github as an Idp
@@ -66,8 +63,6 @@ var DefaultIDTokenGetter = &InteractiveIDTokenGetter{
 var PublicInstanceGithubIDTokenGetter = &InteractiveIDTokenGetter{
 	HTMLPage:           DefaultIDTokenGetter.HTMLPage,
 	ExtraAuthURLParams: []oauth2.AuthCodeOption{ConnectorIDOpt(PublicInstanceGithubAuthSubURL)},
-	Input:              DefaultIDTokenGetter.Input,
-	Output:             DefaultIDTokenGetter.Output,
 }
 
 // PublicInstanceGoogleIDTokenGetter is a `oauth2.sigstore.dev` flow selecting github as an Idp
@@ -75,8 +70,6 @@ var PublicInstanceGithubIDTokenGetter = &InteractiveIDTokenGetter{
 var PublicInstanceGoogleIDTokenGetter = &InteractiveIDTokenGetter{
 	HTMLPage:           DefaultIDTokenGetter.HTMLPage,
 	ExtraAuthURLParams: []oauth2.AuthCodeOption{ConnectorIDOpt(PublicInstanceGoogleAuthSubURL)},
-	Input:              DefaultIDTokenGetter.Input,
-	Output:             DefaultIDTokenGetter.Output,
 }
 
 // PublicInstanceMicrosoftIDTokenGetter is a `oauth2.sigstore.dev` flow selecting microsoft as an Idp
@@ -84,8 +77,6 @@ var PublicInstanceGoogleIDTokenGetter = &InteractiveIDTokenGetter{
 var PublicInstanceMicrosoftIDTokenGetter = &InteractiveIDTokenGetter{
 	HTMLPage:           DefaultIDTokenGetter.HTMLPage,
 	ExtraAuthURLParams: []oauth2.AuthCodeOption{ConnectorIDOpt(PublicInstanceMicrosoftAuthSubURL)},
-	Input:              DefaultIDTokenGetter.Input,
-	Output:             DefaultIDTokenGetter.Output,
 }
 
 // OIDConnect requests an OIDC Identity Token from the specified issuer using the specified client credentials and TokenGetter
