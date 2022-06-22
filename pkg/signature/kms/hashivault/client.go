@@ -210,18 +210,32 @@ func (h *hashivaultClient) fetchPublicKey(_ context.Context) (crypto.PublicKey, 
 		return nil, errors.New("failed to read transit key keys: Invalid keys map")
 	}
 
-	keyVersion := latestVersion.(json.Number)
+	keyVersion, ok := latestVersion.(json.Number)
+	if !ok {
+		return nil, fmt.Errorf("format of 'latest_version' is not json.Number")
+	}
+
 	keyData, ok := keys[string(keyVersion)]
 	if !ok {
 		return nil, errors.New("failed to read transit key keys: corrupted response")
 	}
 
-	publicKeyPem, ok := keyData.(map[string]interface{})["public_key"]
+	keyMap, ok := keyData.(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("could not parse transit key keys data as map[string]interface{}")
+	}
+
+	publicKeyPem, ok := keyMap["public_key"]
 	if !ok {
 		return nil, errors.New("failed to read transit key keys: corrupted response")
 	}
 
-	return cryptoutils.UnmarshalPEMToPublicKey([]byte(publicKeyPem.(string)))
+	strPublicKeyPem, ok := publicKeyPem.(string)
+	if !ok {
+		return nil, fmt.Errorf("could not parse public key pem as string")
+	}
+
+	return cryptoutils.UnmarshalPEMToPublicKey([]byte(strPublicKeyPem))
 }
 
 func (h *hashivaultClient) public() (crypto.PublicKey, error) {
@@ -309,7 +323,7 @@ func (h hashivaultClient) verify(sig, digest []byte, alg crypto.Hash, opts ...si
 
 	isValid, ok := valid.(bool)
 	if !ok {
-		return fmt.Errorf("data type assertion for field `valid` failed: %T %#v", valid.(bool), valid.(bool))
+		return fmt.Errorf("received non-bool value from 'valid' key")
 	}
 
 	if !isValid {

@@ -20,6 +20,7 @@ linters:
   - depguard
   - errcheck
   - errorlint
+  - forcetypeassert
   - gofmt
   - goimports
   - gosec

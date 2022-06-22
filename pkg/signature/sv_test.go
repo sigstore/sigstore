@@ -78,7 +78,11 @@ func testingSigner(t *testing.T, s Signer, alg string, hashFunc crypto.Hash, mes
 		t.Errorf("unexpected error passing nil options: %v", err)
 	}
 
-	cs := s.(crypto.Signer)
+	cs, ok := s.(crypto.Signer)
+	if !ok {
+		t.Fatalf("expected crypto.Signer")
+	}
+
 	if _, err := cs.Sign(nil, nil, nil); err == nil {
 		t.Errorf("no error passing nil for all args to Sign: %v", err)
 	}

@@ -279,7 +279,12 @@ func (g *gcpClient) getCKV() (*cryptoKeyVersion, error) {
 		return nil, err
 	}
 
-	return kmsVersionInt.(*cryptoKeyVersion), nil
+	kv, ok := kmsVersionInt.(*cryptoKeyVersion)
+	if !ok {
+		return nil, fmt.Errorf("could not parse kms version cache value as CryptoKeyVersion")
+	}
+
+	return kv, nil
 }
 
 func (g *gcpClient) sign(ctx context.Context, digest []byte, alg crypto.Hash, crc uint32) ([]byte, error) {
