@@ -14,7 +14,7 @@ require (
 	github.com/go-rod/rod v0.107.2
 	github.com/go-test/deep v1.0.8
 	github.com/google/go-cmp v0.5.8
-	github.com/google/go-containerregistry v0.9.0
+	github.com/google/go-containerregistry v0.10.0
 	github.com/hashicorp/vault/api v1.7.2
 	github.com/letsencrypt/boulder v0.0.0-20220331220046-b23ab962616e
 	github.com/mitchellh/go-homedir v1.1.0
