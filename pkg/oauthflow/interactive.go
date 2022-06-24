@@ -154,7 +154,7 @@ func (i *InteractiveIDTokenGetter) GetOutput() io.Writer {
 	if i.Output == nil {
 		return os.Stderr
 	}
-	return i.GetOutput()
+	return i.Output
 }
 
 func startRedirectListener(state, htmlPage, redirectURL string, doneCh chan string, errCh chan error) (*http.Server, *url.URL, error) {
