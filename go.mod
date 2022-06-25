@@ -22,7 +22,7 @@ require (
 	github.com/secure-systems-lab/go-securesystemslib v0.4.0
 	github.com/segmentio/ksuid v1.0.4
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966
-	github.com/stretchr/testify v1.7.4
+	github.com/stretchr/testify v1.7.5
 	github.com/theupdateframework/go-tuf v0.3.0
 	golang.org/x/crypto v0.0.0-20220131195533-30dcbda58838
 	golang.org/x/oauth2 v0.0.0-20220608161450-d0670ef3b1eb
