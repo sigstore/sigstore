@@ -178,11 +178,23 @@ func (c *cmk) HashFunc() crypto.Hash {
 func (c *cmk) Verifier() (signature.Verifier, error) {
 	switch c.KeyMetadata.SigningAlgorithms[0] {
 	case types.SigningAlgorithmSpecRsassaPssSha256, types.SigningAlgorithmSpecRsassaPssSha384, types.SigningAlgorithmSpecRsassaPssSha512:
-		return signature.LoadRSAPSSVerifier(c.PublicKey.(*rsa.PublicKey), c.HashFunc(), nil)
+		pub, ok := c.PublicKey.(*rsa.PublicKey)
+		if !ok {
+			return nil, fmt.Errorf("public key is not rsa")
+		}
+		return signature.LoadRSAPSSVerifier(pub, c.HashFunc(), nil)
 	case types.SigningAlgorithmSpecRsassaPkcs1V15Sha256, types.SigningAlgorithmSpecRsassaPkcs1V15Sha384, types.SigningAlgorithmSpecRsassaPkcs1V15Sha512:
-		return signature.LoadRSAPKCS1v15Verifier(c.PublicKey.(*rsa.PublicKey), c.HashFunc())
+		pub, ok := c.PublicKey.(*rsa.PublicKey)
+		if !ok {
+			return nil, fmt.Errorf("public key is not rsa")
+		}
+		return signature.LoadRSAPKCS1v15Verifier(pub, c.HashFunc())
 	case types.SigningAlgorithmSpecEcdsaSha256, types.SigningAlgorithmSpecEcdsaSha384, types.SigningAlgorithmSpecEcdsaSha512:
-		return signature.LoadECDSAVerifier(c.PublicKey.(*ecdsa.PublicKey), c.HashFunc())
+		pub, ok := c.PublicKey.(*ecdsa.PublicKey)
+		if !ok {
+			return nil, fmt.Errorf("public key is not ecdsa")
+		}
+		return signature.LoadECDSAVerifier(pub, c.HashFunc())
 	default:
 		return nil, fmt.Errorf("signing algorithm unsupported")
 	}
@@ -227,8 +239,11 @@ func (a *awsClient) getCMK(ctx context.Context) (*cmk, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	return c.(*cmk), nil
+	cmk, ok := c.(*cmk)
+	if !ok {
+		return nil, fmt.Errorf("could not parse cache value as cmk")
+	}
+	return cmk, nil
 }
 
 func (a *awsClient) createKey(ctx context.Context, algorithm string) (crypto.PublicKey, error) {
@@ -306,7 +321,11 @@ func (a *awsClient) public(ctx context.Context) (crypto.PublicKey, error) {
 	if err != nil {
 		return nil, err
 	}
-	return key.(*cmk).PublicKey, nil
+	cmk, ok := key.(*cmk)
+	if !ok {
+		return nil, fmt.Errorf("could not parse key as cmk")
+	}
+	return cmk.PublicKey, nil
 }
 
 func (a *awsClient) sign(ctx context.Context, digest []byte, _ crypto.Hash) ([]byte, error) {

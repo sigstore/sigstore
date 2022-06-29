@@ -168,10 +168,14 @@ func startRedirectListener(state, htmlPage, redirectURL string, doneCh chan stri
 			return nil, nil, err
 		}
 
-		port := listener.Addr().(*net.TCPAddr).Port
+		addr, ok := listener.Addr().(*net.TCPAddr)
+		if !ok {
+			return nil, nil, fmt.Errorf("listener addr is not TCPAddr")
+		}
+
 		urlListener = &url.URL{
 			Scheme: "http",
-			Host:   fmt.Sprintf("localhost:%d", port),
+			Host:   fmt.Sprintf("localhost:%d", addr.Port),
 			Path:   "/auth/callback",
 		}
 	} else {

@@ -41,7 +41,10 @@ func TestED25519SignerVerifier(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error unmarshalling public key: %v", err)
 	}
-	edPriv := privateKey.(ed25519.PrivateKey)
+	edPriv, ok := privateKey.(ed25519.PrivateKey)
+	if !ok {
+		t.Fatalf("expected ed25519.PrivateKey: %v", err)
+	}
 
 	sv, err := LoadED25519SignerVerifier(edPriv)
 	if err != nil {
@@ -64,7 +67,10 @@ func TestED25519Verifier(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error unmarshalling public key: %v", err)
 	}
-	edPub := publicKey.(ed25519.PublicKey)
+	edPub, ok := publicKey.(ed25519.PublicKey)
+	if !ok {
+		t.Fatalf("public key is not ed25519")
+	}
 
 	v, err := LoadED25519Verifier(edPub)
 	if err != nil {
