@@ -43,7 +43,7 @@ func TestED25519SignerVerifier(t *testing.T) {
 	}
 	edPriv, ok := privateKey.(ed25519.PrivateKey)
 	if !ok {
-		t.Fatalf("expected ed25519.PrivateKey: %v", err)
+		t.Fatalf("expected ed25519.PrivateKey")
 	}
 
 	sv, err := LoadED25519SignerVerifier(edPriv)
