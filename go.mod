@@ -11,7 +11,7 @@ require (
 	github.com/aws/aws-sdk-go v1.44.51
 	github.com/cenkalti/backoff/v3 v3.2.2 // indirect
 	github.com/coreos/go-oidc/v3 v3.2.0
-	github.com/go-rod/rod v0.107.3
+	github.com/go-rod/rod v0.108.1
 	github.com/go-test/deep v1.0.8
 	github.com/google/go-cmp v0.5.8
 	github.com/google/go-containerregistry v0.10.0
@@ -104,7 +104,7 @@ require (
 	github.com/titanous/rocacheck v0.0.0-20171023193734-afe73141d399 // indirect
 	github.com/ysmood/goob v0.4.0 // indirect
 	github.com/ysmood/gson v0.7.1 // indirect
-	github.com/ysmood/leakless v0.7.0 // indirect
+	github.com/ysmood/leakless v0.8.0 // indirect
 	go.opencensus.io v0.23.0 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
 	golang.org/x/net v0.0.0-20220624214902-1bab6f366d9e // indirect
