@@ -41,13 +41,14 @@ import (
 	"github.com/theupdateframework/go-tuf/verify"
 )
 
+// These are the expected targets from the Sigstore root.
+// This may not be the total complete list to ensure that targets
+// can be added during new ceremonies.
 var targets = []string{
 	"artifact.pub",
-	"fulcio.crt.pem",
 	"fulcio_v1.crt.pem",
 	"ctfe.pub",
 	"rekor.pub",
-	"rekor.0.pub",
 }
 
 func TestNewFromEnv(t *testing.T) {
@@ -440,14 +441,10 @@ func checkTargetsAndMeta(t *testing.T, tuf *TUF) {
 		t.Error("expected error reading target, got nil")
 	}
 
-	// Check root status matches
-	status, err := tuf.getRootStatus()
+	// Check root status.
+	_, err := tuf.getRootStatus()
 	if err != nil {
 		t.Fatal(err)
-	}
-	if !cmp.Equal(targets, status.Targets,
-		cmpopts.SortSlices(func(a, b string) bool { return a < b })) {
-		t.Errorf("mismatched targets, expected %s, got %s", targets, status.Targets)
 	}
 }
 
