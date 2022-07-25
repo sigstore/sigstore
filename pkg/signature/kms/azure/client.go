@@ -28,7 +28,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ReneKroon/ttlcache/v2"
+	"github.com/jellydator/ttlcache/v2"
 	jose "gopkg.in/square/go-jose.v2"
 
 	kvauth "github.com/Azure/azure-sdk-for-go/services/keyvault/auth"

@@ -29,8 +29,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/ReneKroon/ttlcache/v2"
 	vault "github.com/hashicorp/vault/api"
+	"github.com/jellydator/ttlcache/v2"
 	"github.com/mitchellh/go-homedir"
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
 	"github.com/sigstore/sigstore/pkg/signature"
