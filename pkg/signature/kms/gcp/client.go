@@ -33,7 +33,7 @@ import (
 	kmspb "google.golang.org/genproto/googleapis/cloud/kms/v1"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
-	"github.com/ReneKroon/ttlcache/v2"
+	"github.com/jellydator/ttlcache/v2"
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
 	"github.com/sigstore/sigstore/pkg/signature"
 	sigkms "github.com/sigstore/sigstore/pkg/signature/kms"

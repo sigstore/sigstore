@@ -30,11 +30,11 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/ReneKroon/ttlcache/v2"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/kms"
 	"github.com/aws/aws-sdk-go-v2/service/kms/types"
+	"github.com/jellydator/ttlcache/v2"
 	"github.com/sigstore/sigstore/pkg/signature"
 	sigkms "github.com/sigstore/sigstore/pkg/signature/kms"
 )

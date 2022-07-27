@@ -7,7 +7,6 @@ require (
 	github.com/Azure/azure-sdk-for-go v66.0.0+incompatible
 	github.com/Azure/go-autorest/autorest v0.11.28
 	github.com/Azure/go-autorest/autorest/to v0.4.0
-	github.com/ReneKroon/ttlcache/v2 v2.11.0
 	github.com/aws/aws-sdk-go v1.44.63
 	github.com/aws/aws-sdk-go-v2 v1.16.7
 	github.com/aws/aws-sdk-go-v2/config v1.15.14
@@ -18,7 +17,8 @@ require (
 	github.com/google/go-cmp v0.5.8
 	github.com/google/go-containerregistry v0.11.0
 	github.com/hashicorp/vault/api v1.7.2
-	github.com/letsencrypt/boulder v0.0.0-20220721190853-d988c39123b1
+	github.com/jellydator/ttlcache/v2 v2.11.1
+	github.com/letsencrypt/boulder v0.0.0-20220723181115-27de4befb95e
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/pkg/browser v0.0.0-20210911075715-681adbf594b8
 	github.com/secure-systems-lab/go-securesystemslib v0.4.0
@@ -108,11 +108,11 @@ require (
 	github.com/ysmood/leakless v0.8.0 // indirect
 	go.opencensus.io v0.23.0 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
-	golang.org/x/net v0.0.0-20220708220712-1185a9018129 // indirect
-	golang.org/x/sync v0.0.0-20220601150217-0de741cfad7f // indirect
-	golang.org/x/sys v0.0.0-20220721230656-c6bc011c0c49 // indirect
+	golang.org/x/net v0.0.0-20220722155237-a158d28d115b // indirect
+	golang.org/x/sync v0.0.0-20220722155255-886fb9371eb4 // indirect
+	golang.org/x/sys v0.0.0-20220722155257-8c9f86f7a55f // indirect
 	golang.org/x/text v0.3.7 // indirect
-	golang.org/x/time v0.0.0-20220609170525-579cf78fd858 // indirect
+	golang.org/x/time v0.0.0-20220722155302-e5dcc9cfc0b9 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/grpc v1.48.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
