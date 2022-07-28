@@ -31,7 +31,7 @@ require (
 	golang.org/x/term v0.0.0-20220526004731-065cf7ba2467
 	google.golang.org/api v0.89.0
 	google.golang.org/genproto v0.0.0-20220720214146-176da50484ac
-	google.golang.org/protobuf v1.28.0
+	google.golang.org/protobuf v1.28.1
 	gopkg.in/square/go-jose.v2 v2.6.0
 )
 
