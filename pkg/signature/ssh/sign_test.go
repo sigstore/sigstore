@@ -322,7 +322,7 @@ func TestRoundTrip(t *testing.T) {
 
 func write(t *testing.T, d []byte, fp ...string) string {
 	p := filepath.Join(fp...)
-	if err := ioutil.WriteFile(p, d, 0600); err != nil {
+	if err := ioutil.WriteFile(p, d, 0o600); err != nil {
 		t.Fatal(err)
 	}
 	return p

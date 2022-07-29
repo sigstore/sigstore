@@ -81,7 +81,7 @@ var PublicInstanceMicrosoftIDTokenGetter = &InteractiveIDTokenGetter{
 
 // OIDConnect requests an OIDC Identity Token from the specified issuer using the specified client credentials and TokenGetter
 // NOTE: If the redirectURL is empty a listener on localhost:0 is configured with '/auth/callback' as default path.
-func OIDConnect(issuer string, id string, secret string, redirectURL string, tg TokenGetter) (*OIDCIDToken, error) {
+func OIDConnect(issuer, id, secret, redirectURL string, tg TokenGetter) (*OIDCIDToken, error) {
 	provider, err := oidc.NewProvider(context.Background(), issuer)
 	if err != nil {
 		return nil, err

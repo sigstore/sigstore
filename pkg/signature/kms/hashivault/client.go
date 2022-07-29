@@ -317,7 +317,6 @@ func (h hashivaultClient) verify(sig, digest []byte, alg crypto.Hash, opts ...si
 		"prehashed": alg != crypto.Hash(0),
 		"signature": fmt.Sprintf("%s%s", vaultDataPrefix, encodedSig),
 	})
-
 	if err != nil {
 		return fmt.Errorf("verify: %w", err)
 	}

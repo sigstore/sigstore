@@ -165,8 +165,7 @@ func TestEqualKeys(t *testing.T) {
 		t.Fatalf("expected error for different key types, got %v", err)
 	}
 	// Fails with unexpected key type
-	type PublicKey struct {
-	}
+	type PublicKey struct{}
 	if err := EqualKeys(PublicKey{}, PublicKey{}); err == nil || err.Error() != "unsupported key type" {
 		t.Fatalf("expected error for unsupported key type, got %v", err)
 	}
@@ -174,8 +173,7 @@ func TestEqualKeys(t *testing.T) {
 
 func TestValidatePubKeyUnsupported(t *testing.T) {
 	// Fails with unexpected key type
-	type PublicKey struct {
-	}
+	type PublicKey struct{}
 	err := ValidatePubKey(PublicKey{})
 	if err == nil || err.Error() != "unsupported public key type" {
 		t.Errorf("expected unsupported public key type, got %v", err)

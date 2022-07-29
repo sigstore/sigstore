@@ -81,7 +81,6 @@ func TestDeviceFlowTokenGetter_deviceFlow(t *testing.T) {
 
 	token := <-tokenCh
 	err := <-errCh
-
 	if err != nil {
 		t.Fatal(err)
 	}
