@@ -16,13 +16,69 @@
 package oauthflow
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/coreos/go-oidc/v3/oidc"
 )
+
+const wellKnownOIDCConfig string = `
+{
+	"issuer": "ISSUER",
+	"authorization_endpoint": "ISSUER/auth",
+	"token_endpoint": "ISSUER/token",
+	"jwks_uri": "ISSUER/keys",
+	"userinfo_endpoint": "ISSUER/userinfo",
+	"device_authorization_endpoint": "ISSUER/device/code",
+	"grant_types_supported": [
+	  "authorization_code",
+	  "refresh_token",
+	  "urn:ietf:params:oauth:grant-type:device_code"
+	],
+	"response_types_supported": [
+	  "code"
+	],
+	"subject_types_supported": [
+	  "public"
+	],
+	"id_token_signing_alg_values_supported": [
+	  "RS256"
+	],
+	"code_challenge_methods_supported": [
+	  "S256",
+	  "plain"
+	],
+	"scopes_supported": [
+	  "openid",
+	  "email",
+	  "groups",
+	  "profile",
+	  "offline_access"
+	],
+	"token_endpoint_auth_methods_supported": [
+	  "client_secret_basic",
+	  "client_secret_post"
+	],
+	"claims_supported": [
+	  "iss",
+	  "sub",
+	  "aud",
+	  "iat",
+	  "exp",
+	  "email",
+	  "email_verified",
+	  "locale",
+	  "name",
+	  "preferred_username",
+	  "at_hash"
+	]
+  }`
 
 type testDriver struct {
 	msgs   []string
@@ -36,6 +92,10 @@ func (td *testDriver) writeMsg(s string) {
 
 func (td *testDriver) handler(w http.ResponseWriter, r *http.Request) {
 	td.t.Log("got request:", r.URL.Path)
+	if r.URL.Path == "/.well-known/openid-configuration" {
+		_, _ = w.Write([]byte(strings.ReplaceAll(wellKnownOIDCConfig, "ISSUER", fmt.Sprintf("http://%s", r.Host))))
+		return
+	}
 	nextReply := <-td.respCh
 	b, err := json.Marshal(nextReply)
 	if err != nil {
@@ -68,10 +128,14 @@ func TestDeviceFlowTokenGetter_deviceFlow(t *testing.T) {
 		TokenURL:       ts.URL + "/device/token",
 		CodeURL:        ts.URL + "/device/code",
 	}
+	p, pErr := oidc.NewProvider(context.Background(), ts.URL)
+	if pErr != nil {
+		t.Fatal(pErr)
+	}
 
 	tokenCh, errCh := make(chan string), make(chan error)
 	go func() {
-		token, err := dtg.deviceFlow("sigstore", "")
+		token, err := dtg.deviceFlow(p, "sigstore", "")
 		tokenCh <- token
 		errCh <- err
 	}()
