@@ -488,7 +488,7 @@ func forceExpirationVersion(t *testing.T, version int64) {
 // newTufCustomRepo initializes a TUF repository with root, targets, snapshot, and timestamp roles
 // 4 targets are created to exercise various code paths, including two targets with no custom metadata,
 // one target with custom metadata marked as active, and another with custom metadata marked as expired.
-func newTufCustomRepo(t *testing.T, td string, targetData string) (tuf.LocalStore, *tuf.Repo) {
+func newTufCustomRepo(t *testing.T, td, targetData string) (tuf.LocalStore, *tuf.Repo) {
 	scmActive, err := json.Marshal(&sigstoreCustomMetadata{Sigstore: customMetadata{Usage: Fulcio, Status: Active}})
 	if err != nil {
 		t.Error(err)
@@ -513,12 +513,13 @@ func newTufCustomRepo(t *testing.T, td string, targetData string) (tuf.LocalStor
 	}
 	for name, scm := range map[string]json.RawMessage{
 		"fooNoCustom.txt": nil, "fooNoCustomOther.txt": nil,
-		"fooActive.txt": scmActive, "fooExpired.txt": scmExpired} {
+		"fooActive.txt": scmActive, "fooExpired.txt": scmExpired,
+	} {
 		targetPath := filepath.FromSlash(filepath.Join(td, "staged", "targets", name))
-		if err := os.MkdirAll(filepath.Dir(targetPath), 0755); err != nil {
+		if err := os.MkdirAll(filepath.Dir(targetPath), 0o755); err != nil {
 			t.Error(err)
 		}
-		if err := ioutil.WriteFile(targetPath, []byte(targetData), 0600); err != nil {
+		if err := ioutil.WriteFile(targetPath, []byte(targetData), 0o600); err != nil {
 			t.Error(err)
 		}
 		if err := r.AddTarget(name, scm); err != nil {
@@ -545,10 +546,10 @@ func addNewCustomTarget(t *testing.T, td string, r *tuf.Repo, targetData map[str
 
 	for name, data := range targetData {
 		targetPath := filepath.FromSlash(filepath.Join(td, "staged", "targets", name))
-		if err := os.MkdirAll(filepath.Dir(targetPath), 0755); err != nil {
+		if err := os.MkdirAll(filepath.Dir(targetPath), 0o755); err != nil {
 			t.Error(err)
 		}
-		if err := ioutil.WriteFile(targetPath, []byte(data), 0600); err != nil {
+		if err := ioutil.WriteFile(targetPath, []byte(data), 0o600); err != nil {
 			t.Error(err)
 		}
 		if err := r.AddTarget(name, scmActive); err != nil {
@@ -567,7 +568,7 @@ func addNewCustomTarget(t *testing.T, td string, r *tuf.Repo, targetData map[str
 	}
 }
 
-func newTufRepo(t *testing.T, td string, targetData string) (tuf.LocalStore, *tuf.Repo) {
+func newTufRepo(t *testing.T, td, targetData string) (tuf.LocalStore, *tuf.Repo) {
 	remote := tuf.FileSystemStore(td, nil)
 	r, err := tuf.NewRepo(remote)
 	if err != nil {
@@ -582,10 +583,10 @@ func newTufRepo(t *testing.T, td string, targetData string) (tuf.LocalStore, *tu
 		}
 	}
 	targetPath := filepath.FromSlash(filepath.Join(td, "staged", "targets", "foo.txt"))
-	if err := os.MkdirAll(filepath.Dir(targetPath), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(targetPath), 0o755); err != nil {
 		t.Error(err)
 	}
-	if err := ioutil.WriteFile(targetPath, []byte(targetData), 0600); err != nil {
+	if err := ioutil.WriteFile(targetPath, []byte(targetData), 0o600); err != nil {
 		t.Error(err)
 	}
 	if err := r.AddTarget("foo.txt", nil); err != nil {
@@ -605,10 +606,10 @@ func newTufRepo(t *testing.T, td string, targetData string) (tuf.LocalStore, *tu
 
 func updateTufRepo(t *testing.T, td string, r *tuf.Repo, targetData string) {
 	targetPath := filepath.FromSlash(filepath.Join(td, "staged", "targets", "foo.txt"))
-	if err := os.MkdirAll(filepath.Dir(targetPath), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(targetPath), 0o755); err != nil {
 		t.Error(err)
 	}
-	if err := ioutil.WriteFile(targetPath, []byte(targetData), 0600); err != nil {
+	if err := ioutil.WriteFile(targetPath, []byte(targetData), 0o600); err != nil {
 		t.Error(err)
 	}
 	if err := r.AddTarget("foo.txt", nil); err != nil {
@@ -624,6 +625,7 @@ func updateTufRepo(t *testing.T, td string, r *tuf.Repo, targetData string) {
 		t.Error(err)
 	}
 }
+
 func TestConcurrentAccess(t *testing.T) {
 	var wg sync.WaitGroup
 

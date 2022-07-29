@@ -28,7 +28,7 @@ import (
 )
 
 // Taken from https://www.vaultproject.io/api/secret/transit
-//nolint:revive
+// nolint:revive
 const (
 	AlgorithmECDSAP256 = "ecdsa-p256"
 	AlgorithmECDSAP384 = "ecdsa-p384"
