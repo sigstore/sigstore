@@ -1,0 +1,17 @@
+{
+  "github.com/sigstore/sigstore/pkg/cryptoutils": 71.2,
+  "github.com/sigstore/sigstore/pkg/oauth/internal" :88.7,
+  "github.com/sigstore/sigstore/pkg/oauth/oidc": 0.8,
+  "github.com/sigstore/sigstore/pkg/oauthflow": 36.4,
+  "github.com/sigstore/sigstore/pkg/signature": 66.5,
+  "github.com/sigstore/sigstore/pkg/signature/dsse": 77.1,
+  "github.com/sigstore/sigstore/pkg/signature/kms": 50.0,
+  "github.com/sigstore/sigstore/pkg/signature/kms/aws": 5.1,
+  "github.com/sigstore/sigstore/pkg/signature/kms/azure": 11.3,
+  "github.com/sigstore/sigstore/pkg/signature/kms/fake": 85.3,
+  "github.com/sigstore/sigstore/pkg/signature/kms/gcp": 18.8,
+  "github.com/sigstore/sigstore/pkg/signature/kms/hashivault":3.6,
+  "github.com/sigstore/sigstore/pkg/signature/payload": 43.8,
+  "github.com/sigstore/sigstore/pkg/signature/ssh": 65.3,
+  "github.com/sigstore/sigstore/pkg/tuf": 66.2
+}

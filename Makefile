@@ -13,9 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-.PHONY: all pkg test test-e2e clean lint fuzz help
+.PHONY: all pkg test test-e2e clean lint fuzz help coverage
 
-all: pkg fuzz
+all: pkg fuzz coverage
 
 TOOLS_DIR := hack/tools
 TOOLS_BIN_DIR := $(abspath $(TOOLS_DIR)/bin)
@@ -24,6 +24,8 @@ INTEGRATION_TEST_DIR := ./test/e2e
 GO-FUZZ-BUILD := $(TOOLS_BIN_DIR)/go-fuzz-build
 GENSRC = pkg/generated/models/%.go pkg/generated/client/%.go
 SRCS = $(shell find pkg -iname "*.go"|grep -v pkg/generated) $(GENSRC)
+TEST_COVERAGE_PERCENTAGE = 70
+COVERAGE_THRESHOLD_FILE = coveragethreshold.json
 
 GOLANGCI_LINT_DIR = $(shell pwd)/bin
 GOLANGCI_LINT_BIN = $(GOLANGCI_LINT_DIR)/golangci-lint
@@ -47,6 +49,9 @@ pkg: ## Build pkg
 
 test: ## Run Tests
 	go test ./...
+
+coverage: test ## Run Coverage checks
+	@go test  -coverprofile=coverage ./... | THRESHOLD_FILE=$(COVERAGE_THRESHOLD_FILE) COVERAGE_PERCENTAGE=$(TEST_COVERAGE_PERCENTAGE) go run ./hack/codecoverage/main.go
 
 test-e2e: ## Run E2E Tests
 	cd $(INTEGRATION_TEST_DIR); ./e2e-test.sh
