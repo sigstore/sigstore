@@ -145,8 +145,8 @@ github.com/ashanbrown/makezero v0.0.0-20210520155254-b6261585ddde/go.mod h1:oG9D
 github.com/aws/aws-sdk-go v1.23.20/go.mod h1:KmX6BPdI08NWTb3/sm4ZGu5ShLoqVDhKgpiN924inxo=
 github.com/aws/aws-sdk-go v1.25.37/go.mod h1:KmX6BPdI08NWTb3/sm4ZGu5ShLoqVDhKgpiN924inxo=
 github.com/aws/aws-sdk-go v1.36.30/go.mod h1:hcU610XS61/+aQV88ixoOzUoG7v3b31pl2zKMmprdro=
-github.com/aws/aws-sdk-go v1.44.68 h1:7zNr5+HLG0TMq+ZcZ8KhT4eT2KyL7v+u7/jANKEIinM=
-github.com/aws/aws-sdk-go v1.44.68/go.mod h1:y4AeaBuwd2Lk+GepC1E9v0qOiTws0MIWAX4oIKwKHZo=
+github.com/aws/aws-sdk-go v1.44.70 h1:wrwAbqJqf+ncEK1F/bXTYpgO6zXIgQXi/2ppBgmYI9g=
+github.com/aws/aws-sdk-go v1.44.70/go.mod h1:y4AeaBuwd2Lk+GepC1E9v0qOiTws0MIWAX4oIKwKHZo=
 github.com/aws/aws-sdk-go-v2 v1.16.8 h1:gOe9UPR98XSf7oEJCcojYg+N2/jCRm4DdeIsP85pIyQ=
 github.com/aws/aws-sdk-go-v2 v1.16.8/go.mod h1:6CpKuLXg2w7If3ABZCl/qZ6rEgwtjZTn4eAf4RcEyuw=
 github.com/aws/aws-sdk-go-v2/config v1.15.15 h1:yBV+J7Au5KZwOIrIYhYkTGJbifZPCkAnCFSvGsF3ui8=
