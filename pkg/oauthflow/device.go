@@ -22,6 +22,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/coreos/go-oidc/v3/oidc"
@@ -31,9 +32,11 @@ import (
 const (
 	// SigstoreDeviceURL specifies the Device Code endpoint for the public good Sigstore service
 	/* #nosec */
+	// Deprecated: this constant (while correct) should not be used
 	SigstoreDeviceURL = "https://oauth2.sigstore.dev/auth/device/code"
 	// SigstoreTokenURL specifies the Token endpoint for the public good Sigstore service
 	/* #nosec */
+	// Deprecated: this constant (while correct) should not be used
 	SigstoreTokenURL = "https://oauth2.sigstore.dev/auth/device/token"
 )
 
@@ -56,18 +59,26 @@ type DeviceFlowTokenGetter struct {
 	MessagePrinter func(string)
 	Sleeper        func(time.Duration)
 	Issuer         string
-	CodeURL        string
-	TokenURL       string
+	codeURL        string
 }
 
 // NewDeviceFlowTokenGetter creates a new DeviceFlowTokenGetter that retrieves an OIDC Identity Token using a Device Code Grant
-func NewDeviceFlowTokenGetter(issuer, codeURL, tokenURL string) *DeviceFlowTokenGetter {
+// Deprecated: NewDeviceFlowTokenGetter is deprecated; use NewDeviceFlowTokenGetterForIssuer() instead
+func NewDeviceFlowTokenGetter(issuer string, codeURL, _ string) *DeviceFlowTokenGetter {
 	return &DeviceFlowTokenGetter{
 		MessagePrinter: func(s string) { fmt.Println(s) },
 		Sleeper:        time.Sleep,
 		Issuer:         issuer,
-		CodeURL:        codeURL,
-		TokenURL:       tokenURL,
+		codeURL:        codeURL,
+	}
+}
+
+// NewDeviceFlowTokenGetterForIssuer creates a new DeviceFlowTokenGetter that retrieves an OIDC Identity Token using a Device Code Grant
+func NewDeviceFlowTokenGetterForIssuer(issuer string) *DeviceFlowTokenGetter {
+	return &DeviceFlowTokenGetter{
+		MessagePrinter: func(s string) { fmt.Println(s) },
+		Sleeper:        time.Sleep,
+		Issuer:         issuer,
 	}
 }
 
@@ -89,16 +100,25 @@ func (d *DeviceFlowTokenGetter) deviceFlow(p *oidc.Provider, clientID, redirectU
 		data["redirect_uri"] = []string{redirectURL}
 	}
 
-	/* #nosec */
-	resp, err := http.PostForm(d.CodeURL, data)
+	codeURL, err := d.CodeURL()
 	if err != nil {
 		return "", err
 	}
+	/* #nosec */
+	resp, err := http.PostForm(codeURL, data)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
 
 	b, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return "", err
 	}
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("%s: %s", resp.Status, b)
+	}
+
 	parsed := deviceResp{}
 	if err := json.Unmarshal(b, &parsed); err != nil {
 		return "", err
@@ -120,10 +140,12 @@ func (d *DeviceFlowTokenGetter) deviceFlow(p *oidc.Provider, clientID, redirectU
 		}
 
 		/* #nosec */
-		resp, err := http.PostForm(d.TokenURL, data)
+		resp, err := http.PostForm(p.Endpoint().TokenURL, data)
 		if err != nil {
 			return "", err
 		}
+		defer resp.Body.Close()
+
 		b, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
 			return "", err
@@ -172,4 +194,45 @@ func (d *DeviceFlowTokenGetter) GetIDToken(p *oidc.Provider, cfg oauth2.Config) 
 		RawString: idToken,
 		Subject:   subj,
 	}, nil
+}
+
+func (d *DeviceFlowTokenGetter) CodeURL() (string, error) {
+	if d.codeURL != "" {
+		return d.codeURL, nil
+	}
+
+	wellKnown := strings.TrimSuffix(d.Issuer, "/") + "/.well-known/openid-configuration"
+	resp, err := http.Get(wellKnown)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("unable to read response body: %v", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("%s: %s", resp.Status, body)
+	}
+
+	p := struct {
+		Issuer         string `json:"issuer"`
+		DeviceEndpoint string `json:"device_authorization_endpoint"`
+	}{}
+	if err = json.Unmarshal(body, &p); err != nil {
+		return "", fmt.Errorf("oidc: failed to decode provider discovery object: %v", err)
+	}
+
+	if d.Issuer != p.Issuer {
+		return "", fmt.Errorf("oidc: issuer did not match the issuer returned by provider, expected %q got %q", d.Issuer, p.Issuer)
+	}
+
+	if p.DeviceEndpoint == "" {
+		return "", fmt.Errorf("oidc: device authorization endpoint not returned by provider")
+	}
+
+	d.codeURL = p.DeviceEndpoint
+	return d.codeURL, nil
 }
