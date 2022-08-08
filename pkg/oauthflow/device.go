@@ -64,7 +64,7 @@ type DeviceFlowTokenGetter struct {
 
 // NewDeviceFlowTokenGetter creates a new DeviceFlowTokenGetter that retrieves an OIDC Identity Token using a Device Code Grant
 // Deprecated: NewDeviceFlowTokenGetter is deprecated; use NewDeviceFlowTokenGetterForIssuer() instead
-func NewDeviceFlowTokenGetter(issuer string, codeURL, _ string) *DeviceFlowTokenGetter {
+func NewDeviceFlowTokenGetter(issuer, codeURL, _ string) *DeviceFlowTokenGetter {
 	return &DeviceFlowTokenGetter{
 		MessagePrinter: func(s string) { fmt.Println(s) },
 		Sleeper:        time.Sleep,
@@ -196,12 +196,14 @@ func (d *DeviceFlowTokenGetter) GetIDToken(p *oidc.Provider, cfg oauth2.Config) 
 	}, nil
 }
 
+// CodeURL fetches the device authorization endpoint URL from the provider's well-known configuration endpoint
 func (d *DeviceFlowTokenGetter) CodeURL() (string, error) {
 	if d.codeURL != "" {
 		return d.codeURL, nil
 	}
 
 	wellKnown := strings.TrimSuffix(d.Issuer, "/") + "/.well-known/openid-configuration"
+	/* #nosec */
 	resp, err := http.Get(wellKnown)
 	if err != nil {
 		return "", err
@@ -210,7 +212,7 @@ func (d *DeviceFlowTokenGetter) CodeURL() (string, error) {
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return "", fmt.Errorf("unable to read response body: %v", err)
+		return "", fmt.Errorf("unable to read response body: %w", err)
 	}
 
 	if resp.StatusCode != http.StatusOK {
@@ -222,7 +224,7 @@ func (d *DeviceFlowTokenGetter) CodeURL() (string, error) {
 		DeviceEndpoint string `json:"device_authorization_endpoint"`
 	}{}
 	if err = json.Unmarshal(body, &p); err != nil {
-		return "", fmt.Errorf("oidc: failed to decode provider discovery object: %v", err)
+		return "", fmt.Errorf("oidc: failed to decode provider discovery object: %w", err)
 	}
 
 	if d.Issuer != p.Issuer {
