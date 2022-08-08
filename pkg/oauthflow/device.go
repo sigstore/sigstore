@@ -204,7 +204,10 @@ func (d *DeviceFlowTokenGetter) CodeURL() (string, error) {
 
 	wellKnown := strings.TrimSuffix(d.Issuer, "/") + "/.well-known/openid-configuration"
 	/* #nosec */
-	resp, err := http.Get(wellKnown)
+	httpClient := &http.Client{
+		Timeout: 3 * time.Second,
+	}
+	resp, err := httpClient.Get(wellKnown)
 	if err != nil {
 		return "", err
 	}
@@ -219,22 +222,22 @@ func (d *DeviceFlowTokenGetter) CodeURL() (string, error) {
 		return "", fmt.Errorf("%s: %s", resp.Status, body)
 	}
 
-	p := struct {
+	providerConfig := struct {
 		Issuer         string `json:"issuer"`
 		DeviceEndpoint string `json:"device_authorization_endpoint"`
 	}{}
-	if err = json.Unmarshal(body, &p); err != nil {
+	if err = json.Unmarshal(body, &providerConfig); err != nil {
 		return "", fmt.Errorf("oidc: failed to decode provider discovery object: %w", err)
 	}
 
-	if d.Issuer != p.Issuer {
-		return "", fmt.Errorf("oidc: issuer did not match the issuer returned by provider, expected %q got %q", d.Issuer, p.Issuer)
+	if d.Issuer != providerConfig.Issuer {
+		return "", fmt.Errorf("oidc: issuer did not match the issuer returned by provider, expected %q got %q", d.Issuer, providerConfig.Issuer)
 	}
 
-	if p.DeviceEndpoint == "" {
+	if providerConfig.DeviceEndpoint == "" {
 		return "", fmt.Errorf("oidc: device authorization endpoint not returned by provider")
 	}
 
-	d.codeURL = p.DeviceEndpoint
+	d.codeURL = providerConfig.DeviceEndpoint
 	return d.codeURL, nil
 }
