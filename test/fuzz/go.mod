@@ -1,6 +1,6 @@
 module github.com/sigstore/sigstore/test/fuzz
 
-go 1.17
+go 1.18
 
 require (
 	github.com/AdaLogics/go-fuzz-headers v0.0.0-20211102141018-f7be0cbad29c

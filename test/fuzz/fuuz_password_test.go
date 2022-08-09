@@ -1,5 +1,3 @@
-//go:build gofuzz
-// +build gofuzz
 //
 // Copyright 2021 The Sigstore Authors.
 //
@@ -19,26 +17,28 @@ package fuzz
 
 import (
 	"bytes"
-	"fmt"
+	"testing"
 
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
 )
 
-func FuzzGetPassword(data []byte) int {
-	original := cryptoutils.Read
-	cryptoutils.Read = func() func() ([]byte, error) {
-		return func() ([]byte, error) {
-			return data, nil
+func FuzzGetPassword(f *testing.F) {
+	f.Fuzz(func(t *testing.T, data []byte) {
+		original := cryptoutils.Read
+		cryptoutils.Read = func() func() ([]byte, error) {
+			return func() ([]byte, error) {
+				return data, nil
+			}
 		}
-	}
-	defer func() { cryptoutils.Read = original }()
-	p, err := cryptoutils.GetPasswordFromStdIn(true)
-	if err != nil {
-		panic(fmt.Sprintf("error getting password: %v", err))
-	}
-	// the password we got back is not what was entered
-	if bytes.Compare(p, data) != 0 {
-		panic(fmt.Sprintf("input does not match output: %s %s", string(p), string(data)))
-	}
-	return 0
+		defer func() { cryptoutils.Read = original }()
+		p, err := cryptoutils.GetPasswordFromStdIn(true)
+		if err != nil {
+			t.Errorf("error in getting the password %v", err)
+		}
+		// the password we got back is not what was entered
+		if bytes.Compare(p, data) != 0 {
+			t.Errorf("password %v does not match %v", p, data)
+		}
+		t.Skip("invalid data")
+	})
 }
