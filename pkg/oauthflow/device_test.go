@@ -104,7 +104,7 @@ func (td *testDriver) handler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	switch r.URL.Path {
-	case "/device/token", "/device/code":
+	case "/token", "/device/code":
 		_, _ = w.Write(b)
 	default:
 		w.WriteHeader(http.StatusBadRequest)
@@ -125,8 +125,6 @@ func TestDeviceFlowTokenGetter_deviceFlow(t *testing.T) {
 		MessagePrinter: td.writeMsg,
 		Sleeper:        func(_ time.Duration) {},
 		Issuer:         ts.URL,
-		TokenURL:       ts.URL + "/device/token",
-		CodeURL:        ts.URL + "/device/code",
 	}
 	p, pErr := oidc.NewProvider(context.Background(), ts.URL)
 	if pErr != nil {
