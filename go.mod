@@ -29,7 +29,7 @@ require (
 	golang.org/x/crypto v0.0.0-20220722155217-630584e8d5aa
 	golang.org/x/oauth2 v0.0.0-20220718184931-c8730f7fcb92
 	golang.org/x/term v0.0.0-20220526004731-065cf7ba2467
-	google.golang.org/api v0.91.0
+	google.golang.org/api v0.92.0
 	google.golang.org/genproto v0.0.0-20220720214146-176da50484ac
 	google.golang.org/protobuf v1.28.1
 	gopkg.in/square/go-jose.v2 v2.6.0
