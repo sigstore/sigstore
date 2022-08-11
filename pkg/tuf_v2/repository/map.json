@@ -1,0 +1,13 @@
+{
+    "repositories": {
+      "public-good-instance": ["https://storage.googleapis.com/sigstore-tuf-root/"]
+    },
+    "mapping": [
+      {
+        "paths":        ["*"],
+        "repositories": ["Public-Good-Instance"],
+        "terminating": true,
+        "threshold": 1
+      }
+    ]
+  }
