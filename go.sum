@@ -323,8 +323,8 @@ github.com/go-playground/universal-translator v0.17.0/go.mod h1:UkSxE5sNxxRwHyU+
 github.com/go-playground/validator/v10 v10.4.1/go.mod h1:nlOn6nFhuKACm19sB/8EGNn9GlaMV7XkbRSipzJ0Ii4=
 github.com/go-redis/redis v6.15.8+incompatible/go.mod h1:NAIEuMOZ/fxfXJIrKDQDz8wamY7mA7PouImQ2Jvg6kA=
 github.com/go-redis/redis/v8 v8.11.5/go.mod h1:gREzHqY1hg6oD9ngVRbLStwAWKhA0FEgq8Jd4h5lpwo=
-github.com/go-rod/rod v0.109.0 h1:h16UAw8AWRTcZ2bPfk23o8L1DBW692RUJzet49XD1rk=
-github.com/go-rod/rod v0.109.0/go.mod h1:GZDtmEs6RpF6kBRYpGCZXxXlKNneKVPiKOjaMbmVVjE=
+github.com/go-rod/rod v0.109.1 h1:658X/G9xyQKjFUNo5apMsIyHpEb/KJnJ5LkAl6a62AI=
+github.com/go-rod/rod v0.109.1/go.mod h1:GZDtmEs6RpF6kBRYpGCZXxXlKNneKVPiKOjaMbmVVjE=
 github.com/go-sql-driver/mysql v1.4.0/go.mod h1:zAC/RDZ24gD3HViQzih4MyKcchzm+sOG5ZlKdlhCg5w=
 github.com/go-sql-driver/mysql v1.4.1/go.mod h1:zAC/RDZ24gD3HViQzih4MyKcchzm+sOG5ZlKdlhCg5w=
 github.com/go-sql-driver/mysql v1.5.0/go.mod h1:DCzpHaOWr8IXmIStZouvnhqoel9Qv2LBy8hT2VhHyBg=
