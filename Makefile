@@ -22,17 +22,11 @@ TOOLS_BIN_DIR := $(abspath $(TOOLS_DIR)/bin)
 FUZZ_DIR := ./test/fuzz
 INTEGRATION_TEST_DIR := ./test/e2e
 GO-FUZZ-BUILD := $(TOOLS_BIN_DIR)/go-fuzz-build
-GENSRC = pkg/generated/models/%.go pkg/generated/client/%.go
-SRCS = $(shell find pkg -iname "*.go"|grep -v pkg/generated) $(GENSRC)
 
 GOLANGCI_LINT_DIR = $(shell pwd)/bin
 GOLANGCI_LINT_BIN = $(GOLANGCI_LINT_DIR)/golangci-lint
 
 LDFLAGS ?=
-
-# TODO: pin this reference to the openapi file to a specific fulcio release tag
-$(GENSRC): $(SWAGGER) ## Build openapi spec
-	$(SWAGGER) generate client -f https://raw.githubusercontent.com/sigstore/fulcio/main/openapi.yaml -r COPYRIGHT.txt -t pkg/generated -P github.com/coreos/go-oidc/v3/oidc.IDToken
 
 golangci-lint:
 	rm -f $(GOLANGCI_LINT_BIN) || :
@@ -69,9 +63,6 @@ clean: ## Clean workspace
 
 $(GO-FUZZ-BUILD): $(TOOLS_DIR)/go.mod
 	cd $(TOOLS_DIR);go build -trimpath -tags=tools -o $(TOOLS_BIN_DIR)/go-fuzz-build github.com/dvyukov/go-fuzz/go-fuzz-build
-
-$(SWAGGER): $(TOOLS_DIR)/go.mod
-	cd $(TOOLS_DIR); go build -trimpath -tags=tools -o $(TOOLS_BIN_DIR)/swagger github.com/go-swagger/go-swagger/cmd/swagger
 
 ##################
 # help
