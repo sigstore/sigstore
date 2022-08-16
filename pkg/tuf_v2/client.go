@@ -19,10 +19,21 @@ import (
 	"errors"
 	"fmt"
 	"sync"
-	"time"
 
 	"github.com/theupdateframework/go-tuf/client"
 )
+
+/*
+Major TODO items:
+  * Resolve CacheValidity issue: where do we get the cache time from?
+  * Support multi-repository TUF client
+  * Implement an InitializeWithDefaults that calls Initialize with
+    default RepositoryOptions/mapping.
+  * Implement a force update flag.
+  * Create an in-memory mirror of the repository and target store to avoid
+    file reads.
+  * GetTarget implementation
+*/
 
 // CacheKind is used to designate an on-disk or in-memory cache.
 type CacheKind int
@@ -31,39 +42,6 @@ const (
 	Disk CacheKind = iota
 	Memory
 )
-
-// TUF_v2Opts are the configurable TUF options used to fetch verification material.
-type TUFOptions struct {
-	// CacheValidity is used to indicate how long to use unexpired cached metadata
-	// before fetching an update from the remote repository.
-	// Default: Three days.
-	CacheValidity time.Duration
-
-	// ForceCache is used to always used unexpired cached metadata before
-	// fetching an update from the remote repository.
-	// Default: False. This option is discouraged.
-	ForceCache bool
-
-	// This is a configurable repository map.json defined according to TAP 4.
-	// https://github.com/theupdateframework/taps/blob/master/tap4.md
-	// TODO: Unused for multi-repositories, until go-tuf implements a TAP-4
-	// multi-repository client. We use this to retrieve the root metadata file.
-	// https://github.com/theupdateframework/go-tuf/issues/348
-	// If not supplied, uses the map.json in the RootLocation, or defaults to
-	// the embeded map.json.
-	RepositoryMap []byte
-
-	// This indicates whether the cache should be in the local filesystem or in-memory.
-	// Default: Local.
-	CacheType CacheKind
-
-	// RootLocation is the location for the local TUF root state.
-	// Only applies when CacheType is Disk.
-	// This directory will contain the metadata and targets cache for all
-	// repositories in the map and the map.json configuration file.
-	// Defaults: $HOME/.sigstore/root.
-	RootLocation string
-}
 
 var (
 	// singletonTUF holds a single instance of TUF that will get reused on
@@ -75,7 +53,7 @@ var (
 
 // This is the Sigstore TUF client.
 //
-// TODO: Implement an in-memory target storage.
+// TODO: Implement an in-memory metadata mirror and target storage.
 type TUF struct {
 	sync.Mutex
 
@@ -86,32 +64,37 @@ type TUF struct {
 
 	// local is the TUF local repository for accessing local trusted metadata.
 	local client.LocalStore
+
 	// remote is the TUF remote repository for fetching remote metadata and
 	// targets.
 	remote client.RemoteStore
 
 	// An implementation of the TAP-4 map.json. For now, we support a single
-	// repository.
+	// repository and is only used to track the location of the remote.
+	// This is a configurable repository map.json defined according to TAP 4.
+	// https://github.com/theupdateframework/taps/blob/master/tap4.md
 	mapping RepositoryMap
 }
 
-// Initialize creates a new Sigstore TUF client using the supplied TUFOptions.
+// Initialize creates a new Sigstore TUF client using the supplied TUFOptions and
+// RepositoryOptions.
 //
-// TODO(asraa): Consider adding arguments like Initialize(opts).WithNewRepository(...)
-// or Initialize(opts).WithRemovedRepository(...) for modifying the internal repository mapping.
-func Initialize(opts *TUFOptions) (*TUF, error) {
+// TODO(asraa): Right now we don't have multi-repository clients. When that happens,
+// we will likely need to parse an existing map.json and augment it if Repository
+// Options are provided.
+func Initialize(opts *TUFOptions, repoOpts *RepositoryOptions) (*TUF, error) {
 	singletonTUFOnce.Do(func() {
 		t := &TUF{}
 
-		if t.local, singletonTUFErr = localStoreFromOpts(opts); singletonTUFErr != nil {
+		if t.local, singletonTUFErr = localStoreFromOpts(opts, repoOpts); singletonTUFErr != nil {
 			return
 		}
-		if t.remote, singletonTUFErr = remoteStoreFromOpts(opts); singletonTUFErr != nil {
+		if t.remote, singletonTUFErr = remoteStoreFromOpts(repoOpts); singletonTUFErr != nil {
 			return
 		}
 		t.client = client.NewClient(t.local, t.remote)
 
-		root, singletonTUFErr := getTrustedRoot(t.local, opts)
+		root, singletonTUFErr := getTrustedRoot(t.local, repoOpts)
 		if singletonTUFErr != nil {
 			return
 		}
@@ -182,14 +165,16 @@ func isLocalValid(local client.LocalStore, opts *TUFOptions) (bool, error) {
 	return false, nil
 }
 
-func localStoreFromOpts(opts *TUFOptions) (client.LocalStore, error) {
-	return nil, errors.New("unimplemented")
-}
+func getTrustedRoot(local client.LocalStore, repoOpts *RepositoryOptions) ([]byte, error) {
+	// Check if the local already specifies a root.
+	localMetadata, err := local.GetMeta()
+	if err != nil {
+		return nil, fmt.Errorf("error accessing local metadata: %w", err)
+	}
+	if trustedRoot, ok := localMetadata["root.json"]; ok {
+		return trustedRoot, nil
+	}
 
-func remoteStoreFromOpts(opts *TUFOptions) (client.RemoteStore, error) {
-	return nil, errors.New("unimplemented")
-}
-
-func getTrustedRoot(local client.LocalStore, opts *TUFOptions) ([]byte, error) {
-	return nil, errors.New("unimplemented")
+	// If not, use the one provided in repoOpts.
+	return repoOpts.Root, nil
 }
