@@ -35,14 +35,6 @@ Major TODO items:
   * GetTarget implementation
 */
 
-// CacheKind is used to designate an on-disk or in-memory cache.
-type CacheKind int
-
-const (
-	Disk CacheKind = iota
-	Memory
-)
-
 var (
 	// singletonTUF holds a single instance of TUF that will get reused on
 	// subsequent invocations of initializeTUF.
