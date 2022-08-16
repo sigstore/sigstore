@@ -65,7 +65,7 @@ type TUF struct {
 	// repository and is only used to track the location of the remote.
 	// This is a configurable repository map.json defined according to TAP 4.
 	// https://github.com/theupdateframework/taps/blob/master/tap4.md
-	mapping RepositoryMap
+	// mapping RepositoryMap
 }
 
 // Initialize creates a new Sigstore TUF client using the supplied TUFOptions and
