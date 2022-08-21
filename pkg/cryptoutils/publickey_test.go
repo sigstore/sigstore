@@ -21,6 +21,7 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/x509"
 	"strings"
 	"testing"
 
@@ -49,6 +50,26 @@ func TestECDSAPublicKeyPEMRoundtrip(t *testing.T) {
 		t.Fatalf("ecdsa.GenerateKey failed: %v", err)
 	}
 	verifyPublicKeyPEMRoundtrip(t, priv.Public())
+}
+
+func TestECDSAPublicKeyPEMEncodeCertificate(t *testing.T) {
+	t.Parallel()
+	priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		t.Fatalf("ecdsa.GenerateKey failed: %v", err)
+	}
+	pubBytes, err := x509.MarshalPKIXPublicKey(&priv.PublicKey)
+	if err != nil {
+		t.Fatalf("x509.MarshalPKIXPublicKey() = %v", err)
+	}
+	pemBytes := PEMEncode(CertificatePEMType, pubBytes)
+	rtPub, err := UnmarshalPEMToPublicKey(pemBytes)
+	if err != nil {
+		t.Fatalf("UnmarshalPEMToPublicKey returned error: %v", err)
+	}
+	if d := cmp.Diff(&priv.PublicKey, rtPub); d != "" {
+		t.Errorf("round-tripped public key was malformed (-before +after): %s", d)
+	}
 }
 
 func TestEd25519PublicKeyPEMRoundtrip(t *testing.T) {
