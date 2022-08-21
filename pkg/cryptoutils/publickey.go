@@ -53,8 +53,6 @@ func UnmarshalPEMToPublicKey(pemBytes []byte) (crypto.PublicKey, error) {
 		return nil, errors.New("PEM decoding failed")
 	}
 	switch derBytes.Type {
-	case string(CertificatePEMType):
-		fallthrough
 	case string(PublicKeyPEMType):
 		return x509.ParsePKIXPublicKey(derBytes.Bytes)
 	default:
