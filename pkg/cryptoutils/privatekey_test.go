@@ -21,6 +21,9 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/x509"
+	"encoding/pem"
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -208,4 +211,86 @@ func TestRSAPrivateKeyPEMRoundtrip(t *testing.T) {
 		t.Fatalf("rsa.GenerateKey failed: %v", err)
 	}
 	verifyPrivateKeyPEMRoundtrip(t, priv)
+}
+
+func TestUnmarshalPEMToPrivateKey(t *testing.T) {
+	// test PKCS#8 PEM-encoded private keys
+	priv, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatalf("rsa.GenerateKey failed: %v", err)
+	}
+	pkcs8PrivateKey, err := x509.MarshalPKCS8PrivateKey(priv)
+	if err != nil {
+		t.Fatalf("x509.MarshalPKCS8PrivateKey failed: %v", err)
+	}
+	pkcs8PEMBlock := pem.EncodeToMemory(&pem.Block{
+		Type:  "PRIVATE KEY",
+		Bytes: pkcs8PrivateKey,
+	})
+	k, err := UnmarshalPEMToPrivateKey(pkcs8PEMBlock, nil)
+	if err != nil {
+		t.Fatalf("UnmarshalPEMToPrivateKey for PKCS#8 failed: %v", err)
+	}
+	if !priv.Equal(k) {
+		t.Fatalf("private keys for PKCS#8 are not equal")
+	}
+
+	// test PKCS#1 PEM-encoded RSA private keys
+	priv, err = rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatalf("rsa.GenerateKey failed: %v", err)
+	}
+	rsaPrivKey := x509.MarshalPKCS1PrivateKey(priv)
+	pkcs1PEMBlock := pem.EncodeToMemory(&pem.Block{
+		Type:  "RSA PRIVATE KEY",
+		Bytes: rsaPrivKey,
+	})
+	k, err = UnmarshalPEMToPrivateKey(pkcs1PEMBlock, nil)
+	if err != nil {
+		t.Fatalf("UnmarshalPEMToPrivateKey for PKCS#1 failed: %v", err)
+	}
+	if !priv.Equal(k) {
+		t.Fatalf("private keys for PKCS1 are not equal")
+	}
+
+	// test SEC 1 EC private keys
+	ecdsaKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		t.Fatalf("ecdsa.GenerateKey failed: %v", err)
+	}
+	ecPrivKey, err := x509.MarshalECPrivateKey(ecdsaKey)
+	if err != nil {
+		t.Fatalf("x509.MarshalECPrivateKey failed: %v", err)
+	}
+	ecPEMBlock := pem.EncodeToMemory(&pem.Block{
+		Type:  "EC PRIVATE KEY",
+		Bytes: ecPrivKey,
+	})
+	k, err = UnmarshalPEMToPrivateKey(ecPEMBlock, nil)
+	if err != nil {
+		t.Fatalf("UnmarshalPEMToPrivateKey for SEC 1 failed: %v", err)
+	}
+	if !ecdsaKey.Equal(k) {
+		t.Fatalf("private keys for SEC 1 (EC) are not equal")
+	}
+
+	// test Sigstore formatted private keys
+	privSigstorePEM, _, err := GeneratePEMEncodedECDSAKeyPair(elliptic.P256(), StaticPasswordFunc([]byte("pw")))
+	if err != nil {
+		t.Fatalf("GeneratePEMEncodedECDSAKeyPair failed: %v", err)
+	}
+	_, err = UnmarshalPEMToPrivateKey(privSigstorePEM, StaticPasswordFunc([]byte("pw")))
+	if err != nil {
+		t.Fatalf("UnmarshalPEMToPrivateKey for Sigstore encoded key failed: %v", err)
+	}
+
+	// test other PEM formats return an error
+	invalidPEMBlock := pem.EncodeToMemory(&pem.Block{
+		Type:  "RSA PUBLIC KEY",
+		Bytes: rsaPrivKey,
+	})
+	_, err = UnmarshalPEMToPrivateKey(invalidPEMBlock, nil)
+	if err == nil || !strings.Contains(err.Error(), "unknown private key PEM file type") {
+		t.Fatalf("expected error unmarshalling invalid PEM block, got: %v", err)
+	}
 }
