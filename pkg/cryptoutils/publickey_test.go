@@ -21,6 +21,8 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/x509"
+	"encoding/pem"
 	"strings"
 	"testing"
 
@@ -251,4 +253,55 @@ func TestValidatePubKeyEd25519(t *testing.T) {
 		t.Errorf("unexpected error validating public key: %v", err)
 	}
 	// Only success, ED25519 keys do not support customization
+}
+
+func TestUnmarshalPEMToPublicKey(t *testing.T) {
+	// test PKIX PEM-encoded public keys
+	priv, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatalf("rsa.GenerateKey failed: %v", err)
+	}
+	pkixPubKey, err := x509.MarshalPKIXPublicKey(priv.Public())
+	if err != nil {
+		t.Fatalf("x509.MarshalPKIXPublicKey failed: %v", err)
+	}
+	pkixPEMBlock := pem.EncodeToMemory(&pem.Block{
+		Type:  "PUBLIC KEY",
+		Bytes: pkixPubKey,
+	})
+	k, err := UnmarshalPEMToPublicKey(pkixPEMBlock)
+	if err != nil {
+		t.Fatalf("UnmarshalPEMToPublicKey for PKIX failed: %v", err)
+	}
+	if EqualKeys(priv.Public(), k) != nil {
+		t.Fatalf("public keys for PKIX are not equal")
+	}
+
+	// test PKCS#1 PEM-encoded RSA public keys
+	priv, err = rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatalf("rsa.GenerateKey failed: %v", err)
+	}
+	rsaPubKey := x509.MarshalPKCS1PublicKey(&priv.PublicKey)
+	pkcs1PEMBlock := pem.EncodeToMemory(&pem.Block{
+		Type:  "RSA PUBLIC KEY",
+		Bytes: rsaPubKey,
+	})
+	k, err = UnmarshalPEMToPublicKey(pkcs1PEMBlock)
+	if err != nil {
+		t.Fatalf("UnmarshalPEMToPublicKey for PKCS#1 failed: %v", err)
+	}
+	if EqualKeys(priv.Public(), k) != nil {
+		t.Fatalf("public keys for PKCS1 are not equal")
+	}
+
+	// test other PEM formats return an error
+	invalidPEMBlock := pem.EncodeToMemory(&pem.Block{
+		Type:  "EC PUBLIC KEY",
+		Bytes: rsaPubKey,
+	})
+	_, err = UnmarshalPEMToPublicKey(invalidPEMBlock)
+	if err == nil || !strings.Contains(err.Error(), "unknown Public key PEM file type") {
+		t.Fatalf("expected error unmarshalling invalid PEM block, got: %v", err)
+	}
 }
