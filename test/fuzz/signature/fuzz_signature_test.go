@@ -23,8 +23,9 @@ import (
 	"crypto/elliptic"
 	"crypto/rsa"
 	"math/big"
-	"strings"
 	"testing"
+
+	"github.com/sigstore/sigstore/pkg/cryptoutils"
 
 	fuzz "github.com/AdaLogics/go-fuzz-headers"
 	"github.com/sigstore/sigstore/pkg/signature"
@@ -153,21 +154,11 @@ func FuzzRSAPKCS1v15SignerVerfier(f *testing.F) {
 
 func FuzzRSAPSSSignerVerfier(f *testing.F) {
 	f.Fuzz(func(t *testing.T, data []byte) {
-		if len(data) == 0 {
-			t.Skip("not valid key")
+		privateKey, err := cryptoutils.UnmarshalPEMToPrivateKey(data, cryptoutils.SkipPassword)
+		if err != nil {
+			t.Skip()
 		}
-
-		s := string(data)
-
-		// Skip when the data is not a valid RSA PSS signature.
-		if strings.TrimSpace(s) == "" {
-			t.Skip("not valid key")
-		}
-
-		f := fuzz.NewConsumer(data)
-		x := rsa.PrivateKey{}
-		f.GenerateStruct(&x)
-		signer, err := signature.LoadRSAPSSSignerVerifier(&x, crypto.SHA512, nil)
+		signer, err := signature.LoadRSAPSSSignerVerifier(privateKey.(*rsa.PrivateKey), crypto.SHA512, nil)
 		if err != nil {
 			if signer != nil {
 				t.Errorf("key %v is not nil when there is an error %v ", signer, err)
