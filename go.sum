@@ -147,8 +147,9 @@ github.com/aws/aws-sdk-go v1.25.37/go.mod h1:KmX6BPdI08NWTb3/sm4ZGu5ShLoqVDhKgpi
 github.com/aws/aws-sdk-go v1.36.30/go.mod h1:hcU610XS61/+aQV88ixoOzUoG7v3b31pl2zKMmprdro=
 github.com/aws/aws-sdk-go v1.44.90 h1:5g93WPWhh8EL2HhQ7HOYapWj/gY6/K6rGYSx1RTyD1M=
 github.com/aws/aws-sdk-go v1.44.90/go.mod h1:y4AeaBuwd2Lk+GepC1E9v0qOiTws0MIWAX4oIKwKHZo=
-github.com/aws/aws-sdk-go-v2 v1.16.13 h1:HgF7OX2q0gSZtcXoo9DMEA8A2Qk/GCxmWyM0RI7Yz2Y=
 github.com/aws/aws-sdk-go-v2 v1.16.13/go.mod h1:xSyvSnzh0KLs5H4HJGeIEsNYemUWdNIl0b/rP6SIsLU=
+github.com/aws/aws-sdk-go-v2 v1.16.14 h1:db6GvO4Z2UqHt5gvT0lr6J5x5P+oQ7bdRzczVaRekMU=
+github.com/aws/aws-sdk-go-v2 v1.16.14/go.mod h1:s/G+UV29dECbF5rf+RNj1xhlmvoNurGSr+McVSRj59w=
 github.com/aws/aws-sdk-go-v2/config v1.17.4 h1:9HY1wbShqObySCHP2Z07blfrSWVX+nVxCZmUuLZKcG8=
 github.com/aws/aws-sdk-go-v2/config v1.17.4/go.mod h1:ul+ru+huVpfduF9XRmGUq82T8T3K+nIFQuF6F+L+548=
 github.com/aws/aws-sdk-go-v2/credentials v1.12.17 h1:htUjIJOQcvIUR0jC4eLkdis1DfaLL4EUbIKUFqh2WFA=
@@ -171,8 +172,9 @@ github.com/aws/aws-sdk-go-v2/service/ssooidc v1.13.2 h1:/SYpdjjAtraymql+/r719Ogj
 github.com/aws/aws-sdk-go-v2/service/ssooidc v1.13.2/go.mod h1:5cxfDYtY2mDOlmesy4yycb6lwyy1U/iAUOHKhQLKw/E=
 github.com/aws/aws-sdk-go-v2/service/sts v1.16.16 h1:otZvq9r+xjPL7qU/luX2QdBamiN+oSZURRi4sAKymO8=
 github.com/aws/aws-sdk-go-v2/service/sts v1.16.16/go.mod h1:Y9iBgT1w2vHtYzJEkwD6FqILjDSsvbxcW/+wIYxyse4=
-github.com/aws/smithy-go v1.13.1 h1:q09BdpUiaqpothcv393ACfWJJHzlzjB5HaNL1XHKmoQ=
 github.com/aws/smithy-go v1.13.1/go.mod h1:Tg+OJXh4MB2R/uN61Ko2f6hTZwB/ZYGOtib8J3gBHzA=
+github.com/aws/smithy-go v1.13.2 h1:TBLKyeJfXTrTXRHmsv4qWt9IQGYyWThLYaJWSahTOGE=
+github.com/aws/smithy-go v1.13.2/go.mod h1:Tg+OJXh4MB2R/uN61Ko2f6hTZwB/ZYGOtib8J3gBHzA=
 github.com/beeker1121/goque v1.0.3-0.20191103205551-d618510128af/go.mod h1:84CWnaDz4g1tEVnFLnuBigmGK15oPohy0RfvSN8d4eg=
 github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973/go.mod h1:Dwedo/Wpr24TaqPxmxbtue+5NUziq4I4S80YR8gNf3Q=
 github.com/beorn7/perks v1.0.0/go.mod h1:KWe93zE9D1o94FZ5RNwFwVgaQK1VOXiVxmqh+CedLV8=
