@@ -275,7 +275,7 @@ func initializeTUF(mirror string, root []byte, embedded fs.FS, forceUpdate bool)
 			}
 		}
 
-		if err := t.client.InitLocal(root); err != nil {
+		if err := t.client.Init(root); err != nil {
 			singletonTUFErr = fmt.Errorf("unable to initialize client, local cache may be corrupt: %w", err)
 			return
 		}
