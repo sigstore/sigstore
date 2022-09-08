@@ -14,7 +14,7 @@ require (
 	github.com/coreos/go-oidc/v3 v3.3.0
 	github.com/go-rod/rod v0.109.3
 	github.com/go-test/deep v1.0.8
-	github.com/google/go-cmp v0.5.8
+	github.com/google/go-cmp v0.5.9
 	github.com/google/go-containerregistry v0.11.0
 	github.com/hashicorp/vault/api v1.7.2
 	github.com/jellydator/ttlcache/v2 v2.11.1
