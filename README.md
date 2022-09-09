@@ -1,17 +1,17 @@
-# sigstore framework
+# sigstore go library
 [![Fuzzing Status](https://oss-fuzz-build-logs.storage.googleapis.com/badges/sigstore.svg)](https://bugs.chromium.org/p/oss-fuzz/issues/list?sort=-opened&can=1&q=proj:sigstore) [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/5716/badge)](https://bestpractices.coreinfrastructure.org/projects/5716)
 
-sigstore/sigstore is a generic library / framework that is utilized by various other
-clients and projects including fulcio (webPKI), cosign (container and OCI signing tool)
-and tektoncd/chains (Supply Chain Security in Tekton Pipelines).
+sigstore/sigstore is a go library that provides API's for common sigstore
+features. If you need to develop a go based application that leverages
+sigstore, you're in the right place.
 
-sigstore is a good candidate for anyone wanting to develop go based clients / systems
-and utilise existing go modules for common sigstore functionality.
+sigstore/sigstore is utilized by various other clients and projects including 
+fulcio, rekor, cosign and others such as tektoncd/chains.
 
 This library currently provides:
 
-* A signing interface (support for ecdsa, ed25519, rsa, DSSE (in-toto))
-* OpenID Connect fulcio client code
+* A key generation / signing interface (support for ecdsa, ed25519, rsa, DSSE (in-toto))
+* OpenID Connect fulcio client code for keyless style flows.
 
 The following KMS systems are available:
 * AWS Key Management Service
@@ -20,6 +20,10 @@ The following KMS systems are available:
 * Google Cloud Platform Key Management Service
 
 For example code, look at the relevant test code for each main code file.
+
+## Contributing
+
+Please see [CONTRIBUTORS.md](CONTRIBUTORS.md) for details on how to contribute.
 
 ## Fuzzing
 The fuzzing tests are within https://github.com/sigstore/sigstore/tree/main/test/fuzz
