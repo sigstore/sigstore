@@ -24,7 +24,6 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
-	"io/ioutil"
 	"net/url"
 	"os"
 	"path"
@@ -434,7 +433,7 @@ func (t *TUF) updateClient() (data.TargetFiles, error) {
 				continue
 			}
 			defer r.Close()
-			b, err := ioutil.ReadAll(r)
+			b, err := io.ReadAll(r)
 			if err != nil {
 				continue
 			}

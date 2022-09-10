@@ -17,7 +17,6 @@ package ssh
 
 import (
 	"io"
-	"io/ioutil"
 
 	"github.com/sigstore/sigstore/pkg/signature"
 	"golang.org/x/crypto/ssh"
@@ -51,7 +50,7 @@ var _ signature.Verifier = (*Signer)(nil)
 
 // VerifySignature verifies a suppled signature.
 func (s *Signer) VerifySignature(signature, message io.Reader, opts ...signature.VerifyOption) error {
-	b, err := ioutil.ReadAll(signature)
+	b, err := io.ReadAll(signature)
 	if err != nil {
 		return err
 	}

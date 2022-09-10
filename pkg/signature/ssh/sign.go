@@ -22,7 +22,6 @@ import (
 	"crypto/sha512"
 	"hash"
 	"io"
-	"io/ioutil"
 
 	"github.com/sigstore/sigstore/pkg/signature"
 	"golang.org/x/crypto/ssh"
@@ -99,7 +98,7 @@ func (s *Signer) PublicKey(opts ...signature.PublicKeyOption) (crypto.PublicKey,
 
 // SignMessage signs the supplied message.
 func (s *Signer) SignMessage(message io.Reader, opts ...signature.SignOption) ([]byte, error) {
-	b, err := ioutil.ReadAll(message)
+	b, err := io.ReadAll(message)
 	if err != nil {
 		return nil, err
 	}

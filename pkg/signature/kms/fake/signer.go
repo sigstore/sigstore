@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package fake implements fake signer to be used in tests
 package fake
 
 import (

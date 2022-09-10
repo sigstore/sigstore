@@ -12,13 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package internal TODO: add meaningfull description
 package internal
 
 import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"mime"
 	"net/http"
 	"net/url"
@@ -136,7 +136,7 @@ func parseAccessTokenError(body []byte, contentType string) (respErr *ErrorToken
 // ParseAccessTokenResponse parses an RFC6749 access token response and returns either an `*oauth2.Token` on success, an `*ErrorTokenResponse` on failure, or any other error if the response cannot be parsed.
 // See: https://datatracker.ietf.org/doc/html/rfc6749#section-5
 func ParseAccessTokenResponse(tokenResp *http.Response) (token *oauth2.Token, err error) {
-	body, err := ioutil.ReadAll(io.LimitReader(tokenResp.Body, 1<<20))
+	body, err := io.ReadAll(io.LimitReader(tokenResp.Body, 1<<20))
 	if err != nil {
 		return nil, err
 	}

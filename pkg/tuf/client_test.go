@@ -20,7 +20,6 @@ import (
 	"context"
 	"encoding/json"
 	"io/fs"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -519,7 +518,7 @@ func newTufCustomRepo(t *testing.T, td, targetData string) (tuf.LocalStore, *tuf
 		if err := os.MkdirAll(filepath.Dir(targetPath), 0o755); err != nil {
 			t.Error(err)
 		}
-		if err := ioutil.WriteFile(targetPath, []byte(targetData), 0o600); err != nil {
+		if err := os.WriteFile(targetPath, []byte(targetData), 0o600); err != nil {
 			t.Error(err)
 		}
 		if err := r.AddTarget(name, scm); err != nil {
@@ -549,7 +548,7 @@ func addNewCustomTarget(t *testing.T, td string, r *tuf.Repo, targetData map[str
 		if err := os.MkdirAll(filepath.Dir(targetPath), 0o755); err != nil {
 			t.Error(err)
 		}
-		if err := ioutil.WriteFile(targetPath, []byte(data), 0o600); err != nil {
+		if err := os.WriteFile(targetPath, []byte(data), 0o600); err != nil {
 			t.Error(err)
 		}
 		if err := r.AddTarget(name, scmActive); err != nil {
@@ -586,7 +585,7 @@ func newTufRepo(t *testing.T, td, targetData string) (tuf.LocalStore, *tuf.Repo)
 	if err := os.MkdirAll(filepath.Dir(targetPath), 0o755); err != nil {
 		t.Error(err)
 	}
-	if err := ioutil.WriteFile(targetPath, []byte(targetData), 0o600); err != nil {
+	if err := os.WriteFile(targetPath, []byte(targetData), 0o600); err != nil {
 		t.Error(err)
 	}
 	if err := r.AddTarget("foo.txt", nil); err != nil {
@@ -609,7 +608,7 @@ func updateTufRepo(t *testing.T, td string, r *tuf.Repo, targetData string) {
 	if err := os.MkdirAll(filepath.Dir(targetPath), 0o755); err != nil {
 		t.Error(err)
 	}
-	if err := ioutil.WriteFile(targetPath, []byte(targetData), 0o600); err != nil {
+	if err := os.WriteFile(targetPath, []byte(targetData), 0o600); err != nil {
 		t.Error(err)
 	}
 	if err := r.AddTarget("foo.txt", nil); err != nil {
