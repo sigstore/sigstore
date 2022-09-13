@@ -18,7 +18,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"reflect"
@@ -119,7 +119,7 @@ func TestParseAccessTokenSuccessResponse(t *testing.T) {
 		t.Run(tc.desc, func(t *testing.T) {
 			testResp := &http.Response{
 				StatusCode: http.StatusOK,
-				Body:       ioutil.NopCloser(bytes.NewReader(tc.respBody)),
+				Body:       io.NopCloser(bytes.NewReader(tc.respBody)),
 			}
 			if tc.respContentType != "" {
 				testResp.Header = make(http.Header, 1)
@@ -208,7 +208,7 @@ func TestParseAccessTokenFailResponse(t *testing.T) {
 		t.Run(tc.desc, func(t *testing.T) {
 			testResp := &http.Response{
 				StatusCode: tc.respStatusCode,
-				Body:       ioutil.NopCloser(bytes.NewReader(tc.respBody)),
+				Body:       io.NopCloser(bytes.NewReader(tc.respBody)),
 			}
 			if tc.respContentType != "" {
 				testResp.Header = make(http.Header, 1)
