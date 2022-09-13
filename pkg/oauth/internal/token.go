@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package internal TODO: add meaningfull description
+// Package internal includes functions to support OAuth/OIDC
 package internal
 
 import (
