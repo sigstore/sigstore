@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package fulcioroots TODO: add meaningfull description
+// Package fulcioroots fetches Fulcio root and intermediate certificates from TUF metadata
 package fulcioroots
 
 import (

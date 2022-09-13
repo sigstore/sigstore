@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package cryptoutils TODO: add meaningfull description
+// Package cryptoutils implements support for working with encoded certificates, public keys, and private keys
 package cryptoutils
 
 import (

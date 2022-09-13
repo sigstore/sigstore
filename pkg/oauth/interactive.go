@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package oauth TODO: add meaningfull description
+// Package oauth implements OAuth/OIDC support for device and token flows
 package oauth
 
 const (

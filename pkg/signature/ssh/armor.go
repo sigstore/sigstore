@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package ssh TODO: add meaningfull description
+// Package ssh implements signing with SSH keys
 package ssh
 
 import (

@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package oauthflow TODO: add meaningfull description
+// Package oauthflow implements OAuth/OIDC support for device and token flows
 package oauthflow
 
 import (

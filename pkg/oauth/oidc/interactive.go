@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package oidc TODO: add meaningfull description
+// Package oidc implements support for fetching OIDC tokens
 package oidc
 
 import (
