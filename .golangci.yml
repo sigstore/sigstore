@@ -16,7 +16,6 @@
 linters:
   enable:
   - asciicheck
-  - deadcode
   - depguard
   - errcheck
   - errorlint
@@ -34,6 +33,7 @@ linters:
   - tparallel
   - unconvert
   - unparam
+  - unused
   - whitespace
 output:
   uniq-by-line: false
