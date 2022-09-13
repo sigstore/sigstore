@@ -1,0 +1,34 @@
+{
+  "signed": {
+    "_type": "targets",
+    "spec_version": "1.0",
+    "version": 1,
+    "expires": "2022-12-08T17:26:05Z",
+    "targets": {
+      "ctfe.pub": {
+        "length": 177,
+        "hashes": {
+          "sha512": "4b20747d1afe2544238ad38cc0cc3010921b177d60ac743767e0ef675b915489bd01a36606c0ff83c06448622d7160f0d866c83d20f0c0f44653dcc3f9aa0bd4"
+        }
+      },
+      "fulcio.crt.pem": {
+        "length": 744,
+        "hashes": {
+          "sha512": "0713252a7fd17f7f3ab12f88a64accf2eb14b8ad40ca711d7fe8b4ecba3b24db9e9dffadb997b196d3867b8f9ff217faf930d80e4dab4e235c7fc3f07be69224"
+        }
+      },
+      "rekor.pub": {
+        "length": 178,
+        "hashes": {
+          "sha512": "0ae7705e02db33e814329746a4a0e5603c5bdcd91c96d072158d71011a2695788866565a2fec0fe363eb72cbcaeda39e54c5fe8d416daf9f3101fdba4217ef35"
+        }
+      }
+    }
+  },
+  "signatures": [
+    {
+      "keyid": "959ffa7b34b7c47f351eb886e888a52fade0045c17a0a484e1c41736047f4b79",
+      "sig": "883a6e132755eef7d02bc8ffb804b4de32c991da2e8d4960aefb35c6a7746ab6a19cee800c0f8e38efece767293defa13ea5730b3b0285c27c26bde6e721e106"
+    }
+  ]
+}

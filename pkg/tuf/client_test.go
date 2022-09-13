@@ -61,7 +61,7 @@ func TestNewFromEnv(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	checkTargetsAndMeta(t, tuf)
+	checkTargetsAndMeta(t, tuf, targets)
 	resetForTests()
 
 	// Now try with expired targets
@@ -70,7 +70,7 @@ func TestNewFromEnv(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	checkTargetsAndMeta(t, tuf)
+	checkTargetsAndMeta(t, tuf, targets)
 	resetForTests()
 
 	if err := Initialize(ctx, DefaultRemoteRoot, nil); err != nil {
@@ -85,7 +85,7 @@ func TestNewFromEnv(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	checkTargetsAndMeta(t, tuf)
+	checkTargetsAndMeta(t, tuf, targets)
 	resetForTests()
 }
 
@@ -101,7 +101,7 @@ func TestNoCache(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	checkTargetsAndMeta(t, tuf)
+	checkTargetsAndMeta(t, tuf, targets)
 	resetForTests()
 
 	// Force expiration so we have some content to download
@@ -111,7 +111,7 @@ func TestNoCache(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	checkTargetsAndMeta(t, tuf)
+	checkTargetsAndMeta(t, tuf, targets)
 	resetForTests()
 
 	// No filesystem writes when using SIGSTORE_NO_CACHE.
@@ -138,7 +138,7 @@ func TestCache(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	checkTargetsAndMeta(t, tuf)
+	checkTargetsAndMeta(t, tuf, targets)
 	resetForTests()
 	cachedDirLen := dirLen(t, td)
 	if cachedDirLen == 0 {
@@ -167,7 +167,7 @@ func TestCache(t *testing.T) {
 	if l := dirLen(t, td); l != cachedDirLen {
 		t.Errorf("expected filesystem writes, got %d entries", l)
 	}
-	checkTargetsAndMeta(t, tuf)
+	checkTargetsAndMeta(t, tuf, targets)
 	resetForTests()
 }
 
@@ -426,10 +426,10 @@ func TestUpdatedTargetNamesEmbedded(t *testing.T) {
 	}
 }
 
-func checkTargetsAndMeta(t *testing.T, tuf *TUF) {
+func checkTargetsAndMeta(t *testing.T, tuf *TUF, expected []string) {
 	// Check the targets
 	t.Helper()
-	for _, target := range targets {
+	for _, target := range expected {
 		if _, err := tuf.GetTarget(target); err != nil {
 			t.Fatal(err)
 		}
@@ -644,4 +644,40 @@ func TestConcurrentAccess(t *testing.T) {
 	}
 	wg.Wait()
 	resetForTests()
+}
+
+func TestKeyFormatMigration(t *testing.T) {
+	// Override the expiration time so the test doesn't fail on
+	// expiration.
+	oldIsExpired := verify.IsExpired
+	verify.IsExpired = func(_ time.Time) bool { return false }
+	defer func() {
+		verify.IsExpired = oldIsExpired
+	}()
+	td := t.TempDir()
+	ctx := context.Background()
+	// Set the TUF_ROOT so we don't interact with other tests and local TUF roots.
+	t.Setenv("TUF_ROOT", td)
+
+	// Serve remote repository.
+	s := httptest.NewServer(
+		http.FileServer(http.Dir("./test_data/hex_to_ecdsa_migration")))
+	defer s.Close()
+
+	rootBytes, err := os.ReadFile("./test_data/hex_to_ecdsa_migration/1.root.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := Initialize(ctx, s.URL, rootBytes); err != nil {
+		t.Error(err)
+	}
+
+	defer resetForTests()
+
+	tuf, err := NewFromEnv(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	checkTargetsAndMeta(t, tuf, []string{"fulcio.crt.pem"})
 }
