@@ -37,9 +37,8 @@ const oobRedirectURI = "urn:ietf:wg:oauth:2.0:oob"
 type browserOpener func(url string) error
 
 func doOobFlow(cfg *oauth2.Config, stateToken string, opts []oauth2.AuthCodeOption) string {
-	if cfg.RedirectURL == "" {
-		cfg.RedirectURL = oobRedirectURI
-	}
+	cfg.RedirectURL = oobRedirectURI
+
 	authURL := cfg.AuthCodeURL(stateToken, opts...)
 	fmt.Fprintln(os.Stderr, "Go to the following link in a browser:\n\n\t", authURL)
 	fmt.Fprintf(os.Stderr, "Enter verification code: ")
