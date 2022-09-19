@@ -127,8 +127,19 @@ func TestCertificatesFromPEM(t *testing.T) {
 			expected: []*x509.Certificate{cert1},
 		},
 		{
+			name:     "one cert with trailing newline",
+			pemBytes: append([]byte(cert1PEM), '\n'),
+
+			expected: []*x509.Certificate{cert1},
+		},
+		{
 			name:     "two certs",
 			pemBytes: []byte(cert1PEM + cert2PEM),
+			expected: []*x509.Certificate{cert1, cert2},
+		},
+		{
+			name:     "two certs with newline between and after certificates",
+			pemBytes: []byte(cert1PEM + "\n" + cert2PEM + "\n"),
 			expected: []*x509.Certificate{cert1, cert2},
 		},
 		{
