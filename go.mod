@@ -16,7 +16,7 @@ require (
 	github.com/go-test/deep v1.0.8
 	github.com/google/go-cmp v0.5.9
 	github.com/google/go-containerregistry v0.11.0
-	github.com/hashicorp/vault/api v1.7.2
+	github.com/hashicorp/vault/api v1.8.0
 	github.com/jellydator/ttlcache/v2 v2.11.1
 	github.com/letsencrypt/boulder v0.0.0-20220723181115-27de4befb95e
 	github.com/mitchellh/go-homedir v1.1.0
@@ -85,7 +85,7 @@ require (
 	github.com/hashicorp/go-version v1.6.0 // indirect
 	github.com/hashicorp/golang-lru v0.5.4 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
-	github.com/hashicorp/vault/sdk v0.5.3 // indirect
+	github.com/hashicorp/vault/sdk v0.6.0 // indirect
 	github.com/hashicorp/yamux v0.1.0 // indirect
 	github.com/jhump/protoreflect v1.12.0 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
