@@ -59,6 +59,7 @@ func MarshalCertificatesToPEM(certs []*x509.Certificate) ([]byte, error) {
 func UnmarshalCertificatesFromPEM(pemBytes []byte) ([]*x509.Certificate, error) {
 	result := []*x509.Certificate{}
 	remaining := pemBytes
+	remaining = bytes.TrimSpace(remaining)
 
 	for len(remaining) > 0 {
 		var certDer *pem.Block
@@ -83,6 +84,7 @@ func UnmarshalCertificatesFromPEM(pemBytes []byte) ([]*x509.Certificate, error) 
 func UnmarshalCertificatesFromPEMLimited(pemBytes []byte, iterations int) ([]*x509.Certificate, error) {
 	result := []*x509.Certificate{}
 	remaining := pemBytes
+	remaining = bytes.TrimSpace(remaining)
 
 	count := 0
 	for len(remaining) > 0 {
