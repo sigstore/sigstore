@@ -2,6 +2,10 @@ module github.com/sigstore/sigstore
 
 go 1.18
 
+// Bring this in for testing:
+//https://github.com/theupdateframework/go-tuf/pull/397
+replace github.com/theupdateframework/go-tuf => github.com/vaikas/go-tuf v0.0.0-20220924192210-488d11ce4056
+
 require (
 	cloud.google.com/go/kms v1.4.0
 	github.com/Azure/azure-sdk-for-go v66.0.0+incompatible
