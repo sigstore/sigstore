@@ -702,5 +702,5 @@ func remoteFromMirror(mirror string) (client.RemoteStore, error) {
 		return client.HTTPRemoteStore(mirror, nil, nil)
 	}
 	// Use local filesystem for remote.
-	return client.NewFileRemoteStore(u.Path, "")
+	return client.NewFileRemoteStore(os.DirFS(u.Path), "")
 }

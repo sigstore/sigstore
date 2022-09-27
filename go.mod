@@ -4,7 +4,7 @@ go 1.18
 
 // Bring this in for testing:
 //https://github.com/theupdateframework/go-tuf/pull/397
-replace github.com/theupdateframework/go-tuf => github.com/vaikas/go-tuf v0.0.0-20220924192210-488d11ce4056
+replace github.com/theupdateframework/go-tuf => github.com/vaikas/go-tuf v0.0.0-20220927211635-8719f08b55ff
 
 require (
 	cloud.google.com/go/kms v1.4.0
