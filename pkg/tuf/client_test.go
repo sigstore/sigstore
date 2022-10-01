@@ -19,6 +19,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io/fs"
 	"net/http"
 	"net/http/httptest"
@@ -193,6 +194,73 @@ func TestCustomRoot(t *testing.T) {
 		t.Error(err)
 	}
 	if err := Initialize(ctx, s.URL, rootBytes); err != nil {
+		t.Error(err)
+	}
+	if l := dirLen(t, tufRoot); l == 0 {
+		t.Errorf("expected filesystem writes, got %d entries", l)
+	}
+
+	// Successfully get target.
+	tufObj, err := NewFromEnv(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if b, err := tufObj.GetTarget("foo.txt"); err != nil || !bytes.Equal(b, []byte("foo")) {
+		t.Fatal(err)
+	}
+	resetForTests()
+
+	// Force expiration on the first timestamp and internal go-tuf verification.
+	forceExpirationVersion(t, 1)
+	oldIsExpired := verify.IsExpired
+	verify.IsExpired = func(time time.Time) bool {
+		return true
+	}
+
+	// This should cause an error that remote metadata is expired.
+	if _, err = NewFromEnv(ctx); err == nil {
+		t.Errorf("expected expired timestamp from the remote")
+	}
+
+	// Let internal TUF verification succeed normally now.
+	verify.IsExpired = oldIsExpired
+
+	// Update remote targets, issue a timestamp v2.
+	updateTufRepo(t, td, r, "foo1")
+
+	// Use newTuf and successfully get updated metadata using the cached remote location.
+	resetForTests()
+	tufObj, err = NewFromEnv(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if b, err := tufObj.GetTarget("foo.txt"); err != nil || !bytes.Equal(b, []byte("foo1")) {
+		t.Fatal(err)
+	}
+	resetForTests()
+}
+
+func TestCustomRootFileRemoteStore(t *testing.T) {
+	ctx := context.Background()
+	// Create a remote repository.
+	td := t.TempDir()
+	remote, r := newTufRepo(t, td, "foo")
+
+	// Initialize with custom root.
+	tufRoot := t.TempDir()
+	t.Setenv("TUF_ROOT", tufRoot)
+	meta, err := remote.GetMeta()
+	if err != nil {
+		t.Error(err)
+	}
+	rootBytes, ok := meta["root.json"]
+	if !ok {
+		t.Error(err)
+	}
+	// Tack on repository to the end of the td above since that's where
+	// newTufRepo creates the repository.
+	fileURI := fmt.Sprintf("file://%s", filepath.Join(td, "repository"))
+	if err := Initialize(ctx, fileURI, rootBytes); err != nil {
 		t.Error(err)
 	}
 	if l := dirLen(t, tufRoot); l == 0 {
