@@ -181,6 +181,11 @@ func (e ECDSAVerifier) VerifySignature(signature, message io.Reader, opts ...Ver
 		return fmt.Errorf("reading signature: %w", err)
 	}
 
+	// Without this check, VerifyASN1 panics on an invalid curve.
+	if !e.publicKey.Curve.IsOnCurve(e.publicKey.X, e.publicKey.Y) {
+		return fmt.Errorf("invalid ECDSA curve for %s", e.publicKey.Params().Name)
+	}
+
 	if !ecdsa.VerifyASN1(e.publicKey, digest, sigBytes) {
 		return errors.New("invalid signature when validating ASN.1 encoded signature")
 	}
