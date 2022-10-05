@@ -130,7 +130,7 @@ func TestECDSALoadVerifierInvalidCurve(t *testing.T) {
 		fmt.Println(err)
 	}
 
-	if err := verifier.VerifySignature(bytes.NewReader(sig), bytes.NewReader(msg)); err == nil || !strings.Contains(err.Error(), "invalid ECDSA curve") {
+	if err := verifier.VerifySignature(bytes.NewReader(sig), bytes.NewReader(msg)); err == nil || !strings.Contains(err.Error(), "invalid ECDSA public key") {
 		t.Fatalf("expected error verifying signature with invalid curve, got %v", err)
 	}
 }
