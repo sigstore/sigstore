@@ -95,6 +95,18 @@ func TestECDSASignerVerifierUnsupportedHash(t *testing.T) {
 	}
 }
 
+func TestECDSALoadVerifierWithoutKey(t *testing.T) {
+	key, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	v, err := LoadECDSAVerifier(&key.PublicKey, crypto.SHA256)
+	if err != nil {
+		t.Fatalf("error creating verifier: %v", err)
+	}
+	v.publicKey = nil
+	if err := v.VerifySignature(nil, nil); err == nil || !strings.Contains(err.Error(), "no public key") {
+		t.Fatalf("expected error without public key, got: %v", err)
+	}
+}
+
 // TestECDSALoadVerifierInvalidCurve tests gracefully handling an invalid curve.
 func TestECDSALoadVerifierInvalidCurve(t *testing.T) {
 	data := []byte{1}

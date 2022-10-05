@@ -167,6 +167,10 @@ func (e ECDSAVerifier) PublicKey(_ ...PublicKeyOption) (crypto.PublicKey, error)
 //
 // All other options are ignored if specified.
 func (e ECDSAVerifier) VerifySignature(signature, message io.Reader, opts ...VerifyOption) error {
+	if e.publicKey == nil {
+		return errors.New("no public key set for ECDSAVerifier")
+	}
+
 	digest, _, err := ComputeDigestForVerifying(message, e.hashFunc, ecdsaSupportedVerifyHashFuncs, opts...)
 	if err != nil {
 		return err
