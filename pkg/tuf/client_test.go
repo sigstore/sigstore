@@ -749,3 +749,43 @@ func TestKeyFormatMigration(t *testing.T) {
 	}
 	checkTargetsAndMeta(t, tuf, []string{"fulcio.crt.pem"})
 }
+
+// Test to validate that sigstore TUF client can cache targets that
+// are located in sub-folders.
+func TestTargetsSubfolder(t *testing.T) {
+	ctx := context.Background()
+	// Create a remote repository.
+	td := t.TempDir()
+	remote, r := newTufCustomRepo(t, td, "foo")
+	newTarget := "subfolder/fooNew.txt"
+	addNewCustomTarget(t, td, r, map[string]string{newTarget: "newdata"})
+
+	// Serve remote repository.
+	s := httptest.NewServer(http.FileServer(http.Dir(filepath.Join(td, "repository"))))
+	defer s.Close()
+
+	// Initialize with custom root.
+	tufRoot := t.TempDir()
+	// Set the TUF_ROOT so we don't interact with other tests and local TUF roots.
+	t.Setenv("TUF_ROOT", tufRoot)
+	meta, err := remote.GetMeta()
+	if err != nil {
+		t.Error(err)
+	}
+	rootBytes, ok := meta["root.json"]
+	if !ok {
+		t.Error(err)
+	}
+
+	if err := Initialize(ctx, s.URL, rootBytes); err != nil {
+		t.Error(err)
+	}
+
+	defer resetForTests()
+
+	tuf, err := NewFromEnv(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	checkTargetsAndMeta(t, tuf, []string{newTarget})
+}

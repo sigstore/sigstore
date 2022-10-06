@@ -677,10 +677,12 @@ func (d *diskCache) Set(p string, b []byte) error {
 	if err := d.memory.Set(p, b); err != nil {
 		return err
 	}
-	if err := os.MkdirAll(d.base, 0o700); err != nil {
+
+	fp := filepath.FromSlash(filepath.Join(d.base, p))
+	if err := os.MkdirAll(filepath.Dir(fp), 0o700); err != nil {
 		return fmt.Errorf("creating targets dir: %w", err)
 	}
-	fp := filepath.FromSlash(filepath.Join(d.base, p))
+
 	return os.WriteFile(fp, b, 0o600)
 }
 
