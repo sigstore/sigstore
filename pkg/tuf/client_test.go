@@ -789,3 +789,28 @@ func TestTargetsSubfolder(t *testing.T) {
 	}
 	checkTargetsAndMeta(t, tuf, []string{newTarget})
 }
+
+func Test_remoteFromMirror(t *testing.T) {
+	// test GCS mirror
+	mirror := "test-bucket"
+	_, err := remoteFromMirror(mirror)
+	if err != nil {
+		t.Fatalf("unexpected error with GCS mirror: %v", err)
+	}
+
+	// test HTTP mirror
+	mirror = "https://tuf-root-staging.storage.googleapis.com"
+	_, err = remoteFromMirror(mirror)
+	if err != nil {
+		t.Fatalf("unexpected error with GCS mirror: %v", err)
+	}
+
+	// test local mirror
+	tufRoot := t.TempDir()
+	os.Mkdir(fmt.Sprintf("%s/targets", tufRoot), 0750)
+	mirror = fmt.Sprintf("file://%s", tufRoot)
+	_, err = remoteFromMirror(mirror)
+	if err != nil {
+		t.Fatalf("unexpected error with GCS mirror: %v", err)
+	}
+}

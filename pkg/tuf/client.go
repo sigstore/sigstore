@@ -698,7 +698,7 @@ func remoteFromMirror(mirror string) (client.RemoteStore, error) {
 	// This is for compatibility with specifying a GCS bucket remote.
 	u, parseErr := url.ParseRequestURI(mirror)
 	if parseErr != nil {
-		mirror = fmt.Sprintf("https://%s.storage.googleapis.com", mirror)
+		return client.HTTPRemoteStore(fmt.Sprintf("https://%s.storage.googleapis.com", mirror), nil, nil)
 	}
 	if u.Scheme != "file" {
 		return client.HTTPRemoteStore(mirror, nil, nil)
