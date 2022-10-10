@@ -807,7 +807,7 @@ func Test_remoteFromMirror(t *testing.T) {
 
 	// test local mirror
 	tufRoot := t.TempDir()
-	os.Mkdir(fmt.Sprintf("%s/targets", tufRoot), 0750)
+	os.Mkdir(fmt.Sprintf("%s/targets", tufRoot), 0o0750)
 	mirror = fmt.Sprintf("file://%s", tufRoot)
 	_, err = remoteFromMirror(mirror)
 	if err != nil {
