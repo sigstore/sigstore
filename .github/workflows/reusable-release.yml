@@ -28,11 +28,6 @@ on:
         required: true
         type: string
         description: 'The Sigstore repo to release.'
-      ref:
-        required: false
-        type: string
-        description: 'The branch, tag or SHA to checkout'
-        default: ''
 
 
 jobs:
@@ -53,7 +48,7 @@ jobs:
       - name: Checkout out repo
         uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # v3
         with:
-          ref: ${{ inputs.ref }}
+          ref: ${{ inputs.release_tag }}
           path: ./src/github.com/sigstore/${{ inputs.repo }}
 
       - name: Set release tag if not specified
