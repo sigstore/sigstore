@@ -22,6 +22,7 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
+	"os"
 	"sync"
 
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
@@ -35,16 +36,22 @@ var (
 	singletonRootErr error
 )
 
-// This is the root in the fulcio project.
-var fulcioTargetStr = `fulcio.crt.pem`
+const (
+	// This is the root in the fulcio project.
+	envSigstoreRootFile = "SIGSTORE_ROOT_FILE"
 
-// This is the v1 migrated root.
-var fulcioV1TargetStr = `fulcio_v1.crt.pem`
+	// This is the root in the fulcio project.
+	fulcioTargetStr = `fulcio.crt.pem`
 
-// This is the untrusted v1 intermediate CA certificate, used or chain building.
-var fulcioV1IntermediateTargetStr = `fulcio_intermediate_v1.crt.pem`
+	// This is the v1 migrated root.
+	fulcioV1TargetStr = `fulcio_v1.crt.pem`
+
+	// This is the untrusted v1 intermediate CA certificate, used or chain building.
+	fulcioV1IntermediateTargetStr = `fulcio_intermediate_v1.crt.pem`
+)
 
 // Get returns the Fulcio root certificate.
+// This is a wrapper around [GetWithCertPool] with a new CertPool.
 func Get() (*x509.CertPool, error) {
 	pool := x509.NewCertPool()
 	if err := GetWithCertPool(pool); err != nil {
@@ -54,6 +61,9 @@ func Get() (*x509.CertPool, error) {
 }
 
 // GetWithCertPool returns the Fulcio root certificate appended to the given CertPool.
+//
+// If the SIGSTORE_ROOT_FILE environment variable is set, the root config found
+// there will be used instead of the normal Fulcio intermediates.
 func GetWithCertPool(pool *x509.CertPool) error {
 	rootsOnce.Do(func() {
 		roots, intermediates, singletonRootErr = initRoots()
@@ -72,6 +82,7 @@ func GetWithCertPool(pool *x509.CertPool) error {
 }
 
 // GetIntermediates returns the Fulcio intermediate certificates.
+// This is a wrapper around [GetIntermediatesWithCertPool] with a new CertPool.
 func GetIntermediates() (*x509.CertPool, error) {
 	pool := x509.NewCertPool()
 	if err := GetIntermediatesWithCertPool(pool); err != nil {
@@ -81,6 +92,9 @@ func GetIntermediates() (*x509.CertPool, error) {
 }
 
 // GetIntermediatesWithCertPool returns the Fulcio intermediate certificates appended to the given CertPool.
+//
+// If the SIGSTORE_ROOT_FILE environment variable is set, the root config found
+// there will be used instead of the normal Fulcio intermediates.
 func GetIntermediatesWithCertPool(pool *x509.CertPool) error {
 	rootsOnce.Do(func() {
 		roots, intermediates, singletonRootErr = initRoots()
@@ -99,23 +113,36 @@ func GetIntermediatesWithCertPool(pool *x509.CertPool) error {
 }
 
 func initRoots() ([]*x509.Certificate, []*x509.Certificate, error) {
-	tufClient, err := tuf.NewFromEnv(context.Background())
-	if err != nil {
-		return nil, nil, fmt.Errorf("initializing tuf: %w", err)
+	raw := [][]byte{}
+	if rootEnv := os.Getenv(envSigstoreRootFile); rootEnv != "" {
+		b, err := os.ReadFile(rootEnv)
+		if err != nil {
+			return nil, nil, fmt.Errorf("error reading root PEM file: %w", err)
+		}
+		raw = append(raw, b)
+	} else {
+		tufClient, err := tuf.NewFromEnv(context.Background())
+		if err != nil {
+			return nil, nil, fmt.Errorf("initializing tuf: %w", err)
+		}
+		// Retrieve from the embedded or cached TUF root. If expired, a network
+		// call is made to update the root.
+		targets, err := tufClient.GetTargetsByMeta(tuf.Fulcio, []string{fulcioTargetStr, fulcioV1TargetStr, fulcioV1IntermediateTargetStr})
+		if err != nil {
+			return nil, nil, fmt.Errorf("error getting targets: %w", err)
+		}
+		if len(targets) == 0 {
+			return nil, nil, errors.New("none of the Fulcio roots have been found")
+		}
+		for _, t := range targets {
+			raw = append(raw, t.Target)
+		}
 	}
-	// Retrieve from the embedded or cached TUF root. If expired, a network
-	// call is made to update the root.
-	targets, err := tufClient.GetTargetsByMeta(tuf.Fulcio, []string{fulcioTargetStr, fulcioV1TargetStr, fulcioV1IntermediateTargetStr})
-	if err != nil {
-		return nil, nil, fmt.Errorf("error getting targets: %w", err)
-	}
-	if len(targets) == 0 {
-		return nil, nil, errors.New("none of the Fulcio roots have been found")
-	}
+
 	rootPool := []*x509.Certificate{}
 	intermediatePool := []*x509.Certificate{}
-	for _, t := range targets {
-		certs, err := cryptoutils.UnmarshalCertificatesFromPEM(t.Target)
+	for _, cert := range raw {
+		certs, err := cryptoutils.UnmarshalCertificatesFromPEM(cert)
 		if err != nil {
 			return nil, nil, fmt.Errorf("error unmarshalling certificates: %w", err)
 		}
@@ -128,6 +155,5 @@ func initRoots() ([]*x509.Certificate, []*x509.Certificate, error) {
 			}
 		}
 	}
-
 	return rootPool, intermediatePool, nil
 }
