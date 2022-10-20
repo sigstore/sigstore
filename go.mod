@@ -15,7 +15,7 @@ require (
 	github.com/go-rod/rod v0.112.0
 	github.com/go-test/deep v1.0.8
 	github.com/google/go-cmp v0.5.9
-	github.com/google/go-containerregistry v0.11.0
+	github.com/google/go-containerregistry v0.12.0
 	github.com/hashicorp/vault/api v1.8.1
 	github.com/jellydator/ttlcache/v2 v2.11.1
 	github.com/letsencrypt/boulder v0.0.0-20220929215747-76583552c2be
@@ -27,8 +27,8 @@ require (
 	github.com/stretchr/testify v1.8.0
 	github.com/theupdateframework/go-tuf v0.5.2-0.20220930112810-3890c1e7ace4
 	golang.org/x/crypto v0.0.0-20220926161630-eccd6366d1be
-	golang.org/x/oauth2 v0.0.0-20221014153046-6fdb5e3db783
-	golang.org/x/term v0.0.0-20220919170432-7a66f970e087
+	golang.org/x/oauth2 v0.1.0
+	golang.org/x/term v0.1.0
 	google.golang.org/api v0.100.0
 	google.golang.org/genproto v0.0.0-20221014213838-99cd37c6964a
 	google.golang.org/protobuf v1.28.1
@@ -106,10 +106,10 @@ require (
 	github.com/ysmood/leakless v0.8.0 // indirect
 	go.opencensus.io v0.23.0 // indirect
 	go.uber.org/atomic v1.10.0 // indirect
-	golang.org/x/net v0.0.0-20221014081412-f15817d10f9b // indirect
-	golang.org/x/sync v0.0.0-20220929204114-8fcdb60fdcc0 // indirect
-	golang.org/x/sys v0.0.0-20220928140112-f11e5e49a4ec // indirect
-	golang.org/x/text v0.3.7 // indirect
+	golang.org/x/net v0.1.0 // indirect
+	golang.org/x/sync v0.1.0 // indirect
+	golang.org/x/sys v0.1.0 // indirect
+	golang.org/x/text v0.4.0 // indirect
 	golang.org/x/time v0.0.0-20220922220347-f3bd1da661af // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/grpc v1.50.1 // indirect
