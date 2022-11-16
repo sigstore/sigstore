@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	cloud.google.com/go/kms v1.6.0
-	github.com/Azure/azure-sdk-for-go v67.0.0+incompatible
+	github.com/Azure/azure-sdk-for-go v67.1.0+incompatible
 	github.com/Azure/go-autorest/autorest v0.11.28
 	github.com/Azure/go-autorest/autorest/to v0.4.0
 	github.com/aws/aws-sdk-go v1.44.137
