@@ -30,8 +30,8 @@ import (
 	"time"
 
 	gcpkms "cloud.google.com/go/kms/apiv1"
+	"cloud.google.com/go/kms/apiv1/kmspb"
 	"google.golang.org/api/option"
-	kmspb "google.golang.org/genproto/googleapis/cloud/kms/v1"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/jellydator/ttlcache/v2"
