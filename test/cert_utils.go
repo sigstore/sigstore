@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package test contains test utilities
 package test
 
 import (
@@ -40,16 +41,16 @@ subs := x509.NewCertPool()
 roots.AddCert(rootCert)
 subs.AddCert(subCert)
 opts := x509.VerifyOptions{
-	Roots:         roots,
-	Intermediates: subs,
-	KeyUsages: []x509.ExtKeyUsage{
-		x509.ExtKeyUsageCodeSigning,
-	},
+        Roots:         roots,
+        Intermediates: subs,
+        KeyUsages: []x509.ExtKeyUsage{
+                x509.ExtKeyUsageCodeSigning,
+        },
 }
 _, err := leafCert.Verify(opts)
 */
 
-func createCertificate(template *x509.Certificate, parent *x509.Certificate, pub interface{}, priv crypto.Signer) (*x509.Certificate, error) {
+func createCertificate(template, parent *x509.Certificate, pub interface{}, priv crypto.Signer) (*x509.Certificate, error) {
 	certBytes, err := x509.CreateCertificate(rand.Reader, template, parent, pub, priv)
 	if err != nil {
 		return nil, err
@@ -62,6 +63,7 @@ func createCertificate(template *x509.Certificate, parent *x509.Certificate, pub
 	return cert, nil
 }
 
+// GenerateRootCa generates a test root CA
 func GenerateRootCa() (*x509.Certificate, *ecdsa.PrivateKey, error) {
 	rootTemplate := &x509.Certificate{
 		SerialNumber: big.NewInt(1),
@@ -89,6 +91,7 @@ func GenerateRootCa() (*x509.Certificate, *ecdsa.PrivateKey, error) {
 	return cert, priv, nil
 }
 
+// GenerateSubordinateCa generates a test intermediate CA
 func GenerateSubordinateCa(rootTemplate *x509.Certificate, rootPriv crypto.Signer) (*x509.Certificate, *ecdsa.PrivateKey, error) {
 	subTemplate := &x509.Certificate{
 		SerialNumber: big.NewInt(1),
@@ -117,7 +120,8 @@ func GenerateSubordinateCa(rootTemplate *x509.Certificate, rootPriv crypto.Signe
 	return cert, priv, nil
 }
 
-func GenerateLeafCert(subject string, oidcIssuer string, parentTemplate *x509.Certificate, parentPriv crypto.Signer, exts ...pkix.Extension) (*x509.Certificate, *ecdsa.PrivateKey, error) {
+// GenerateLeafCert generates a test leaf certificate
+func GenerateLeafCert(subject, oidcIssuer string, parentTemplate *x509.Certificate, parentPriv crypto.Signer, exts ...pkix.Extension) (*x509.Certificate, *ecdsa.PrivateKey, error) {
 	exts = append(exts, pkix.Extension{
 		// OID for OIDC Issuer extension
 		Id:       asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 57264, 1, 1},
@@ -148,7 +152,8 @@ func GenerateLeafCert(subject string, oidcIssuer string, parentTemplate *x509.Ce
 	return cert, priv, nil
 }
 
-func GenerateLeafCertWithSubjectAlternateNames(dnsNames []string, emailAddresses []string, ipAddresses []net.IP, uris []*url.URL, oidcIssuer string, parentTemplate *x509.Certificate, parentPriv crypto.Signer) (*x509.Certificate, *ecdsa.PrivateKey, error) {
+// GenerateLeafCertWithSubjectAlternateNames generates a test leaf certificate with the specified SANs
+func GenerateLeafCertWithSubjectAlternateNames(dnsNames, emailAddresses []string, ipAddresses []net.IP, uris []*url.URL, oidcIssuer string, parentTemplate *x509.Certificate, parentPriv crypto.Signer) (*x509.Certificate, *ecdsa.PrivateKey, error) {
 	certTemplate := &x509.Certificate{
 		SerialNumber:   big.NewInt(1),
 		EmailAddresses: emailAddresses,

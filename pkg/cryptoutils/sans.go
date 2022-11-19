@@ -23,8 +23,9 @@ import (
 )
 
 var (
+	// OIDOtherName is the OID for the OtherName SAN per RFC 5280
 	OIDOtherName = asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 57264, 1, 7}
-	// OID for Subject Alternative Name
+	// SANOID is the OID for Subject Alternative Name per RFC 5280
 	SANOID = asn1.ObjectIdentifier{2, 5, 29, 17}
 )
 
@@ -127,6 +128,9 @@ func UnmarshalOtherNameSAN(exts []pkix.Extension) (string, error) {
 	return otherNames[0], nil
 }
 
+// GetSubjectAlternateNames extracts all subject alternative names from
+// the certificate, including email addresses, DNS, IP addresses, URIs,
+// and OtherName SANs
 func GetSubjectAlternateNames(cert *x509.Certificate) []string {
 	sans := []string{}
 	sans = append(sans, cert.DNSNames...)
