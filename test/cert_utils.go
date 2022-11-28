@@ -56,11 +56,7 @@ func createCertificate(template, parent *x509.Certificate, pub interface{}, priv
 		return nil, err
 	}
 
-	cert, err := x509.ParseCertificate(certBytes)
-	if err != nil {
-		return nil, err
-	}
-	return cert, nil
+	return x509.ParseCertificate(certBytes)
 }
 
 // GenerateRootCa generates a test root CA

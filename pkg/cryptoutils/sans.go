@@ -107,8 +107,7 @@ func UnmarshalOtherNameSAN(exts []pkix.Extension) (string, error) {
 			}
 
 			var other OtherName
-			_, err := asn1.UnmarshalWithParams(v.FullBytes, &other, "tag:0")
-			if err != nil {
+			if _, err := asn1.UnmarshalWithParams(v.FullBytes, &other, "tag:0"); err != nil {
 				return "", fmt.Errorf("could not parse requested OtherName SAN: %w", err)
 			}
 			if !other.ID.Equal(OIDOtherName) {
