@@ -1,12 +1,7 @@
 # sigstore framework
 [![Fuzzing Status](https://oss-fuzz-build-logs.storage.googleapis.com/badges/sigstore.svg)](https://bugs.chromium.org/p/oss-fuzz/issues/list?sort=-opened&can=1&q=proj:sigstore) [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/5716/badge)](https://bestpractices.coreinfrastructure.org/projects/5716)
 
-sigstore/sigstore is a generic library / framework that is utilized by various other
-clients and projects including fulcio (webPKI), cosign (container and OCI signing tool)
-and tektoncd/chains (Supply Chain Security in Tekton Pipelines).
-
-sigstore is a good candidate for anyone wanting to develop go based clients / systems
-and utilise existing go modules for common sigstore functionality.
+sigstore/sigstore contains common [Sigstore](https://www.sigstore.dev/) code: that is, code shared by infrastructure (e.g., [Fulcio](https://github.com/sigstore/fulcio) and [Rekor](https://github.com/sigstore/rekor)) and Go language clients (e.g., [Cosign](https://github.com/sigstore/cosign) and [Gitsign](https://github.com/sigstore/gitsign)).
 
 This library currently provides:
 
