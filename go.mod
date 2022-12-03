@@ -3,7 +3,7 @@ module github.com/sigstore/sigstore
 go 1.18
 
 require (
-	cloud.google.com/go/kms v1.6.0
+	cloud.google.com/go/kms v1.7.0
 	github.com/Azure/azure-sdk-for-go v67.1.0+incompatible
 	github.com/Azure/go-autorest/autorest v0.11.28
 	github.com/Azure/go-autorest/autorest/to v0.4.0
@@ -112,7 +112,7 @@ require (
 	golang.org/x/text v0.4.0 // indirect
 	golang.org/x/time v0.2.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
-	google.golang.org/genproto v0.0.0-20221111202108-142d8a6fa32e // indirect
+	google.golang.org/genproto v0.0.0-20221201164419-0e50fba7f41c // indirect
 	google.golang.org/grpc v1.50.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
