@@ -49,8 +49,8 @@ func init() {
 type kvClient interface {
 	CreateKey(ctx context.Context, vaultBaseURL, keyName string, parameters keyvault.KeyCreateParameters) (result keyvault.KeyBundle, err error)
 	GetKey(ctx context.Context, vaultBaseURL, keyName, keyVersion string) (result keyvault.KeyBundle, err error)
-	Sign(ctx context.Context, vaultBaseURL string, keyName string, keyVersion string, parameters keyvault.KeySignParameters) (result keyvault.KeyOperationResult, err error)
-	Verify(ctx context.Context, vaultBaseURL string, keyName string, keyVersion string, parameters keyvault.KeyVerifyParameters) (result keyvault.KeyVerifyResult, err error)
+	Sign(ctx context.Context, vaultBaseURL, keyName, keyVersion string, parameters keyvault.KeySignParameters) (result keyvault.KeyOperationResult, err error)
+	Verify(ctx context.Context, vaultBaseURL, keyName, keyVersion string, parameters keyvault.KeyVerifyParameters) (result keyvault.KeyVerifyResult, err error)
 }
 
 type azureVaultClient struct {
