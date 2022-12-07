@@ -226,10 +226,10 @@ func (a *azureVaultClient) fetchPublicKey(ctx context.Context) (crypto.PublicKey
 	keyType := string(key.Kty)
 
 	// Azure Key Vault allows keys to be stored in either default Key Vault storage
-	// or in managed HSMs. If the key is stored in a HSM, the key type is suffixed 
-	// with "-HSM". Since this suffix is specific to Azure Key Vault, it needs 
+	// or in managed HSMs. If the key is stored in a HSM, the key type is suffixed
+	// with "-HSM". Since this suffix is specific to Azure Key Vault, it needs
 	// be stripped from the key type before attempting to represent the key
-	// with a go-jose/JSONWebKey struct. 
+	// with a go-jose/JSONWebKey struct.
 	if strings.HasSuffix(keyType, "-HSM") {
 		split := strings.Split(keyType, "-HSM")
 		// since we split on the suffix, there should be only two elements

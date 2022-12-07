@@ -17,8 +17,8 @@ package azure
 
 import (
 	"context"
-	"crypto/elliptic"
 	"crypto/ecdsa"
+	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/rsa"
 	"encoding/base64"
@@ -60,13 +60,13 @@ func (c *testKVClient) Verify(ctx context.Context, vaultBaseURL string, keyName 
 }
 
 func generatePublicKey(azureKeyType string) (keyvault.JSONWebKey, error) {
-	keyOps := []string{"sign","verify"}
-    kid := "https://honk-vault.vault.azure.net/keys/honk-key/abc123"
+	keyOps := []string{"sign", "verify"}
+	kid := "https://honk-vault.vault.azure.net/keys/honk-key/abc123"
 
 	key := keyvault.JSONWebKey{
-		Kid: &kid,
-		Kty: keyvault.JSONWebKeyType(azureKeyType),
-		Crv: "P-256",
+		Kid:    &kid,
+		Kty:    keyvault.JSONWebKeyType(azureKeyType),
+		Crv:    "P-256",
 		KeyOps: &keyOps,
 	}
 
@@ -87,7 +87,7 @@ func generatePublicKey(azureKeyType string) (keyvault.JSONWebKey, error) {
 
 		xString := base64.RawURLEncoding.EncodeToString(ecdsaPub.X.Bytes())
 		key.X = &xString
-		
+
 		yString := base64.RawURLEncoding.EncodeToString(ecdsaPub.Y.Bytes())
 		key.Y = &yString
 
@@ -116,25 +116,25 @@ func generatePublicKey(azureKeyType string) (keyvault.JSONWebKey, error) {
 
 func TestAzureVaultClientFetchPublicKey(t *testing.T) {
 	type test struct {
-		azureKeyType string
+		azureKeyType  string
 		expectSuccess bool
 	}
 
 	tests := []test{
 		{
-			azureKeyType: "EC",
+			azureKeyType:  "EC",
 			expectSuccess: true,
 		},
 		{
-			azureKeyType: "EC-HSM",
+			azureKeyType:  "EC-HSM",
 			expectSuccess: true,
 		},
 		{
-			azureKeyType: "RSA",
+			azureKeyType:  "RSA",
 			expectSuccess: true,
 		},
 		{
-			azureKeyType: "RSA-HSM",
+			azureKeyType:  "RSA-HSM",
 			expectSuccess: true,
 		},
 	}
@@ -147,7 +147,7 @@ func TestAzureVaultClientFetchPublicKey(t *testing.T) {
 
 		kvClient := testKVClient{key: key}
 		client := azureVaultClient{
-			client:    &kvClient,
+			client: &kvClient,
 		}
 
 		_, err = client.fetchPublicKey(context.Background())
