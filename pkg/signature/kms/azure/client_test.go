@@ -70,6 +70,10 @@ func generatePublicKey(azureKeyType string) (keyvault.JSONWebKey, error) {
 		KeyOps: &keyOps,
 	}
 
+	if !strings.HasPrefix(azureKeyType, "EC") && !strings.HasPrefix(azureKeyType, "RSA") {
+		return keyvault.JSONWebKey{}, fmt.Errorf("invalid key type passed: %s", azureKeyType)
+	}
+
 	if strings.HasPrefix(azureKeyType, "EC") {
 		privKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 		if err != nil {
@@ -88,28 +92,26 @@ func generatePublicKey(azureKeyType string) (keyvault.JSONWebKey, error) {
 		key.Y = &yString
 
 		return key, nil
-	} else if strings.HasPrefix(azureKeyType, "RSA") {
-		privKey, err := rsa.GenerateKey(rand.Reader, 256)
-		if err != nil {
-			return keyvault.JSONWebKey{}, err
-		}
-
-		rsaPub, ok := privKey.Public().(*rsa.PublicKey)
-		if !ok {
-			return keyvault.JSONWebKey{}, fmt.Errorf("failed to cast public key to rsa public key")
-		}
-
-		nString := base64.RawURLEncoding.EncodeToString(rsaPub.N.Bytes())
-		key.N = &nString
-
-		eString := base64.RawURLEncoding.EncodeToString([]byte(fmt.Sprint(rsaPub.E)))
-		key.E = &eString
-
-		return key, nil
-	} else {
-		return keyvault.JSONWebKey{}, fmt.Errorf("invalid key type passed: %s", azureKeyType)
 	}
-	return keyvault.JSONWebKey{}, nil
+
+	// otherwise generate a RSA key
+	privKey, err := rsa.GenerateKey(rand.Reader, 256)
+	if err != nil {
+		return keyvault.JSONWebKey{}, err
+	}
+
+	rsaPub, ok := privKey.Public().(*rsa.PublicKey)
+	if !ok {
+		return keyvault.JSONWebKey{}, fmt.Errorf("failed to cast public key to rsa public key")
+	}
+
+	nString := base64.RawURLEncoding.EncodeToString(rsaPub.N.Bytes())
+	key.N = &nString
+
+	eString := base64.RawURLEncoding.EncodeToString([]byte(fmt.Sprint(rsaPub.E)))
+	key.E = &eString
+
+	return key, nil
 }
 
 func TestAzureVaultClientFetchPublicKey(t *testing.T) {
