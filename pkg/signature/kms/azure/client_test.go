@@ -16,9 +16,149 @@
 package azure
 
 import (
+	"context"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
+	"crypto/rsa"
+	"encoding/base64"
+	"fmt"
 	"os"
+	"strings"
 	"testing"
+
+	"github.com/Azure/azure-sdk-for-go/services/keyvault/v7.1/keyvault"
 )
+
+type testKVClient struct {
+	key keyvault.JSONWebKey
+}
+
+func (c *testKVClient) CreateKey(ctx context.Context, vaultBaseURL, keyName string, parameters keyvault.KeyCreateParameters) (result keyvault.KeyBundle, err error) {
+	key, err := generatePublicKey("EC")
+	if err != nil {
+		return result, err
+	}
+	c.key = key
+
+	result.Key = &key
+	return result, nil
+}
+
+func (c *testKVClient) GetKey(ctx context.Context, vaultBaseURL, keyName, keyVersion string) (result keyvault.KeyBundle, err error) {
+	result.Key = &c.key
+
+	return result, nil
+}
+
+func (c *testKVClient) Sign(ctx context.Context, vaultBaseURL, keyName, keyVersion string, parameters keyvault.KeySignParameters) (result keyvault.KeyOperationResult, err error) {
+	return result, nil
+}
+
+func (c *testKVClient) Verify(ctx context.Context, vaultBaseURL, keyName, keyVersion string, parameters keyvault.KeyVerifyParameters) (result keyvault.KeyVerifyResult, err error) {
+	return result, nil
+}
+
+func generatePublicKey(azureKeyType string) (keyvault.JSONWebKey, error) {
+	keyOps := []string{"sign", "verify"}
+	kid := "https://honk-vault.vault.azure.net/keys/honk-key/abc123"
+
+	key := keyvault.JSONWebKey{
+		Kid:    &kid,
+		Kty:    keyvault.JSONWebKeyType(azureKeyType),
+		Crv:    "P-256",
+		KeyOps: &keyOps,
+	}
+
+	if !strings.HasPrefix(azureKeyType, "EC") && !strings.HasPrefix(azureKeyType, "RSA") {
+		return keyvault.JSONWebKey{}, fmt.Errorf("invalid key type passed: %s", azureKeyType)
+	}
+
+	if strings.HasPrefix(azureKeyType, "EC") {
+		privKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+		if err != nil {
+			return keyvault.JSONWebKey{}, err
+		}
+
+		ecdsaPub, ok := privKey.Public().(*ecdsa.PublicKey)
+		if !ok {
+			return keyvault.JSONWebKey{}, fmt.Errorf("failed to cast public key to esdsa public key")
+		}
+
+		xString := base64.RawURLEncoding.EncodeToString(ecdsaPub.X.Bytes())
+		key.X = &xString
+
+		yString := base64.RawURLEncoding.EncodeToString(ecdsaPub.Y.Bytes())
+		key.Y = &yString
+
+		return key, nil
+	}
+
+	// otherwise generate a RSA key
+	privKey, err := rsa.GenerateKey(rand.Reader, 256)
+	if err != nil {
+		return keyvault.JSONWebKey{}, err
+	}
+
+	rsaPub, ok := privKey.Public().(*rsa.PublicKey)
+	if !ok {
+		return keyvault.JSONWebKey{}, fmt.Errorf("failed to cast public key to rsa public key")
+	}
+
+	nString := base64.RawURLEncoding.EncodeToString(rsaPub.N.Bytes())
+	key.N = &nString
+
+	eString := base64.RawURLEncoding.EncodeToString([]byte(fmt.Sprint(rsaPub.E)))
+	key.E = &eString
+
+	return key, nil
+}
+
+func TestAzureVaultClientFetchPublicKey(t *testing.T) {
+	type test struct {
+		azureKeyType  string
+		expectSuccess bool
+	}
+
+	tests := []test{
+		{
+			azureKeyType:  "EC",
+			expectSuccess: true,
+		},
+		{
+			azureKeyType:  "EC-HSM",
+			expectSuccess: true,
+		},
+		{
+			azureKeyType:  "RSA",
+			expectSuccess: true,
+		},
+		{
+			azureKeyType:  "RSA-HSM",
+			expectSuccess: true,
+		},
+	}
+
+	for _, tc := range tests {
+		key, err := generatePublicKey(tc.azureKeyType)
+		if err != nil {
+			t.Fatalf("unexpected error while generating public key for testing: %v", err)
+		}
+
+		kvClient := testKVClient{key: key}
+		client := azureVaultClient{
+			client: &kvClient,
+		}
+
+		_, err = client.fetchPublicKey(context.Background())
+		if err != nil && tc.expectSuccess {
+			t.Fatalf("expected error to be nil, actual value: %v", err)
+		}
+		if err == nil && !tc.expectSuccess {
+			t.Fatal("expected error not to be nil")
+		}
+	}
+}
 
 func TestGetAuthenticationMethod(t *testing.T) {
 	clearEnv := map[string]string{

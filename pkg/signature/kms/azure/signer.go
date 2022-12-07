@@ -50,7 +50,7 @@ type SignerVerifier struct {
 	client     *azureVaultClient
 }
 
-// LoadSignerVerifier generates signatures using the specified key object in GCP KMS and hash algorithm.
+// LoadSignerVerifier generates signatures using the specified key in Azure Key Vault and hash algorithm.
 //
 // It also can verify signatures locally using the public key. hashFunc must not be crypto.Hash(0).
 func LoadSignerVerifier(defaultCtx context.Context, referenceStr string, hashFunc crypto.Hash) (*SignerVerifier, error) {
@@ -68,13 +68,13 @@ func LoadSignerVerifier(defaultCtx context.Context, referenceStr string, hashFun
 	case 0, crypto.SHA224, crypto.SHA256, crypto.SHA384, crypto.SHA512:
 		a.hashFunc = hashFunc
 	default:
-		return nil, errors.New("hash function not supported by Hashivault")
+		return nil, errors.New("hash function not supported by Azure Key Vault")
 	}
 
 	return a, nil
 }
 
-// SignMessage signs the provided message using GCP KMS. If the message is provided,
+// SignMessage signs the provided message using Azure Key Vault. If the message is provided,
 // this method will compute the digest according to the hash function specified
 // when the Signer was created.
 //
@@ -204,13 +204,13 @@ func (c cryptoSignerWrapper) Sign(_ io.Reader, digest []byte, opts crypto.Signer
 	if opts != nil {
 		hashFunc = opts.HashFunc()
 	}
-	gcpOptions := []signature.SignOption{
+	azOptions := []signature.SignOption{
 		options.WithContext(c.ctx),
 		options.WithDigest(digest),
 		options.WithCryptoSignerOpts(hashFunc),
 	}
 
-	return c.sv.SignMessage(nil, gcpOptions...)
+	return c.sv.SignMessage(nil, azOptions...)
 }
 
 // CryptoSigner returns a crypto.Signer object that uses the underlying SignerVerifier, along with a crypto.SignerOpts object

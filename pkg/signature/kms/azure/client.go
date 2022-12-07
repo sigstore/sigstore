@@ -46,8 +46,15 @@ func init() {
 	})
 }
 
+type kvClient interface {
+	CreateKey(ctx context.Context, vaultBaseURL, keyName string, parameters keyvault.KeyCreateParameters) (result keyvault.KeyBundle, err error)
+	GetKey(ctx context.Context, vaultBaseURL, keyName, keyVersion string) (result keyvault.KeyBundle, err error)
+	Sign(ctx context.Context, vaultBaseURL, keyName, keyVersion string, parameters keyvault.KeySignParameters) (result keyvault.KeyOperationResult, err error)
+	Verify(ctx context.Context, vaultBaseURL, keyName, keyVersion string, parameters keyvault.KeyVerifyParameters) (result keyvault.KeyVerifyResult, err error)
+}
+
 type azureVaultClient struct {
-	client    *keyvault.BaseClient
+	client    kvClient
 	keyCache  *ttlcache.Cache
 	vaultURL  string
 	vaultName string
@@ -210,12 +217,28 @@ func (a *azureVaultClient) keyCacheLoaderFunction(key string) (data interface{},
 }
 
 func (a *azureVaultClient) fetchPublicKey(ctx context.Context) (crypto.PublicKey, error) {
-	key, err := a.getKey(ctx)
+	keyBundle, err := a.getKey(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("public key: %w", err)
 	}
 
-	jwkJSON, err := json.Marshal(*key.Key)
+	key := keyBundle.Key
+	keyType := string(key.Kty)
+
+	// Azure Key Vault allows keys to be stored in either default Key Vault storage
+	// or in managed HSMs. If the key is stored in a HSM, the key type is suffixed
+	// with "-HSM". Since this suffix is specific to Azure Key Vault, it needs
+	// be stripped from the key type before attempting to represent the key
+	// with a go-jose/JSONWebKey struct.
+	if strings.HasSuffix(keyType, "-HSM") {
+		split := strings.Split(keyType, "-HSM")
+		// since we split on the suffix, there should be only two elements
+		// the first element should contain the key type without the -HSM suffix
+		newKeyType := split[0]
+		key.Kty = keyvault.JSONWebKeyType(newKeyType)
+	}
+
+	jwkJSON, err := json.Marshal(*key)
 	if err != nil {
 		return nil, fmt.Errorf("encoding the jsonWebKey: %w", err)
 	}
