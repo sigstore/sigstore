@@ -246,7 +246,8 @@ func initializeTUF(mirror string, root []byte, embedded fs.FS, forceUpdate bool)
 	initMu.Lock()
 	defer initMu.Unlock()
 
-	var initErr error
+	// TODO: If a temporary error occurs for a long-running process, this singleton will
+	// never retry
 	singletonTUFOnce.Do(func() {
 		t := &TUF{
 			mirror:   mirror,
@@ -254,13 +255,13 @@ func initializeTUF(mirror string, root []byte, embedded fs.FS, forceUpdate bool)
 		}
 
 		t.targets = newFileImpl()
-		t.local, initErr = newLocalStore()
-		if initErr != nil {
+		t.local, singletonTUFErr = newLocalStore()
+		if singletonTUFErr != nil {
 			return
 		}
 
-		t.remote, initErr = remoteFromMirror(t.mirror)
-		if initErr != nil {
+		t.remote, singletonTUFErr = remoteFromMirror(t.mirror)
+		if singletonTUFErr != nil {
 			return
 		}
 
@@ -268,7 +269,7 @@ func initializeTUF(mirror string, root []byte, embedded fs.FS, forceUpdate bool)
 
 		trustedMeta, err := t.local.GetMeta()
 		if err != nil {
-			initErr = fmt.Errorf("getting trusted meta: %w", err)
+			singletonTUFErr = fmt.Errorf("getting trusted meta: %w", err)
 			return
 		}
 
@@ -277,20 +278,20 @@ func initializeTUF(mirror string, root []byte, embedded fs.FS, forceUpdate bool)
 		if root == nil {
 			root, err = getRoot(trustedMeta, t.embedded)
 			if err != nil {
-				initErr = fmt.Errorf("getting trusted root: %w", err)
+				singletonTUFErr = fmt.Errorf("getting trusted root: %w", err)
 				return
 			}
 		}
 
 		if err := t.client.Init(root); err != nil {
-			initErr = fmt.Errorf("unable to initialize client, local cache may be corrupt: %w", err)
+			singletonTUFErr = fmt.Errorf("unable to initialize client, local cache may be corrupt: %w", err)
 			return
 		}
 
 		singletonTUF = t
 	})
-	if initErr != nil {
-		return nil, initErr
+	if singletonTUFErr != nil {
+		return nil, singletonTUFErr
 	}
 
 	trustedMeta, err := singletonTUF.local.GetMeta()
@@ -310,7 +311,7 @@ func initializeTUF(mirror string, root []byte, embedded fs.FS, forceUpdate bool)
 		return nil, fmt.Errorf("updating local metadata and targets: %w", err)
 	}
 
-	return singletonTUF, singletonTUFErr
+	return singletonTUF, nil
 }
 
 // TODO: Remove ctx arg.
