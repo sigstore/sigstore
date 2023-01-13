@@ -693,7 +693,7 @@ func updateTufRepo(t *testing.T, td string, r *tuf.Repo, targetData string) {
 	}
 }
 
-func TestConcurrentAccess(t *testing.T) {
+func TestConcurrentAccessNewFromEnv(t *testing.T) {
 	var wg sync.WaitGroup
 
 	for i := 0; i < 20; i++ {
@@ -706,6 +706,24 @@ func TestConcurrentAccess(t *testing.T) {
 			}
 			if tufObj == nil {
 				t.Error("Got back nil tufObj")
+			}
+			time.Sleep(1 * time.Second)
+		}()
+	}
+	wg.Wait()
+	resetForTests()
+}
+
+func TestConcurrentAccessInitialize(t *testing.T) {
+	var wg sync.WaitGroup
+
+	for i := 0; i < 20; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			err := Initialize(context.Background(), DefaultRemoteRoot, nil)
+			if err != nil {
+				t.Errorf("Failed to construct NewFromEnv: %s", err)
 			}
 			time.Sleep(1 * time.Second)
 		}()
