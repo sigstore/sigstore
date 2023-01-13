@@ -58,6 +58,9 @@ var (
 	singletonTUF     *TUF
 	singletonTUFOnce = new(sync.Once)
 	singletonTUFErr  error
+
+	// initMu locks concurrent calls to initializeTUF
+	initMu sync.Mutex
 )
 
 // getRemoteRoot is a var for testing.
@@ -240,6 +243,10 @@ func GetRootStatus(ctx context.Context) (*RootStatus, error) {
 // * forceUpdate: indicates checking the remote for an update, even when the local
 // timestamp.json is up to date.
 func initializeTUF(mirror string, root []byte, embedded fs.FS, forceUpdate bool) (*TUF, error) {
+	initMu.Lock()
+	defer initMu.Unlock()
+
+	var initErr error
 	singletonTUFOnce.Do(func() {
 		t := &TUF{
 			mirror:   mirror,
@@ -247,13 +254,13 @@ func initializeTUF(mirror string, root []byte, embedded fs.FS, forceUpdate bool)
 		}
 
 		t.targets = newFileImpl()
-		t.local, singletonTUFErr = newLocalStore()
-		if singletonTUFErr != nil {
+		t.local, initErr = newLocalStore()
+		if initErr != nil {
 			return
 		}
 
-		t.remote, singletonTUFErr = remoteFromMirror(t.mirror)
-		if singletonTUFErr != nil {
+		t.remote, initErr = remoteFromMirror(t.mirror)
+		if initErr != nil {
 			return
 		}
 
@@ -261,7 +268,7 @@ func initializeTUF(mirror string, root []byte, embedded fs.FS, forceUpdate bool)
 
 		trustedMeta, err := t.local.GetMeta()
 		if err != nil {
-			singletonTUFErr = fmt.Errorf("getting trusted meta: %w", err)
+			initErr = fmt.Errorf("getting trusted meta: %w", err)
 			return
 		}
 
@@ -270,33 +277,39 @@ func initializeTUF(mirror string, root []byte, embedded fs.FS, forceUpdate bool)
 		if root == nil {
 			root, err = getRoot(trustedMeta, t.embedded)
 			if err != nil {
-				singletonTUFErr = fmt.Errorf("getting trusted root: %w", err)
+				initErr = fmt.Errorf("getting trusted root: %w", err)
 				return
 			}
 		}
 
 		if err := t.client.Init(root); err != nil {
-			singletonTUFErr = fmt.Errorf("unable to initialize client, local cache may be corrupt: %w", err)
+			initErr = fmt.Errorf("unable to initialize client, local cache may be corrupt: %w", err)
 			return
 		}
 
-		// We may already have an up-to-date local store! Check to see if it needs to be updated.
-		trustedTimestamp, ok := trustedMeta["timestamp.json"]
-		if ok && !isExpiredTimestamp(trustedTimestamp) && !forceUpdate {
-			// We're golden so stash the TUF object for later use
-			singletonTUF = t
-			return
-		}
-
-		// Update if local is not populated or out of date.
-		if err := t.updateMetadataAndDownloadTargets(); err != nil {
-			singletonTUFErr = fmt.Errorf("updating local metadata and targets: %w", err)
-			return
-		}
-
-		// We're golden so stash the TUF object for later use
 		singletonTUF = t
 	})
+	if initErr != nil {
+		return nil, initErr
+	}
+
+	trustedMeta, err := singletonTUF.local.GetMeta()
+	if err != nil {
+		return nil, fmt.Errorf("getting trusted meta: %w", err)
+	}
+
+	// We may already have an up-to-date local store! Check to see if it needs to be updated.
+	trustedTimestamp, ok := trustedMeta["timestamp.json"]
+	if ok && !isExpiredTimestamp(trustedTimestamp) && !forceUpdate {
+		// We're golden so stash the TUF object for later use
+		return singletonTUF, nil
+	}
+
+	// Update if local is not populated or out of date.
+	if err := singletonTUF.updateMetadataAndDownloadTargets(); err != nil {
+		return nil, fmt.Errorf("updating local metadata and targets: %w", err)
+	}
+
 	return singletonTUF, singletonTUFErr
 }
 
