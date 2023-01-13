@@ -11,7 +11,7 @@ meaning.
 ## Directory
 
 Note that all values begin from the root OID 1.3.6.1.4.1.57264 [registered by
-Sigstore][http://oid-info.com/get/1.3.6.1.4.1.57264].
+Sigstore)[http://oid-info.com/get/1.3.6.1.4.1.57264].
 
 When adding additional OIDs under the root, please update the above link with
 the child OID.
