@@ -19,5 +19,5 @@ the child OID.
 | OID                 | Name                | Details                                                       |
 | ------------------- | ------------------- | ------------------------------------------------------------- |
 | 1.3.6.1.4.1.57264.1 | Fulcio              | https://github.com/sigstore/fulcio/blob/main/docs/oid-info.md |
-| 1.3.6.1.4.1.57264.2 | Timestamp Authority | https://github.com/sigstore/timestamp-authority               |
+| 1.3.6.1.4.1.57264.2 | Timestamp Authority | https://github.com/sigstore/timestamp-authority/blob/main/docs/tsa-policy.md#52-identification               |
 | 1.3.6.1.4.1.57264.3 | Rekor               | https://github.com/sigstore/rekor                             |
