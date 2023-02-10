@@ -74,4 +74,3 @@ jobs:
       - name: Start cloudbuild job
         working-directory: ./src/github.com/sigstore/${{ inputs.repo }}
         run: gcloud builds submit --no-source --async --config release/cloudbuild.yaml --substitutions _GIT_TAG=${{ env.RELEASE_TAG }},_TOOL_ORG=sigstore,_TOOL_REPO=${{ inputs.repo }},_STORAGE_LOCATION=${{ inputs.repo }}-releases,_KEY_RING=release-cosign,_KEY_NAME=cosign,_GITHUB_USER=sigstore-bot --project=${{ env.PROJECT_ID }}
-

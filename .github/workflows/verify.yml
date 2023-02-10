@@ -22,7 +22,7 @@ on:
     branches: [ main ]
 
 env:
-  GO_VERSION: 1.19
+  GO_VERSION: '1.20'
 
 jobs:
   license-check:
@@ -53,5 +53,4 @@ jobs:
         uses: golangci/golangci-lint-action@08e2f20817b15149a52b5b3ebe7de50aff2ba8c5 # v3.4.0
         timeout-minutes: 5
         with:
-          version: latest
-          only-new-issues: true
+          version: v1.51.0
