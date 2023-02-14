@@ -12,6 +12,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/config v1.18.12
 	github.com/aws/aws-sdk-go-v2/service/kms v1.20.2
 	github.com/coreos/go-oidc/v3 v3.5.0
+	github.com/go-jose/go-jose/v3 v3.0.0
 	github.com/go-rod/rod v0.112.5
 	github.com/go-test/deep v1.1.0
 	github.com/google/go-cmp v0.5.9
@@ -31,7 +32,6 @@ require (
 	golang.org/x/term v0.5.0
 	google.golang.org/api v0.109.0
 	google.golang.org/protobuf v1.28.1
-	gopkg.in/square/go-jose.v2 v2.6.0
 )
 
 require (
@@ -59,7 +59,6 @@ require (
 	github.com/cenkalti/backoff/v3 v3.2.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dimchansky/utfbom v1.1.1 // indirect
-	github.com/go-jose/go-jose/v3 v3.0.0 // indirect
 	github.com/golang-jwt/jwt/v4 v4.4.2 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
@@ -98,5 +97,6 @@ require (
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20221227171554-f9683d7f8bef // indirect
 	google.golang.org/grpc v1.51.0 // indirect
+	gopkg.in/square/go-jose.v2 v2.6.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
