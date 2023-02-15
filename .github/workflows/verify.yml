@@ -22,7 +22,7 @@ on:
     branches: [ main ]
 
 env:
-  GO_VERSION: 1.19
+  GO_VERSION: '1.20'
 
 jobs:
   license-check:
@@ -33,6 +33,7 @@ jobs:
       - uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # v3.5.0
         with:
           go-version: ${{ env.GO_VERSION }}
+          check-latest: true
       - name: Install addlicense
         run: go install github.com/google/addlicense@v1.0.0
       - name: Check license headers
@@ -49,9 +50,9 @@ jobs:
       - uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # v3.5.0
         with:
           go-version: ${{ env.GO_VERSION }}
+          check-latest: true
       - name: golangci-lint
         uses: golangci/golangci-lint-action@08e2f20817b15149a52b5b3ebe7de50aff2ba8c5 # v3.4.0
         timeout-minutes: 5
         with:
-          version: latest
-          only-new-issues: true
+          version: v1.51

@@ -15,26 +15,26 @@
 
 linters:
   enable:
-  - asciicheck
-  - depguard
-  - errcheck
-  - errorlint
-  - forcetypeassert
-  - gofmt
-  - gofumpt
-  - goimports
-  - gosec
-  - gocritic
-  - importas
-  - prealloc
-  - revive
-  - misspell
-  - stylecheck
-  - tparallel
-  - unconvert
-  - unparam
-  - unused
-  - whitespace
+    - asciicheck
+    - depguard
+    - errcheck
+    - errorlint
+    - forcetypeassert
+    - gofmt
+    - gofumpt
+    - goimports
+    - gosec
+    - gocritic
+    - importas
+    - prealloc
+    - revive
+    - misspell
+    - stylecheck
+    - tparallel
+    - unconvert
+    - unparam
+    - unused
+    - whitespace
 output:
   uniq-by-line: false
 issues:
@@ -45,13 +45,13 @@ issues:
     - EXC0014
     - EXC0015
   exclude-rules:
-  - path: _test\.go
-    linters:
-    - errcheck
-    - gosec
-  - path: pkg/tuf
-    linters:
-      revive
+    - path: _test\.go
+      linters:
+        - errcheck
+        - gosec
+    - path: pkg/tuf
+      linters:
+        - revive
   max-issues-per-linter: 0
   max-same-issues: 0
 linters-settings:
