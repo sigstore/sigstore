@@ -104,8 +104,8 @@ github.com/fsnotify/fsnotify v1.5.4 h1:jRbGcIw6P2Meqdwuo0H1p6JVLbL5DHKAKlYndzMwV
 github.com/fsnotify/fsnotify v1.5.4/go.mod h1:OVB6XrOHzAwXMpEM7uPOzcehqUV2UqJxmVXmkdnm1bU=
 github.com/go-jose/go-jose/v3 v3.0.0 h1:s6rrhirfEP/CGIoc6p+PZAeogN2SxKav6Wp7+dyMWVo=
 github.com/go-jose/go-jose/v3 v3.0.0/go.mod h1:RNkWWRld676jZEYoV3+XK8L2ZnNSvIsxFMht0mSX+u8=
-github.com/go-rod/rod v0.112.6 h1:zMirUmhsBeshMWyf285BD0UGtGq54HfThLDGSjcP3lU=
-github.com/go-rod/rod v0.112.6/go.mod h1:ElViL9ABbcshNQw93+11FrYRH92RRhMKleuILo6+5V0=
+github.com/go-rod/rod v0.112.7 h1:M7gJygSDXdNBSViGYlwWkcH6iC0xRlrhvbGgGHbKP+8=
+github.com/go-rod/rod v0.112.7/go.mod h1:ElViL9ABbcshNQw93+11FrYRH92RRhMKleuILo6+5V0=
 github.com/go-task/slim-sprig v0.0.0-20210107165309-348f09dbbbc0/go.mod h1:fyg7847qk6SyHyPtNmDHnmrv/HOrqktSC+C9fM+CJOE=
 github.com/go-test/deep v1.1.0 h1:WOcxcdHcvdgThNXjw0t76K42FXTU7HpNQWHpA2HHNlg=
 github.com/go-test/deep v1.1.0/go.mod h1:5C2ZWiW0ErCdrYzpqxLbTX7MG14M9iiw8DgHncVwcsE=
