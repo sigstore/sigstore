@@ -191,16 +191,7 @@ func startRedirectListener(state, htmlPage, redirectURL string, doneCh chan stri
 		}
 	}
 
-	m := http.NewServeMux()
-	s := &http.Server{
-		Addr:    urlListener.Host,
-		Handler: m,
-
-		// an arbitrary reasonable value to fix gosec lint error
-		ReadHeaderTimeout: 2 * time.Second,
-	}
-
-	m.HandleFunc(urlListener.Path, func(w http.ResponseWriter, r *http.Request) {
+	var h http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// even though these are fetched from the FormValue method,
 		// these are supplied as query parameters
 		if r.FormValue("state") != state {
@@ -210,6 +201,19 @@ func startRedirectListener(state, htmlPage, redirectURL string, doneCh chan stri
 		doneCh <- r.FormValue("code")
 		fmt.Fprint(w, htmlPage)
 	})
+
+	if urlListener.Path != "" {
+		m := http.NewServeMux()
+		m.Handle(urlListener.Path, h)
+		h = m
+	}
+	s := &http.Server{
+		Addr:    urlListener.Host,
+		Handler: h,
+
+		// an arbitrary reasonable value to fix gosec lint error
+		ReadHeaderTimeout: 2 * time.Second,
+	}
 
 	go func() {
 		if err := s.Serve(listener); err != nil && err != http.ErrServerClosed {
