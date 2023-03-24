@@ -158,7 +158,7 @@ func (a *SignerVerifier) VerifySignature(sig, message io.Reader, opts ...signatu
 		return fmt.Errorf("reading signature: %w", err)
 	}
 
-	// Convert the ANS.1 Sequence to a concatenated r||s byte string
+	// Convert the ASN.1 Sequence to a concatenated r||s byte string
 	// This logic is borrowed from https://cs.opensource.google/go/go/+/refs/tags/go1.17.3:src/crypto/ecdsa/ecdsa.go;l=339
 	var (
 		r, s  = &big.Int{}, &big.Int{}
