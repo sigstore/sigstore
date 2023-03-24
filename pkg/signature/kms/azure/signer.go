@@ -32,15 +32,21 @@ import (
 
 var azureSupportedHashFuncs = []crypto.Hash{
 	crypto.SHA256,
+	crypto.SHA384,
+	crypto.SHA512,
 }
 
 //nolint:revive
 const (
 	AlgorithmES256 = "ES256"
+	AlgorithmES384 = "ES384"
+	AlgorithmES512 = "ES512"
 )
 
 var azureSupportedAlgorithms = []string{
 	AlgorithmES256,
+	AlgorithmES384,
+	AlgorithmES512,
 }
 
 // SignerVerifier creates and verifies digital signatures over a message using Azure KMS service
