@@ -118,7 +118,7 @@ func (a *SignerVerifier) SignMessage(message io.Reader, opts ...signature.SignOp
 	r.SetBytes(rawSig[0 : l/2])
 	s.SetBytes(rawSig[l/2:])
 
-	// Convert the concantenated r||s byte string to an ASN.1 sequence
+	// Convert the concatenated r||s byte string to an ASN.1 sequence
 	// This logic is borrowed from https://cs.opensource.google/go/go/+/refs/tags/go1.17.3:src/crypto/ecdsa/ecdsa.go;l=121
 	var b cryptobyte.Builder
 	b.AddASN1(asn1.SEQUENCE, func(b *cryptobyte.Builder) {
@@ -158,7 +158,7 @@ func (a *SignerVerifier) VerifySignature(sig, message io.Reader, opts ...signatu
 		return fmt.Errorf("reading signature: %w", err)
 	}
 
-	// Convert the ANS.1 Sequence to a concantenated r||s byte string
+	// Convert the ANS.1 Sequence to a concatenated r||s byte string
 	// This logic is borrowed from https://cs.opensource.google/go/go/+/refs/tags/go1.17.3:src/crypto/ecdsa/ecdsa.go;l=339
 	var (
 		r, s  = &big.Int{}, &big.Int{}
