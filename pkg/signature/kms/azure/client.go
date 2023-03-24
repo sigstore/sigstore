@@ -303,9 +303,24 @@ func (a *azureVaultClient) createKey(ctx context.Context) (crypto.PublicKey, err
 	return a.public()
 }
 
-func (a *azureVaultClient) sign(ctx context.Context, hash []byte) ([]byte, error) {
+func getKeyVaultSignatureAlgo(algo crypto.Hash) keyvault.JSONWebKeySignatureAlgorithm {
+	switch algo {
+	case crypto.SHA256:
+		return keyvault.ES256
+	case crypto.SHA384:
+		return keyvault.ES384
+	case crypto.SHA512:
+		return keyvault.ES512
+	default:
+		// default to ES256
+		return keyvault.ES256
+	}
+}
+
+func (a *azureVaultClient) sign(ctx context.Context, hash []byte, algo crypto.Hash) ([]byte, error) {
+	keyVaultAlgo := getKeyVaultSignatureAlgo(algo)
 	params := keyvault.KeySignParameters{
-		Algorithm: keyvault.ES256,
+		Algorithm: keyVaultAlgo,
 		Value:     to.StringPtr(base64.RawURLEncoding.EncodeToString(hash)),
 	}
 
@@ -322,9 +337,10 @@ func (a *azureVaultClient) sign(ctx context.Context, hash []byte) ([]byte, error
 	return decResult, nil
 }
 
-func (a *azureVaultClient) verify(ctx context.Context, signature, hash []byte) error {
+func (a *azureVaultClient) verify(ctx context.Context, signature, hash []byte, algo crypto.Hash) error {
+	keyVaultAlgo := getKeyVaultSignatureAlgo(algo)
 	params := keyvault.KeyVerifyParameters{
-		Algorithm: keyvault.ES256,
+		Algorithm: keyVaultAlgo,
 		Digest:    to.StringPtr(base64.RawURLEncoding.EncodeToString(hash)),
 		Signature: to.StringPtr(base64.RawURLEncoding.EncodeToString(signature)),
 	}

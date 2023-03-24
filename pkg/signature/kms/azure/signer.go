@@ -108,7 +108,7 @@ func (a *SignerVerifier) SignMessage(message io.Reader, opts ...signature.SignOp
 		return nil, err
 	}
 
-	rawSig, err := a.client.sign(ctx, digest)
+	rawSig, err := a.client.sign(ctx, digest, a.hashFunc)
 	if err != nil {
 		return nil, err
 	}
@@ -176,7 +176,7 @@ func (a *SignerVerifier) VerifySignature(sig, message io.Reader, opts ...signatu
 	rawSigBytes := []byte{}
 	rawSigBytes = append(rawSigBytes, r.Bytes()...)
 	rawSigBytes = append(rawSigBytes, s.Bytes()...)
-	return a.client.verify(ctx, rawSigBytes, digest)
+	return a.client.verify(ctx, rawSigBytes, digest, a.hashFunc)
 }
 
 // PublicKey returns the public key that can be used to verify signatures created by
