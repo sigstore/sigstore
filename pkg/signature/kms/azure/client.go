@@ -303,22 +303,25 @@ func (a *azureVaultClient) createKey(ctx context.Context) (crypto.PublicKey, err
 	return a.public()
 }
 
-func getKeyVaultSignatureAlgo(algo crypto.Hash) keyvault.JSONWebKeySignatureAlgorithm {
+func getKeyVaultSignatureAlgo(algo crypto.Hash) (keyvault.JSONWebKeySignatureAlgorithm, error) {
 	switch algo {
 	case crypto.SHA256:
-		return keyvault.ES256
+		return keyvault.ES256, nil
 	case crypto.SHA384:
-		return keyvault.ES384
+		return keyvault.ES384, nil
 	case crypto.SHA512:
-		return keyvault.ES512
+		return keyvault.ES512, nil
 	default:
-		// default to ES256
-		return keyvault.ES256
+		return "", fmt.Errorf("unsupported algorithm: %s", algo)
 	}
 }
 
 func (a *azureVaultClient) sign(ctx context.Context, hash []byte, algo crypto.Hash) ([]byte, error) {
-	keyVaultAlgo := getKeyVaultSignatureAlgo(algo)
+	keyVaultAlgo, err := getKeyVaultSignatureAlgo(algo)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get KeyVaultSignatureAlgorithm: %w", err)
+	}
+
 	params := keyvault.KeySignParameters{
 		Algorithm: keyVaultAlgo,
 		Value:     to.StringPtr(base64.RawURLEncoding.EncodeToString(hash)),
@@ -338,7 +341,11 @@ func (a *azureVaultClient) sign(ctx context.Context, hash []byte, algo crypto.Ha
 }
 
 func (a *azureVaultClient) verify(ctx context.Context, signature, hash []byte, algo crypto.Hash) error {
-	keyVaultAlgo := getKeyVaultSignatureAlgo(algo)
+	keyVaultAlgo, err := getKeyVaultSignatureAlgo(algo)
+	if err != nil {
+		return fmt.Errorf("failed to get KeyVaultSignatureAlgorithm: %w", err)
+	}
+
 	params := keyvault.KeyVerifyParameters{
 		Algorithm: keyVaultAlgo,
 		Digest:    to.StringPtr(base64.RawURLEncoding.EncodeToString(hash)),
