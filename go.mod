@@ -1,6 +1,6 @@
 module github.com/sigstore/sigstore
 
-go 1.18
+go 1.20
 
 require (
 	cloud.google.com/go/kms v1.10.0
