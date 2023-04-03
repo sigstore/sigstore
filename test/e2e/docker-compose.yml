@@ -23,13 +23,13 @@ services:
       - 8200:8200
     privileged: true
   localstack:
-    image: localstack/localstack:0.12.16
+    image: localstack/localstack:2.0.0
     ports:
       - 4566:4566
     environment:
       - SERVICES=kms
   dex:
-    image: ghcr.io/dexidp/dex:v2.31.0
+    image: ghcr.io/dexidp/dex:v2.35.0
     ports:
       - "5556:5556"
     volumes:

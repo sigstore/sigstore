@@ -8,4 +8,8 @@ updates:
 - package-ecosystem: "github-actions"
   directory: "/"
   schedule:
+    interval: "daily"
+- package-ecosystem: "docker"
+  directory: "/test/e2e/"
+    schedule:
       interval: "daily"
