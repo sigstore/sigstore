@@ -23,6 +23,7 @@ import (
 	"errors"
 
 	"github.com/sigstore/sigstore/pkg/signature"
+	"github.com/sigstore/sigstore/pkg/signature/options"
 )
 
 // SignerAdapter wraps a `sigstore/signature.Signer`, making it compatible with `go-securesystemslib/dsse.Signer`.
@@ -35,11 +36,11 @@ type SignerAdapter struct {
 
 // Sign implements `go-securesystemslib/dsse.Signer`
 func (a *SignerAdapter) Sign(ctx context.Context, data []byte) ([]byte, error) {
-	return a.SignatureSigner.SignMessage(bytes.NewReader(data), a.Opts...)
+	return a.SignatureSigner.SignMessage(bytes.NewReader(data), append(a.Opts, options.WithContext(ctx))...)
 }
 
 // Verify disabled `go-securesystemslib/dsse.Verifier`
-func (a *SignerAdapter) Verify(ctx context.Context, data, sig []byte) error {
+func (a *SignerAdapter) Verify(_ context.Context, _, _ []byte) error {
 	return errors.New("Verify disabled")
 }
 
@@ -62,7 +63,7 @@ type VerifierAdapter struct {
 
 // Verify implements `go-securesystemslib/dsse.Verifier`
 func (a *VerifierAdapter) Verify(ctx context.Context, data, sig []byte) error {
-	return a.SignatureVerifier.VerifySignature(bytes.NewReader(sig), bytes.NewReader(data))
+	return a.SignatureVerifier.VerifySignature(bytes.NewReader(sig), bytes.NewReader(data), options.WithContext(ctx))
 }
 
 // Public implements `go-securesystemslib/dsse.Verifier`
