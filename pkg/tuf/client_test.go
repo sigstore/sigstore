@@ -49,6 +49,10 @@ var targets = []string{
 	"fulcio_v1.crt.pem",
 	"ctfe.pub",
 	"rekor.pub",
+	"ctfe_2022.pub",
+	"fulcio.crt.pem",
+	"fulcio_intermediate_v1.crt.pem",
+	"trusted_root.json",
 }
 
 func TestNewFromEnv(t *testing.T) {
