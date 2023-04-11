@@ -817,7 +817,7 @@ func Test_remoteFromMirror(t *testing.T) {
 	}
 
 	// test HTTP mirror
-	mirror = "https://tuf-root-staging.storage.googleapis.com"
+	mirror = "https://tuf-repo-cdn.sigstage.dev"
 	_, err = remoteFromMirror(mirror)
 	if err != nil {
 		t.Fatalf("unexpected error with GCS mirror: %v", err)
