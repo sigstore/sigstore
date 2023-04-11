@@ -10,7 +10,7 @@ require (
 	github.com/aws/aws-sdk-go v1.44.239
 	github.com/aws/aws-sdk-go-v2 v1.17.8
 	github.com/aws/aws-sdk-go-v2/config v1.18.20
-	github.com/aws/aws-sdk-go-v2/service/kms v1.20.9
+	github.com/aws/aws-sdk-go-v2/service/kms v1.20.10
 	github.com/coreos/go-oidc/v3 v3.5.0
 	github.com/go-jose/go-jose/v3 v3.0.0
 	github.com/go-rod/rod v0.112.8
