@@ -180,7 +180,7 @@ func oidcLogin(_ context.Context, address, path, role, token string) (string, er
 	return resp.TokenID()
 }
 
-func (h *hashivaultClient) keyCacheLoaderFunction(key string) (data interface{}, ttl time.Duration, err error) {
+func (h *hashivaultClient) keyCacheLoaderFunction(_ string) (data interface{}, ttl time.Duration, err error) {
 	ttl = time.Second * 300
 	var pubKey crypto.PublicKey
 	pubKey, err = h.fetchPublicKey(context.Background())

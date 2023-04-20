@@ -49,7 +49,7 @@ func Verify(message io.Reader, armoredSignature []byte, pubKey ssh.PublicKey) er
 var _ signature.Verifier = (*Signer)(nil)
 
 // VerifySignature verifies a suppled signature.
-func (s *Signer) VerifySignature(signature, message io.Reader, opts ...signature.VerifyOption) error {
+func (s *Signer) VerifySignature(signature, message io.Reader, _ ...signature.VerifyOption) error {
 	b, err := io.ReadAll(signature)
 	if err != nil {
 		return err

@@ -22,11 +22,11 @@ import (
 )
 
 // TestImplementDSSESigner doesn't functionally test anything, but will fail to compile if the interface is not implemented
-func TestImplementsDSSESigner(t *testing.T) {
+func TestImplementsDSSESigner(_ *testing.T) {
 	var _ dsse.Signer = &SignerAdapter{}
 }
 
 // TestImplementDSSEVerifier doesn't functionally test anything, but will fail to compile if the interface is not implemented
-func TestImplementsDSSEVerifier(t *testing.T) {
+func TestImplementsDSSEVerifier(_ *testing.T) {
 	var _ dsse.Verifier = &VerifierAdapter{}
 }

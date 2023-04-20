@@ -157,7 +157,7 @@ type cryptoKeyVersion struct {
 // use a consistent key for cache lookups
 const cacheKey = "crypto_key_version"
 
-func (g *gcpClient) kvCacheLoaderFunction(key string) (data interface{}, ttl time.Duration, err error) {
+func (g *gcpClient) kvCacheLoaderFunction(_ string) (data interface{}, ttl time.Duration, err error) {
 	// if we're given an explicit version, cache this value forever
 	if g.version != "" {
 		ttl = time.Second * 0

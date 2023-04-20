@@ -34,7 +34,7 @@ type testKVClient struct {
 	key keyvault.JSONWebKey
 }
 
-func (c *testKVClient) CreateKey(ctx context.Context, vaultBaseURL, keyName string, parameters keyvault.KeyCreateParameters) (result keyvault.KeyBundle, err error) {
+func (c *testKVClient) CreateKey(_ context.Context, _, _ string, _ keyvault.KeyCreateParameters) (result keyvault.KeyBundle, err error) {
 	key, err := generatePublicKey("EC")
 	if err != nil {
 		return result, err
@@ -45,17 +45,17 @@ func (c *testKVClient) CreateKey(ctx context.Context, vaultBaseURL, keyName stri
 	return result, nil
 }
 
-func (c *testKVClient) GetKey(ctx context.Context, vaultBaseURL, keyName, keyVersion string) (result keyvault.KeyBundle, err error) {
+func (c *testKVClient) GetKey(_ context.Context, _, _, _ string) (result keyvault.KeyBundle, err error) {
 	result.Key = &c.key
 
 	return result, nil
 }
 
-func (c *testKVClient) Sign(ctx context.Context, vaultBaseURL, keyName, keyVersion string, parameters keyvault.KeySignParameters) (result keyvault.KeyOperationResult, err error) {
+func (c *testKVClient) Sign(_ context.Context, _, _, _ string, _ keyvault.KeySignParameters) (result keyvault.KeyOperationResult, err error) {
 	return result, nil
 }
 
-func (c *testKVClient) Verify(ctx context.Context, vaultBaseURL, keyName, keyVersion string, parameters keyvault.KeyVerifyParameters) (result keyvault.KeyVerifyResult, err error) {
+func (c *testKVClient) Verify(_ context.Context, _, _, _ string, _ keyvault.KeyVerifyParameters) (result keyvault.KeyVerifyResult, err error) {
 	return result, nil
 }
 
