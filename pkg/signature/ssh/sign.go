@@ -20,6 +20,7 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"crypto/sha512"
+	"fmt"
 	"hash"
 	"io"
 
@@ -120,7 +121,7 @@ func Sign(sshPrivateKey string, data io.Reader) ([]byte, error) {
 
 	as, ok := s.(ssh.AlgorithmSigner)
 	if !ok {
-		return nil, err
+		return nil, fmt.Errorf("private key %T is not a ssh.AlgorithmSigner", s)
 	}
 
 	sig, err := sign(as, data)
