@@ -90,6 +90,69 @@ func TestNewFromEnv(t *testing.T) {
 	resetForTests()
 }
 
+func TestLegacyURLToCDN(t *testing.T) {
+	td := t.TempDir()
+	t.Setenv("TUF_ROOT", td)
+	remoteInfo := &remoteCache{Mirror: "https://sigstore-tuf-root.storage.googleapis.com"}
+	b, err := json.Marshal(remoteInfo)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(cachedRemote(td), b, 0o600); err != nil {
+		t.Fatalf("storing remote: %v", err)
+	}
+
+	// First initialization, populate the cache.
+	tuf, err := NewFromEnv(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if tuf.Mirror() != "https://tuf-repo-cdn.sigstore.dev" {
+		t.Fatal("legacy prod GCS HTTP endpoint was not mapped to CDN")
+	}
+}
+
+func TestCDNRewriteforMirror(t *testing.T) {
+	tuf := &TUF{
+		mirror: DefaultRemoteGCSBucket,
+	}
+	if tuf.Mirror() != DefaultRemoteRoot {
+		t.Fatal("reference to default remote GCS bucket was not redirected to CDN")
+	}
+
+	tuf.mirror = DefaultRemoteRootNoCDN
+	if tuf.Mirror() != DefaultRemoteRoot {
+		t.Fatal("reference to default remote GCS HTTP endpoint was not redirected to CDN")
+	}
+
+	tuf.mirror = DefaultRemoteRootNoCDNAlt
+	if tuf.Mirror() != DefaultRemoteRoot {
+		t.Fatal("reference to alternate remote GCS HTTP endpoint was not redirected to CDN")
+	}
+}
+
+func TestLegacyBucketToCDN(t *testing.T) {
+	td := t.TempDir()
+	t.Setenv("TUF_ROOT", td)
+	remoteInfo := &remoteCache{Mirror: "sigstore-tuf-root"}
+	b, err := json.Marshal(remoteInfo)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(cachedRemote(td), b, 0o600); err != nil {
+		t.Fatalf("storing remote: %v", err)
+	}
+
+	// First initialization, populate the cache.
+	tuf, err := NewFromEnv(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if tuf.Mirror() != "https://tuf-repo-cdn.sigstore.dev" {
+		t.Fatal("legacy prod bucket was not mapped to CDN")
+	}
+}
+
 func TestNoCache(t *testing.T) {
 	ctx := context.Background()
 	// Once more with NO_CACHE
