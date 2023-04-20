@@ -102,7 +102,7 @@ func TestParseReference(t *testing.T) {
 	}
 }
 
-func TestOptionsWork(t *testing.T) {
+func TestOptionsWork(_ *testing.T) {
 	// Check that we can pass options into LoadSignerVerifier
 	// (this is mostly a compile-time check)
 	ts := oauth2.StaticTokenSource(&oauth2.Token{})

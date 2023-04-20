@@ -93,12 +93,12 @@ type Signer struct {
 }
 
 // PublicKey returns the public key for a Signer.
-func (s *Signer) PublicKey(opts ...signature.PublicKeyOption) (crypto.PublicKey, error) {
+func (s *Signer) PublicKey(_ ...signature.PublicKeyOption) (crypto.PublicKey, error) {
 	return s.signer.PublicKey(), nil
 }
 
 // SignMessage signs the supplied message.
-func (s *Signer) SignMessage(message io.Reader, opts ...signature.SignOption) ([]byte, error) {
+func (s *Signer) SignMessage(message io.Reader, _ ...signature.SignOption) ([]byte, error) {
 	b, err := io.ReadAll(message)
 	if err != nil {
 		return nil, err

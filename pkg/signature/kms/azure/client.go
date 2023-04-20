@@ -202,7 +202,7 @@ func getKeysClient() (keyvault.BaseClient, error) {
 	return keyClient, nil
 }
 
-func (a *azureVaultClient) keyCacheLoaderFunction(key string) (data interface{}, ttl time.Duration, err error) {
+func (a *azureVaultClient) keyCacheLoaderFunction(_ string) (data interface{}, ttl time.Duration, err error) {
 	ttl = time.Second * 300
 	var pubKey crypto.PublicKey
 

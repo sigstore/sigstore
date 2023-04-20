@@ -186,7 +186,7 @@ func (a *SignerVerifier) PublicKey(_ ...signature.PublicKeyOption) (crypto.Publi
 }
 
 // CreateKey attempts to create a new key in Vault with the specified algorithm.
-func (a *SignerVerifier) CreateKey(ctx context.Context, algorithm string) (crypto.PublicKey, error) {
+func (a *SignerVerifier) CreateKey(ctx context.Context, _ string) (crypto.PublicKey, error) {
 	return a.client.createKey(ctx)
 }
 
