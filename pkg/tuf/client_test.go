@@ -93,7 +93,7 @@ func TestNewFromEnv(t *testing.T) {
 func TestLegacyURLToCDN(t *testing.T) {
 	td := t.TempDir()
 	t.Setenv("TUF_ROOT", td)
-	remoteInfo := &remoteCache{Mirror: DefaultRemoteRootNoCDN}
+	remoteInfo := &remoteCache{Mirror: defaultRemoteRootNoCDN}
 	b, err := json.Marshal(remoteInfo)
 	if err != nil {
 		t.Fatal(err)
@@ -115,7 +115,7 @@ func TestLegacyURLToCDN(t *testing.T) {
 func TestAltLegacyURLToCDN(t *testing.T) {
 	td := t.TempDir()
 	t.Setenv("TUF_ROOT", td)
-	remoteInfo := &remoteCache{Mirror: DefaultRemoteRootNoCDNAlt}
+	remoteInfo := &remoteCache{Mirror: defaultRemoteRootNoCDNAlt}
 	b, err := json.Marshal(remoteInfo)
 	if err != nil {
 		t.Fatal(err)
@@ -136,18 +136,18 @@ func TestAltLegacyURLToCDN(t *testing.T) {
 
 func TestCDNRewriteforMirror(t *testing.T) {
 	tuf := &TUF{
-		mirror: DefaultRemoteGCSBucket,
+		mirror: defaultRemoteGCSBucket,
 	}
 	if tuf.Mirror() != DefaultRemoteRoot {
 		t.Fatal("reference to default remote GCS bucket was not redirected to CDN")
 	}
 
-	tuf.mirror = DefaultRemoteRootNoCDN
+	tuf.mirror = defaultRemoteRootNoCDN
 	if tuf.Mirror() != DefaultRemoteRoot {
 		t.Fatal("reference to default remote GCS HTTP endpoint was not redirected to CDN")
 	}
 
-	tuf.mirror = DefaultRemoteRootNoCDNAlt
+	tuf.mirror = defaultRemoteRootNoCDNAlt
 	if tuf.Mirror() != DefaultRemoteRoot {
 		t.Fatal("reference to alternate remote GCS HTTP endpoint was not redirected to CDN")
 	}
@@ -156,7 +156,7 @@ func TestCDNRewriteforMirror(t *testing.T) {
 func TestLegacyBucketToCDN(t *testing.T) {
 	td := t.TempDir()
 	t.Setenv("TUF_ROOT", td)
-	remoteInfo := &remoteCache{Mirror: DefaultRemoteGCSBucket}
+	remoteInfo := &remoteCache{Mirror: defaultRemoteGCSBucket}
 	b, err := json.Marshal(remoteInfo)
 	if err != nil {
 		t.Fatal(err)

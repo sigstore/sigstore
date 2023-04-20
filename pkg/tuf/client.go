@@ -44,12 +44,12 @@ import (
 const (
 	// DefaultRemoteRoot is the default remote TUF root location.
 	DefaultRemoteRoot = "https://tuf-repo-cdn.sigstore.dev"
-	// DefaultRemoteGCSBucket is the name of the GCS bucket that holds sigstore's public good production TUF root
-	DefaultRemoteGCSBucket = "sigstore-tuf-root"
-	// DefaultRemoteRootNoCDN is the URL of the GCS HTTP endpoint for the DefaultRootGCSBucket content
-	DefaultRemoteRootNoCDN = "https://sigstore-tuf-root.storage.googleapis.com"
-	// DefaultRemoteRootNoCDNAlt is an alternate URL to the GCS HTTP endpoint for the DefaultRootGCSBucket content
-	DefaultRemoteRootNoCDNAlt = "https://storage.googleapis.com/sigstore-tuf-root"
+	// defaultRemoteGCSBucket is the name of the GCS bucket that holds sigstore's public good production TUF root
+	defaultRemoteGCSBucket = "sigstore-tuf-root"
+	// defaultRemoteRootNoCDN is the URL of the GCS HTTP endpoint for the DefaultRootGCSBucket content
+	defaultRemoteRootNoCDN = "https://sigstore-tuf-root.storage.googleapis.com"
+	// defaultRemoteRootNoCDNAlt is an alternate URL to the GCS HTTP endpoint for the DefaultRootGCSBucket content
+	defaultRemoteRootNoCDNAlt = "https://storage.googleapis.com/sigstore-tuf-root"
 
 	// TufRootEnv is the name of the environment variable that locates an alternate local TUF root location.
 	TufRootEnv = "TUF_ROOT"
@@ -87,7 +87,7 @@ type TUF struct {
 // which is a CDN fronting that DefaultRemoteGCSBucket
 func (t *TUF) Mirror() string {
 	switch t.mirror {
-	case DefaultRemoteGCSBucket, DefaultRemoteRootNoCDN, DefaultRemoteRootNoCDNAlt:
+	case defaultRemoteGCSBucket, defaultRemoteRootNoCDN, defaultRemoteRootNoCDNAlt:
 		return DefaultRemoteRoot
 	default:
 		return t.mirror
