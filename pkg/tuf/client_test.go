@@ -111,6 +111,7 @@ func TestLegacyURLToCDN(t *testing.T) {
 		t.Fatal("legacy prod GCS HTTP endpoint was not mapped to CDN")
 	}
 }
+
 func TestAltLegacyURLToCDN(t *testing.T) {
 	td := t.TempDir()
 	t.Setenv("TUF_ROOT", td)
