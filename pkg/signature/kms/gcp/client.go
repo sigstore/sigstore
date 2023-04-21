@@ -260,12 +260,12 @@ func (g *gcpClient) getHashFunc() (crypto.Hash, error) {
 
 // getCKV gets the latest CryptoKeyVersion from the client's cache, which may trigger an actual
 // call to GCP if the existing entry in the cache has expired.
-//nolint: unparam // linter misses the definition of `lerr` in the inner closure
 func (g *gcpClient) getCKV() (*cryptoKeyVersion, error) {
 	var lerr error
 	loader := ttlcache.LoaderFunc[string, cryptoKeyVersion](
 		func(c *ttlcache.Cache[string, cryptoKeyVersion], key string) *ttlcache.Item[string, cryptoKeyVersion] {
 			var ttl time.Duration
+			var data *cryptoKeyVersion
 
 			// if we're given an explicit version, cache this value forever
 			if g.version != "" {
@@ -273,7 +273,7 @@ func (g *gcpClient) getCKV() (*cryptoKeyVersion, error) {
 			} else {
 				ttl = time.Second * 300
 			}
-			data, lerr := g.keyVersionName(context.Background())
+			data, lerr = g.keyVersionName(context.Background())
 			if lerr == nil {
 				return c.Set(key, *data, ttl)
 			}
