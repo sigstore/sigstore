@@ -16,14 +16,14 @@
 version: "3.8"
 services:
   vault:
-    image: vault:latest
+    image: docker.io/vault:latest
     environment:
       VAULT_DEV_ROOT_TOKEN_ID: ${VAULT_TOKEN}
     ports:
       - 8200:8200
     privileged: true
   localstack:
-    image: localstack/localstack:2.0.0
+    image: docker.io/localstack/localstack:2.0.0
     ports:
       - 4566:4566
     environment:

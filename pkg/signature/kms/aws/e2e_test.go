@@ -139,7 +139,7 @@ func (suite *AWSSuite) TestSHA384() {
 	require.NotNil(suite.T(), key)
 
 	pubKey, ok := k.(*ecdsa.PublicKey)
-	require.True(suite.T(), ok)
+	require.True(suite.T(), ok, fmt.Sprintf("expected type ecdsa, got type %T", k))
 
 	verifier, _ := signature.LoadECDSAVerifier(pubKey, crypto.SHA384)
 	err = verifier.VerifySignature(bytes.NewReader(sig), bytes.NewReader(data))
@@ -163,7 +163,7 @@ func (suite *AWSSuite) TestPublicKey() {
 	require.NotNil(suite.T(), key)
 
 	pubKey, ok := k.(*ecdsa.PublicKey)
-	require.True(suite.T(), ok)
+	require.True(suite.T(), ok, fmt.Sprintf("expected type ecdsa, got: %T", k))
 
 	verifier, _ := signature.LoadECDSAVerifier(pubKey, crypto.SHA256)
 	err = verifier.VerifySignature(bytes.NewReader(sig), bytes.NewReader(data))
