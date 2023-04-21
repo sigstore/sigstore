@@ -48,10 +48,7 @@ type AWSSuite struct {
 type Issue1110Error struct{}
 
 func (i Issue1110Error) IsErrorRetryable(err error) aws.Ternary {
-	if err == nil {
-		return aws.UnknownTernary
-	}
-	if err.Error() == "use of closed network connection" {
+	if err != nil && err.Error() == "use of closed network connection" {
 		return aws.BoolTernary(true)
 	}
 	return aws.UnknownTernary
