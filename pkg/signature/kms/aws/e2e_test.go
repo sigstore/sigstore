@@ -45,17 +45,15 @@ type AWSSuite struct {
 }
 
 func (suite *AWSSuite) GetProvider(key string) *SignerVerifier {
-	provider, err := LoadSignerVerifier(context.Background(), fmt.Sprintf("awskms://%s/%s", suite.endpoint, key))
+	provider, err := LoadSignerVerifier(context.Background(), fmt.Sprintf("awskms://%s/%s", suite.endpoint, key),
+		config.WithHTTPClient(&http.Client{
+			Transport: &http.Transport{
+				TLSClientConfig:   &tls.Config{InsecureSkipVerify: true}, // nolint: gosec
+				DisableKeepAlives: true,
+			},
+		}), config.WithRetryMaxAttempts(0))
 	require.NoError(suite.T(), err)
 	require.NotNil(suite.T(), provider)
-	// Disable Connection Reuse per sigstore/sigstore issue 1110
-	err = provider.client.setupClient(context.Background(), config.WithHTTPClient(&http.Client{
-		Transport: &http.Transport{
-			TLSClientConfig:   &tls.Config{InsecureSkipVerify: true}, // nolint: gosec
-			DisableKeepAlives: true,
-		},
-	}), config.WithRetryMaxAttempts(0))
-	require.NoError(suite.T(), err)
 	return provider
 }
 
