@@ -54,7 +54,7 @@ func (suite *AWSSuite) GetProvider(key string) *SignerVerifier {
 			TLSClientConfig:   &tls.Config{InsecureSkipVerify: true}, // nolint: gosec
 			DisableKeepAlives: true,
 		},
-	}))
+	}), config.WithRetryMaxAttempts(0))
 	require.NoError(suite.T(), err)
 	return provider
 }
