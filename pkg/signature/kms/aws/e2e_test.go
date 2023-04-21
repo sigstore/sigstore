@@ -23,6 +23,7 @@ import (
 	"context"
 	"crypto"
 	"crypto/ecdsa"
+	"crypto/tls"
 	"fmt"
 	"net/http"
 	"os"
@@ -50,6 +51,7 @@ func (suite *AWSSuite) GetProvider(key string) *SignerVerifier {
 	// Disable Connection Reuse per sigstore/sigstore issue 1110
 	err = provider.client.setupClient(context.Background(), config.WithHTTPClient(&http.Client{
 		Transport: &http.Transport{
+			TLSClientConfig:   &tls.Config{InsecureSkipVerify: true}, // nolint: gosec
 			DisableKeepAlives: true,
 		},
 	}))
