@@ -31,6 +31,9 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/aws/retry"
+	"github.com/aws/aws-sdk-go-v2/config"
 	awskms "github.com/aws/aws-sdk-go/service/kms"
 	"github.com/sigstore/sigstore/pkg/signature"
 	"github.com/sigstore/sigstore/pkg/signature/options"
@@ -41,8 +44,23 @@ type AWSSuite struct {
 	endpoint string
 }
 
+// Address intermittent failure in issue #1110
+type Issue1110Error struct{}
+
+func (i Issue1110Error) IsErrorRetryable(err error) aws.Ternary {
+	if err != nil && err.Error() == "use of closed network connection" {
+		return aws.BoolTernary(true)
+	}
+	return aws.UnknownTernary
+}
+
 func (suite *AWSSuite) GetProvider(key string) *SignerVerifier {
-	provider, err := LoadSignerVerifier(context.Background(), fmt.Sprintf("awskms://%s/%s", suite.endpoint, key))
+	provider, err := LoadSignerVerifier(context.Background(), fmt.Sprintf("awskms://%s/%s", suite.endpoint, key),
+		config.WithRetryer(func() aws.Retryer {
+			return retry.NewStandard(func(opts *retry.StandardOptions) {
+				opts.Retryables = append(opts.Retryables, Issue1110Error{})
+			})
+		}))
 	require.NoError(suite.T(), err)
 	require.NotNil(suite.T(), provider)
 	return provider
