@@ -24,6 +24,7 @@ import (
 	"crypto"
 	"crypto/ecdsa"
 	"fmt"
+	"net/http"
 	"os"
 	"testing"
 
@@ -31,6 +32,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
+	"github.com/aws/aws-sdk-go-v2/config"
 	awskms "github.com/aws/aws-sdk-go/service/kms"
 	"github.com/sigstore/sigstore/pkg/signature"
 	"github.com/sigstore/sigstore/pkg/signature/options"
@@ -45,6 +47,13 @@ func (suite *AWSSuite) GetProvider(key string) *SignerVerifier {
 	provider, err := LoadSignerVerifier(context.Background(), fmt.Sprintf("awskms://%s/%s", suite.endpoint, key))
 	require.NoError(suite.T(), err)
 	require.NotNil(suite.T(), provider)
+	// Disable Connection Reuse per sigstore/sigstore issue 1110
+	err = provider.client.setupClient(context.Background(), config.WithHTTPClient(&http.Client{
+		Transport: &http.Transport{
+			DisableKeepAlives: true,
+		},
+	}))
+	require.NoError(suite.T(), err)
 	return provider
 }
 
