@@ -23,9 +23,7 @@ import (
 	"context"
 	"crypto"
 	"crypto/ecdsa"
-	"crypto/tls"
 	"fmt"
-	"net/http"
 	"os"
 	"testing"
 
@@ -46,12 +44,7 @@ type AWSSuite struct {
 
 func (suite *AWSSuite) GetProvider(key string) *SignerVerifier {
 	provider, err := LoadSignerVerifier(context.Background(), fmt.Sprintf("awskms://%s/%s", suite.endpoint, key),
-		config.WithHTTPClient(&http.Client{
-			Transport: &http.Transport{
-				TLSClientConfig:   &tls.Config{InsecureSkipVerify: true}, // nolint: gosec
-				DisableKeepAlives: true,
-			},
-		}), config.WithRetryMaxAttempts(0))
+		config.WithRetryMaxAttempts(5))
 	require.NoError(suite.T(), err)
 	require.NotNil(suite.T(), provider)
 	return provider

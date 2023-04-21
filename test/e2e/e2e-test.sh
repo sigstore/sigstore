@@ -57,7 +57,7 @@ export AWS_ACCESS_KEY_ID=test
 export AWS_SECRET_ACCESS_KEY=test
 export AWS_REGION=us-east-1
 export AWS_ENDPOINT=localhost:4566
-#export AWS_TLS_INSECURE_SKIP_VERIFY=1
+export AWS_TLS_INSECURE_SKIP_VERIFY=1
 
 export OIDC_ISSUER=http://127.0.0.1:5556/auth
 export OIDC_ID=sigstore
