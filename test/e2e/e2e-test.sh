@@ -28,7 +28,7 @@ export VAULT_ADDR=http://localhost:8200/
 
 echo "starting services"
 docker-compose config
-docker-compose up -d
+docker-compose up -d --build
 
 count=0
 
