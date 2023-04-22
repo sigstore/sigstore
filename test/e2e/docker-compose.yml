@@ -18,6 +18,7 @@ services:
   vault:
     build:
       dockerfile: vault.Dockerfile
+      context: '.'
     environment:
       VAULT_DEV_ROOT_TOKEN_ID: ${VAULT_TOKEN}
     ports:
@@ -26,6 +27,7 @@ services:
   localstack:
     build:
       dockerfile: localstack.Dockerfile
+      context: '.'
     ports:
       - 4566:4566
     environment:
@@ -33,6 +35,7 @@ services:
   dex:
     build:
       dockerfile: dexidp.Dockerfile
+      context: '.'
     ports:
       - "5556:5556"
     volumes:
