@@ -16,20 +16,26 @@
 version: "3.8"
 services:
   vault:
-    image: docker.io/vault:latest
+    build:
+      dockerfile: vault.Dockerfile
+      context: '.'
     environment:
       VAULT_DEV_ROOT_TOKEN_ID: ${VAULT_TOKEN}
     ports:
       - 8200:8200
     privileged: true
   localstack:
-    image: docker.io/localstack/localstack:2.0.0
+    build:
+      dockerfile: localstack.Dockerfile
+      context: '.'
     ports:
       - 4566:4566
     environment:
       - SERVICES=kms
   dex:
-    image: ghcr.io/dexidp/dex:v2.35.0
+    build:
+      dockerfile: dexidp.Dockerfile
+      context: '.'
     ports:
       - "5556:5556"
     volumes:
