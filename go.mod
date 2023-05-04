@@ -22,7 +22,7 @@ require (
 	github.com/letsencrypt/boulder v0.0.0-20221109233200-85aa52084eaf
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/pkg/browser v0.0.0-20210911075715-681adbf594b8
-	github.com/secure-systems-lab/go-securesystemslib v0.5.0
+	github.com/secure-systems-lab/go-securesystemslib v0.6.0
 	github.com/segmentio/ksuid v1.0.4
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966
 	github.com/stretchr/testify v1.8.2
