@@ -43,6 +43,7 @@ import (
 
 func init() {
 	sigkms.AddProvider(ReferenceScheme, func(ctx context.Context, keyResourceID string, _ crypto.Hash, opts ...signature.RPCOption) (sigkms.SignerVerifier, error) {
+		// Note that the hash function is ignored here, as it is determined by the key version in GCP
 		return LoadSignerVerifier(ctx, keyResourceID)
 	})
 }
