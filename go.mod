@@ -16,7 +16,7 @@ require (
 	github.com/go-rod/rod v0.112.9
 	github.com/go-test/deep v1.1.0
 	github.com/google/go-cmp v0.5.9
-	github.com/google/go-containerregistry v0.14.0
+	github.com/google/go-containerregistry v0.15.1
 	github.com/hashicorp/vault/api v1.9.1
 	github.com/jellydator/ttlcache/v3 v3.0.1
 	github.com/letsencrypt/boulder v0.0.0-20221109233200-85aa52084eaf
@@ -35,7 +35,7 @@ require (
 )
 
 require (
-	cloud.google.com/go/compute v1.19.0 // indirect
+	cloud.google.com/go/compute v1.19.1 // indirect
 	cloud.google.com/go/compute/metadata v0.2.3 // indirect
 	cloud.google.com/go/iam v0.13.0 // indirect
 	github.com/Azure/go-autorest v14.2.0+incompatible // indirect
