@@ -75,6 +75,14 @@ func TestMarshalCosign(t *testing.T) {
 			},
 			expected: `{"critical":{"identity":{"docker-reference":"example.com/cosign/test/image"},"image":{"docker-manifest-digest":"sha256:d34db33fd34db33fd34db33fd34db33fd34db33fd34db33fd34db33fd34db33f"},"type":"cosign container image signature"},"optional":{"CamelCase WithSpace":8.314,"creator":"anyone","some_struct":{"false":true,"foo":"bar","nothing":null}}}`,
 		},
+		{
+			desc: "custom identity",
+			imgPayload: Cosign{
+				Image:           mustParseDigest(t, "example.com/test/image@"+validDigest),
+				ClaimedIdentity: "docker.io/library/test:1.2.3",
+			},
+			expected: `{"critical":{"identity":{"docker-reference":"docker.io/library/test:1.2.3"},"image":{"docker-manifest-digest":"sha256:d34db33fd34db33fd34db33fd34db33fd34db33fd34db33fd34db33fd34db33f"},"type":"cosign container image signature"},"optional":null}`,
+		},
 	}
 
 	for _, tc := range testCases {
@@ -106,14 +114,16 @@ func TestUnmarshalCosign(t *testing.T) {
 			desc:    "no claims",
 			payload: `{"critical":{"identity":{"docker-reference":"example.com/test/image"},"image":{"docker-manifest-digest":"sha256:d34db33fd34db33fd34db33fd34db33fd34db33fd34db33fd34db33fd34db33f"},"type":"cosign container image signature"},"optional":null}`,
 			expected: Cosign{
-				Image: mustParseDigest(t, "example.com/test/image@"+validDigest),
+				Image:           mustParseDigest(t, "example.com/test/image@"+validDigest),
+				ClaimedIdentity: "example.com/test/image",
 			},
 		},
 		{
 			desc:    "arbitrary claims",
 			payload: `{"critical":{"identity":{"docker-reference":"example.com/cosign/test/image"},"image":{"docker-manifest-digest":"sha256:d34db33fd34db33fd34db33fd34db33fd34db33fd34db33fd34db33fd34db33f"},"type":"cosign container image signature"},"optional":{"CamelCase WithSpace":8.314,"creator":"anyone","some_struct":{"false":true,"foo":"bar","nothing":null}}}`,
 			expected: Cosign{
-				Image: mustParseDigest(t, "example.com/cosign/test/image@"+validDigest),
+				Image:           mustParseDigest(t, "example.com/cosign/test/image@"+validDigest),
+				ClaimedIdentity: "example.com/cosign/test/image",
 				Annotations: map[string]interface{}{
 					"creator": "anyone",
 					"some_struct": map[string]interface{}{
