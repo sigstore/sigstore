@@ -160,7 +160,7 @@ type azureCredential interface {
 	GetToken(ctx context.Context, opts policy.TokenRequestOptions) (azcore.AccessToken, error)
 }
 
-// getAuthorizer takes an authenticationMethod and returns an Authorizer or an error.
+// getAzureCredential takes an authenticationMethod and returns an Azure credential or an error.
 // If the method is unknown, Environment will be tested and if it returns an error CLI will be tested.
 // If the method is specified, the specified method will be used and no other will be tested.
 // This means the following default order of methods will be used if nothing else is defined:
@@ -169,10 +169,9 @@ type azureCredential interface {
 // 3. Username password (FromEnvironment)
 // 4. MSI (FromEnvironment)
 // 5. CLI (FromCLI)
-func getAuthorizer(method authenticationMethod) (azureCredential, error) {
+func getAzureCredential(method authenticationMethod) (azureCredential, error) {
 	switch method {
 	case environmentAuthenticationMethod:
-		// cred, err := azidentity.NewDefaultAzureCredential(nil)
 		cred, err := azidentity.NewEnvironmentCredential(nil)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create default azure credential from env auth method: %w", err)
@@ -181,7 +180,7 @@ func getAuthorizer(method authenticationMethod) (azureCredential, error) {
 	case cliAuthenticationMethod:
 		cred, err := azidentity.NewAzureCLICredential(nil)
 		if err != nil {
-			return nil, fmt.Errorf("failed to create default azure credential from env auth method: %w", err)
+			return nil, fmt.Errorf("failed to create default Azure credential from env auth method: %w", err)
 		}
 		return cred, nil
 	case unknownAuthenticationMethod:
@@ -190,7 +189,6 @@ func getAuthorizer(method authenticationMethod) (azureCredential, error) {
 		return nil, fmt.Errorf("you should never reach this")
 	}
 
-	// cred, err := azidentity.NewDefaultAzureCredential(nil)
 	cred, err := azidentity.NewEnvironmentCredential(nil)
 	if err == nil {
 		return cred, nil
@@ -198,19 +196,19 @@ func getAuthorizer(method authenticationMethod) (azureCredential, error) {
 
 	cred2, err := azidentity.NewAzureCLICredential(nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create default azure credential from env auth method: %w", err)
+		return nil, fmt.Errorf("failed to create default Azure credential from env auth method: %w", err)
 	}
 	return cred2, nil
 }
 
 func getKeysClient(vaultURL string) (*azkeys.Client, error) {
 	authMethod := getAuthenticationMethod()
-	authorizer, err := getAuthorizer(authMethod)
+	cred, err := getAzureCredential(authMethod)
 	if err != nil {
 		return nil, err
 	}
 
-	client, err := azkeys.NewClient(vaultURL, authorizer, nil)
+	client, err := azkeys.NewClient(vaultURL, cred, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -352,12 +350,13 @@ func (a *azureVaultClient) sign(ctx context.Context, hash []byte, algo crypto.Ha
 	}
 
 	decodedRes := make([]byte, base64.RawURLEncoding.DecodedLen(len(result.Result)))
-	n, err := base64.StdEncoding.Decode(decodedRes, result.Result)
-	decodedRes = decodedRes[:n]
 
+	n, err := base64.StdEncoding.Decode(decodedRes, result.Result)
 	if err != nil {
 		return nil, fmt.Errorf("decoding the result: %w", err)
 	}
+
+	decodedRes = decodedRes[:n]
 
 	return decodedRes, nil
 }
