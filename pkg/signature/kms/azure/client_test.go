@@ -23,7 +23,6 @@ import (
 	"crypto/rsa"
 	"fmt"
 	"os"
-	"strings"
 	"testing"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/to"
@@ -70,11 +69,9 @@ func generatePublicKey(azureKeyType string) (azkeys.JSONWebKey, error) {
 		KeyOps: keyOps,
 	}
 
-	if !strings.HasPrefix(azureKeyType, "EC") && !strings.HasPrefix(azureKeyType, "RSA") {
-		return azkeys.JSONWebKey{}, fmt.Errorf("invalid key type passed: %s", azureKeyType)
-	}
-
-	if strings.HasPrefix(azureKeyType, "EC") {
+	keyType := azkeys.JSONWebKeyType(azureKeyType)
+	switch keyType {
+	case azkeys.JSONWebKeyTypeEC, azkeys.JSONWebKeyTypeECHSM:
 		privKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 		if err != nil {
 			return azkeys.JSONWebKey{}, err
@@ -89,23 +86,24 @@ func generatePublicKey(azureKeyType string) (azkeys.JSONWebKey, error) {
 		key.Y = ecdsaPub.Y.Bytes()
 
 		return key, nil
+	case azkeys.JSONWebKeyTypeRSA, azkeys.JSONWebKeyTypeRSAHSM:
+		privKey, err := rsa.GenerateKey(rand.Reader, 256)
+		if err != nil {
+			return azkeys.JSONWebKey{}, err
+		}
+
+		rsaPub, ok := privKey.Public().(*rsa.PublicKey)
+		if !ok {
+			return azkeys.JSONWebKey{}, fmt.Errorf("failed to cast public key to rsa public key")
+		}
+
+		key.N = rsaPub.N.Bytes()
+		key.E = []byte(fmt.Sprint(rsaPub.E))
+
+		return key, nil
+	default:
+		return azkeys.JSONWebKey{}, fmt.Errorf("invalid key type passed: %s", azureKeyType)
 	}
-
-	// otherwise generate a RSA key
-	privKey, err := rsa.GenerateKey(rand.Reader, 256)
-	if err != nil {
-		return azkeys.JSONWebKey{}, err
-	}
-
-	rsaPub, ok := privKey.Public().(*rsa.PublicKey)
-	if !ok {
-		return azkeys.JSONWebKey{}, fmt.Errorf("failed to cast public key to rsa public key")
-	}
-
-	key.N = rsaPub.N.Bytes()
-	key.E = []byte(fmt.Sprint(rsaPub.E))
-
-	return key, nil
 }
 
 func TestAzureVaultClientFetchPublicKey(t *testing.T) {
