@@ -95,7 +95,7 @@ func parseReference(resourceID string) (vaultURL, vaultName, keyName string, err
 	return
 }
 
-func newAzureKMS(_ context.Context, keyResourceID string) (*azureVaultClient, error) {
+func newAzureKMS(keyResourceID string) (*azureVaultClient, error) {
 	if err := ValidReference(keyResourceID); err != nil {
 		return nil, err
 	}
@@ -214,10 +214,6 @@ func getKeysClient(vaultURL string) (*azkeys.Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	// err = keyClient.AddToUserAgent("sigstore")
-	// if err != nil {
-	// 	return azkeys.Client{}, err
-	// }
 
 	return client, nil
 }
