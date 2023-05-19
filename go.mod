@@ -13,7 +13,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/kms v1.21.1
 	github.com/coreos/go-oidc/v3 v3.6.0
 	github.com/go-jose/go-jose/v3 v3.0.0
-	github.com/go-rod/rod v0.112.9
+	github.com/go-rod/rod v0.113.0
 	github.com/go-test/deep v1.1.0
 	github.com/google/go-cmp v0.5.9
 	github.com/google/go-containerregistry v0.15.2
@@ -86,8 +86,9 @@ require (
 	github.com/ryanuber/go-glob v1.0.0 // indirect
 	github.com/syndtr/goleveldb v1.0.1-0.20220721030215-126854af5e6d // indirect
 	github.com/titanous/rocacheck v0.0.0-20171023193734-afe73141d399 // indirect
-	github.com/ysmood/fetchup v0.2.2 // indirect
+	github.com/ysmood/fetchup v0.2.3 // indirect
 	github.com/ysmood/goob v0.4.0 // indirect
+	github.com/ysmood/got v0.34.1 // indirect
 	github.com/ysmood/gson v0.7.3 // indirect
 	github.com/ysmood/leakless v0.8.0 // indirect
 	go.opencensus.io v0.24.0 // indirect
