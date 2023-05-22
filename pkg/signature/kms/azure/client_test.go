@@ -21,20 +21,19 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/rsa"
-	"encoding/base64"
 	"fmt"
 	"os"
-	"strings"
 	"testing"
 
-	"github.com/Azure/azure-sdk-for-go/services/keyvault/v7.1/keyvault"
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore/to"
+	"github.com/Azure/azure-sdk-for-go/sdk/keyvault/azkeys"
 )
 
 type testKVClient struct {
-	key keyvault.JSONWebKey
+	key azkeys.JSONWebKey
 }
 
-func (c *testKVClient) CreateKey(_ context.Context, _, _ string, _ keyvault.KeyCreateParameters) (result keyvault.KeyBundle, err error) {
+func (c *testKVClient) CreateKey(_ context.Context, _ string, _ azkeys.CreateKeyParameters, _ *azkeys.CreateKeyOptions) (result azkeys.CreateKeyResponse, err error) {
 	key, err := generatePublicKey("EC")
 	if err != nil {
 		return result, err
@@ -45,73 +44,66 @@ func (c *testKVClient) CreateKey(_ context.Context, _, _ string, _ keyvault.KeyC
 	return result, nil
 }
 
-func (c *testKVClient) GetKey(_ context.Context, _, _, _ string) (result keyvault.KeyBundle, err error) {
+func (c *testKVClient) GetKey(_ context.Context, _, _ string, _ *azkeys.GetKeyOptions) (result azkeys.GetKeyResponse, err error) {
 	result.Key = &c.key
 
 	return result, nil
 }
 
-func (c *testKVClient) Sign(_ context.Context, _, _, _ string, _ keyvault.KeySignParameters) (result keyvault.KeyOperationResult, err error) {
+func (c *testKVClient) Sign(_ context.Context, _, _ string, _ azkeys.SignParameters, _ *azkeys.SignOptions) (result azkeys.SignResponse, err error) {
 	return result, nil
 }
 
-func (c *testKVClient) Verify(_ context.Context, _, _, _ string, _ keyvault.KeyVerifyParameters) (result keyvault.KeyVerifyResult, err error) {
+func (c *testKVClient) Verify(_ context.Context, _, _ string, _ azkeys.VerifyParameters, _ *azkeys.VerifyOptions) (result azkeys.VerifyResponse, err error) {
 	return result, nil
 }
 
-func generatePublicKey(azureKeyType string) (keyvault.JSONWebKey, error) {
-	keyOps := []string{"sign", "verify"}
+func generatePublicKey(azureKeyType string) (azkeys.JSONWebKey, error) {
+	keyOps := []*string{to.Ptr("sign"), to.Ptr("verify")}
 	kid := "https://honk-vault.vault.azure.net/keys/honk-key/abc123"
 
-	key := keyvault.JSONWebKey{
-		Kid:    &kid,
-		Kty:    keyvault.JSONWebKeyType(azureKeyType),
-		Crv:    "P-256",
-		KeyOps: &keyOps,
+	key := azkeys.JSONWebKey{
+		KID:    to.Ptr(azkeys.ID(kid)),
+		Kty:    to.Ptr(azkeys.JSONWebKeyType(azureKeyType)),
+		Crv:    to.Ptr(azkeys.JSONWebKeyCurveName("P-256")),
+		KeyOps: keyOps,
 	}
 
-	if !strings.HasPrefix(azureKeyType, "EC") && !strings.HasPrefix(azureKeyType, "RSA") {
-		return keyvault.JSONWebKey{}, fmt.Errorf("invalid key type passed: %s", azureKeyType)
-	}
-
-	if strings.HasPrefix(azureKeyType, "EC") {
+	keyType := azkeys.JSONWebKeyType(azureKeyType)
+	switch keyType {
+	case azkeys.JSONWebKeyTypeEC, azkeys.JSONWebKeyTypeECHSM:
 		privKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 		if err != nil {
-			return keyvault.JSONWebKey{}, err
+			return azkeys.JSONWebKey{}, err
 		}
 
 		ecdsaPub, ok := privKey.Public().(*ecdsa.PublicKey)
 		if !ok {
-			return keyvault.JSONWebKey{}, fmt.Errorf("failed to cast public key to esdsa public key")
+			return azkeys.JSONWebKey{}, fmt.Errorf("failed to cast public key to esdsa public key")
 		}
 
-		xString := base64.RawURLEncoding.EncodeToString(ecdsaPub.X.Bytes())
-		key.X = &xString
-
-		yString := base64.RawURLEncoding.EncodeToString(ecdsaPub.Y.Bytes())
-		key.Y = &yString
+		key.X = ecdsaPub.X.Bytes()
+		key.Y = ecdsaPub.Y.Bytes()
 
 		return key, nil
+	case azkeys.JSONWebKeyTypeRSA, azkeys.JSONWebKeyTypeRSAHSM:
+		privKey, err := rsa.GenerateKey(rand.Reader, 256)
+		if err != nil {
+			return azkeys.JSONWebKey{}, err
+		}
+
+		rsaPub, ok := privKey.Public().(*rsa.PublicKey)
+		if !ok {
+			return azkeys.JSONWebKey{}, fmt.Errorf("failed to cast public key to rsa public key")
+		}
+
+		key.N = rsaPub.N.Bytes()
+		key.E = []byte(fmt.Sprint(rsaPub.E))
+
+		return key, nil
+	default:
+		return azkeys.JSONWebKey{}, fmt.Errorf("invalid key type passed: %s", azureKeyType)
 	}
-
-	// otherwise generate a RSA key
-	privKey, err := rsa.GenerateKey(rand.Reader, 256)
-	if err != nil {
-		return keyvault.JSONWebKey{}, err
-	}
-
-	rsaPub, ok := privKey.Public().(*rsa.PublicKey)
-	if !ok {
-		return keyvault.JSONWebKey{}, fmt.Errorf("failed to cast public key to rsa public key")
-	}
-
-	nString := base64.RawURLEncoding.EncodeToString(rsaPub.N.Bytes())
-	key.N = &nString
-
-	eString := base64.RawURLEncoding.EncodeToString([]byte(fmt.Sprint(rsaPub.E)))
-	key.E = &eString
-
-	return key, nil
 }
 
 func TestAzureVaultClientFetchPublicKey(t *testing.T) {
