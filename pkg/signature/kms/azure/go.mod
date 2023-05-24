@@ -10,7 +10,7 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/keyvault/azkeys v0.10.0
 	github.com/go-jose/go-jose/v3 v3.0.0
 	github.com/jellydator/ttlcache/v3 v3.0.1
-	github.com/sigstore/sigstore v0.0.0-00010101000000-000000000000
+	github.com/sigstore/sigstore v1.6.4
 	golang.org/x/crypto v0.9.0
 )
 
