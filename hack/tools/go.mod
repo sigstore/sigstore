@@ -1,6 +1,6 @@
 module github.com/sigstore/sigstore/hack/tools
 
-go 1.18
+go 1.19
 
 require (
 	github.com/AdaLogics/go-fuzz-headers v0.0.0-20211123104302-8fea106b46e2
