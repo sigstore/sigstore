@@ -2,14 +2,14 @@ module github.com/sigstore/sigstore/pkg/signature/kms/hashivault
 
 replace github.com/sigstore/sigstore => ../../../../
 
-go 1.18
+go 1.19
 
 require (
 	github.com/hashicorp/vault/api v1.9.1
 	github.com/jellydator/ttlcache/v3 v3.0.1
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/sigstore/sigstore v1.6.4
-	github.com/stretchr/testify v1.8.3
+	github.com/stretchr/testify v1.8.4
 )
 
 require (

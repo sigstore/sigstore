@@ -2,7 +2,7 @@ module github.com/sigstore/sigstore/pkg/signature/kms/aws
 
 replace github.com/sigstore/sigstore => ../../../../
 
-go 1.18
+go 1.19
 
 require (
 	github.com/aws/aws-sdk-go v1.44.248
@@ -11,7 +11,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/kms v1.20.11
 	github.com/jellydator/ttlcache/v3 v3.0.1
 	github.com/sigstore/sigstore v1.6.4
-	github.com/stretchr/testify v1.8.3
+	github.com/stretchr/testify v1.8.4
 )
 
 require (

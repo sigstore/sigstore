@@ -1,15 +1,60 @@
+---
 version: 2
 updates:
-- package-ecosystem: gomod
-  directory: "/"
-  schedule:
-    interval: "daily"
-  open-pull-requests-limit: 10
-- package-ecosystem: "github-actions"
-  directory: "/"
-  schedule:
-    interval: "daily"
-- package-ecosystem: "docker"
-  directory: "/test/e2e"
-  schedule:
-    interval: "daily"
+  - package-ecosystem: gomod
+    directory: "/"
+    schedule:
+      interval: "daily"
+    open-pull-requests-limit: 10
+
+  # hack/tools/go.mod
+  - package-ecosystem: gomod
+    directory: "./hack/tools"
+    schedule:
+      interval: "daily"
+    open-pull-requests-limit: 10
+
+  # test/fuzz/go.mod
+  - package-ecosystem: gomod
+    directory: "./test/fuzz"
+    schedule:
+      interval: "daily"
+    open-pull-requests-limit: 10
+
+  # pkg/signature/kms/aws/go.mod
+  - package-ecosystem: gomod
+    directory: "./pkg/signature/kms/aws"
+    schedule:
+      interval: "daily"
+    open-pull-requests-limit: 10
+
+  # pkg/signature/kms/azure/go.mod
+  - package-ecosystem: gomod
+    directory: "./pkg/signature/kms/azure"
+    schedule:
+      interval: "daily"
+    open-pull-requests-limit: 10
+
+  # pkg/signature/kms/gcp/go.mod
+  - package-ecosystem: gomod
+    directory: "./pkg/signature/kms/gcp"
+    schedule:
+      interval: "daily"
+    open-pull-requests-limit: 10
+
+  # pkg/signature/kms/hashivault/go.mod
+  - package-ecosystem: gomod
+    directory: "./pkg/signature/kms/hashivault"
+    schedule:
+      interval: "daily"
+    open-pull-requests-limit: 10
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "daily"
+
+  - package-ecosystem: "docker"
+    directory: "/test/e2e"
+    schedule:
+      interval: "daily"
