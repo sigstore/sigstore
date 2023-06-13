@@ -31,7 +31,7 @@ LDFLAGS ?=
 golangci-lint:
 	rm -f $(GOLANGCI_LINT_BIN) || :
 	set -e ;\
-	GOBIN=$(GOLANGCI_LINT_DIR) go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.45.2 ;\
+	GOBIN=$(GOLANGCI_LINT_DIR) go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.53.2 ;\
 
 lint: golangci-lint ## Run golangci-lint
 	$(GOLANGCI_LINT_BIN) run -v --new-from-rev=HEAD~ ./...
