@@ -21,7 +21,6 @@ func TestParseReference(t *testing.T) {
 	tests := []struct {
 		in             string
 		wantVaultURL   string
-		wantVaultName  string
 		wantKeyName    string
 		wantKeyVersion string
 		wantErr        bool
@@ -29,7 +28,6 @@ func TestParseReference(t *testing.T) {
 		{
 			in:             "azurekms://honk-vault.vault.azure.net/honk-key",
 			wantVaultURL:   "https://honk-vault.vault.azure.net/",
-			wantVaultName:  "honk-vault",
 			wantKeyName:    "honk-key",
 			wantKeyVersion: "",
 			wantErr:        false,
@@ -37,7 +35,6 @@ func TestParseReference(t *testing.T) {
 		{
 			in:             "azurekms://honk-vault.vault.azure.net/honk-key/123abc",
 			wantVaultURL:   "https://honk-vault.vault.azure.net/",
-			wantVaultName:  "honk-vault",
 			wantKeyName:    "honk-key",
 			wantKeyVersion: "123abc",
 			wantErr:        false,
@@ -57,16 +54,13 @@ func TestParseReference(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.in, func(t *testing.T) {
-			gotVaultURL, gotVaultName, gotKeyName, gotKeyVersion, err := parseReference(tt.in)
+			gotVaultURL, gotKeyName, gotKeyVersion, err := parseReference(tt.in)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("parseReference() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if gotVaultURL != tt.wantVaultURL {
 				t.Errorf("parseReference() gotVaultURL = %v, want %v", gotVaultURL, tt.wantVaultURL)
-			}
-			if gotVaultName != tt.wantVaultName {
-				t.Errorf("parseReference() gotVaultName = %v, want %v", gotVaultName, tt.wantVaultName)
 			}
 			if gotKeyName != tt.wantKeyName {
 				t.Errorf("parseReference() gotKeyName = %v, want %v", gotKeyName, tt.wantKeyName)

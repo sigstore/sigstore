@@ -58,11 +58,11 @@ type kvClient interface {
 }
 
 type azureVaultClient struct {
-	client    kvClient
-	keyCache  *ttlcache.Cache[string, crypto.PublicKey]
-	vaultURL  string
-	vaultName string
-	keyName   string
+	client     kvClient
+	keyCache   *ttlcache.Cache[string, crypto.PublicKey]
+	vaultURL   string
+	keyName    string
+	keyVersion string
 }
 
 var (
@@ -85,7 +85,7 @@ func ValidReference(ref string) error {
 	return nil
 }
 
-func parseReference(resourceID string) (vaultURL, vaultName, keyName, keyVersion string, err error) {
+func parseReference(resourceID string) (vaultURL, keyName, keyVersion string, err error) {
 	if idIsValid := referenceRegex.MatchString(resourceID); !idIsValid {
 		err = fmt.Errorf("invalid azurekms format %q", resourceID)
 		return
@@ -94,7 +94,6 @@ func parseReference(resourceID string) (vaultURL, vaultName, keyName, keyVersion
 	fullRef := strings.Split(resourceID, "azurekms://")[1]
 	splitRef := strings.Split(fullRef, "/")
 	vaultURL = fmt.Sprintf("https://%s/", splitRef[0])
-	vaultName = strings.SplitN(splitRef[0], ".", 2)[0]
 	keyName = splitRef[1]
 
 	if len(splitRef) == 3 {
@@ -108,7 +107,7 @@ func newAzureKMS(keyResourceID string) (*azureVaultClient, error) {
 	if err := ValidReference(keyResourceID); err != nil {
 		return nil, err
 	}
-	vaultURL, vaultName, keyName, _, err := parseReference(keyResourceID)
+	vaultURL, keyName, keyVersion, err := parseReference(keyResourceID)
 	if err != nil {
 		return nil, err
 	}
@@ -119,9 +118,9 @@ func newAzureKMS(keyResourceID string) (*azureVaultClient, error) {
 	}
 
 	azClient := &azureVaultClient{
-		client:    client,
-		vaultName: vaultName,
-		keyName:   keyName,
+		client:     client,
+		keyName:    keyName,
+		keyVersion: keyVersion,
 		keyCache: ttlcache.New[string, crypto.PublicKey](
 			ttlcache.WithDisableTouchOnHit[string, crypto.PublicKey](),
 		),
@@ -197,16 +196,16 @@ func getAzureCredential(method authenticationMethod) (azureCredential, error) {
 		return nil, fmt.Errorf("you should never reach this")
 	}
 
-	cred, err := azidentity.NewEnvironmentCredential(nil)
+	envCreds, err := azidentity.NewEnvironmentCredential(nil)
 	if err == nil {
-		return cred, nil
+		return envCreds, nil
 	}
 
-	cred2, err := azidentity.NewAzureCLICredential(nil)
+	cliCreds, err := azidentity.NewAzureCLICredential(nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create default Azure credential from env auth method: %w", err)
 	}
-	return cred2, nil
+	return cliCreds, nil
 }
 
 func getKeysClient(vaultURL string) (*azkeys.Client, error) {
@@ -260,7 +259,7 @@ func (a *azureVaultClient) fetchPublicKey(ctx context.Context) (crypto.PublicKey
 }
 
 func (a *azureVaultClient) getKey(ctx context.Context) (azkeys.KeyBundle, error) {
-	resp, err := a.client.GetKey(ctx, a.keyName, "", nil)
+	resp, err := a.client.GetKey(ctx, a.keyName, a.keyVersion, nil)
 	if err != nil {
 		return azkeys.KeyBundle{}, fmt.Errorf("public key: %w", err)
 	}
@@ -365,7 +364,7 @@ func (a *azureVaultClient) sign(ctx context.Context, hash []byte) ([]byte, error
 		Value:     encodedHash,
 	}
 
-	result, err := a.client.Sign(ctx, a.keyName, "", params, nil)
+	result, err := a.client.Sign(ctx, a.keyName, a.keyVersion, params, nil)
 	if err != nil {
 		return nil, fmt.Errorf("signing the payload: %w", err)
 	}
@@ -400,7 +399,7 @@ func (a *azureVaultClient) verify(ctx context.Context, signature, hash []byte) e
 		Signature: encodedSignature,
 	}
 
-	result, err := a.client.Verify(ctx, a.keyName, "", params, nil)
+	result, err := a.client.Verify(ctx, a.keyName, a.keyVersion, params, nil)
 	if err != nil {
 		return fmt.Errorf("verify: %w", err)
 	}
