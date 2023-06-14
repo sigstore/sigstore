@@ -66,9 +66,9 @@ type azureVaultClient struct {
 }
 
 var (
-	errAzureReference = errors.New("kms specification should be in the format azurekms://[VAULT_NAME][VAULT_URL]/[KEY_NAME]")
+	errAzureReference = errors.New("kms specification should be in the format azurekms://[VAULT_NAME][VAULT_URL]/[KEY_NAME]/[VERSION (optional)]")
 
-	referenceRegex = regexp.MustCompile(`^azurekms://([^/]+)/([^/]+)?$`)
+	referenceRegex = regexp.MustCompile(`^azurekms://([^/]+)/([^/]+)(/[a-z0-9]*)?$`)
 )
 
 const (
@@ -85,15 +85,22 @@ func ValidReference(ref string) error {
 	return nil
 }
 
-func parseReference(resourceID string) (vaultURL, vaultName, keyName string, err error) {
-	v := referenceRegex.FindStringSubmatch(resourceID)
-	if len(v) != 3 {
+func parseReference(resourceID string) (vaultURL, vaultName, keyName, keyVersion string, err error) {
+	if idIsValid := referenceRegex.MatchString(resourceID); !idIsValid {
 		err = fmt.Errorf("invalid azurekms format %q", resourceID)
 		return
 	}
 
-	vaultURL = fmt.Sprintf("https://%s/", v[1])
-	vaultName, keyName = strings.Split(v[1], ".")[0], v[2]
+	fullRef := strings.Split(resourceID, "azurekms://")[1]
+	splitRef := strings.Split(fullRef, "/")
+	vaultURL = fmt.Sprintf("https://%s/", splitRef[0])
+	vaultName = strings.SplitN(splitRef[0], ".", 2)[0]
+	keyName = splitRef[1]
+
+	if len(splitRef) == 3 {
+		keyVersion = splitRef[2]
+	}
+
 	return
 }
 
@@ -101,7 +108,7 @@ func newAzureKMS(keyResourceID string) (*azureVaultClient, error) {
 	if err := ValidReference(keyResourceID); err != nil {
 		return nil, err
 	}
-	vaultURL, vaultName, keyName, err := parseReference(keyResourceID)
+	vaultURL, vaultName, keyName, _, err := parseReference(keyResourceID)
 	if err != nil {
 		return nil, err
 	}
@@ -113,7 +120,6 @@ func newAzureKMS(keyResourceID string) (*azureVaultClient, error) {
 
 	azClient := &azureVaultClient{
 		client:    client,
-		vaultURL:  vaultURL,
 		vaultName: vaultName,
 		keyName:   keyName,
 		keyCache: ttlcache.New[string, crypto.PublicKey](
@@ -254,7 +260,7 @@ func (a *azureVaultClient) fetchPublicKey(ctx context.Context) (crypto.PublicKey
 }
 
 func (a *azureVaultClient) getKey(ctx context.Context) (azkeys.KeyBundle, error) {
-	resp, err := a.client.GetKey(ctx, a.vaultURL, a.keyName, nil)
+	resp, err := a.client.GetKey(ctx, a.keyName, "", nil)
 	if err != nil {
 		return azkeys.KeyBundle{}, fmt.Errorf("public key: %w", err)
 	}
@@ -359,7 +365,7 @@ func (a *azureVaultClient) sign(ctx context.Context, hash []byte) ([]byte, error
 		Value:     encodedHash,
 	}
 
-	result, err := a.client.Sign(ctx, a.vaultURL, a.keyName, params, nil)
+	result, err := a.client.Sign(ctx, a.keyName, "", params, nil)
 	if err != nil {
 		return nil, fmt.Errorf("signing the payload: %w", err)
 	}
@@ -394,7 +400,7 @@ func (a *azureVaultClient) verify(ctx context.Context, signature, hash []byte) e
 		Signature: encodedSignature,
 	}
 
-	result, err := a.client.Verify(ctx, a.vaultURL, a.keyName, params, nil)
+	result, err := a.client.Verify(ctx, a.keyName, "", params, nil)
 	if err != nil {
 		return fmt.Errorf("verify: %w", err)
 	}
