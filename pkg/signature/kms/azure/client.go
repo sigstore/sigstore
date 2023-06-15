@@ -84,6 +84,9 @@ func ValidReference(ref string) error {
 	return nil
 }
 
+// The key version can be optionally provided
+// If provided, all key operations will specify this version.
+// If not provided, the key operations will use the latest key version by default.
 func parseReference(resourceID string) (vaultURL, keyName, keyVersion string, err error) {
 	if isIDValid := referenceRegex.MatchString(resourceID); !isIDValid {
 		err = fmt.Errorf("invalid azurekms format %q", resourceID)
