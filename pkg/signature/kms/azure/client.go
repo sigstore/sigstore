@@ -85,7 +85,7 @@ func ValidReference(ref string) error {
 }
 
 func parseReference(resourceID string) (vaultURL, keyName, keyVersion string, err error) {
-	if idIsValid := referenceRegex.MatchString(resourceID); !idIsValid {
+	if isIDValid := referenceRegex.MatchString(resourceID); !isIDValid {
 		err = fmt.Errorf("invalid azurekms format %q", resourceID)
 		return
 	}
