@@ -26,7 +26,7 @@ import (
 	"testing"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/to"
-	"github.com/Azure/azure-sdk-for-go/sdk/keyvault/azkeys"
+	"github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azkeys"
 )
 
 type testKVClient struct {
@@ -59,19 +59,19 @@ func (c *testKVClient) Verify(_ context.Context, _, _ string, _ azkeys.VerifyPar
 }
 
 func generatePublicKey(azureKeyType string) (azkeys.JSONWebKey, error) {
-	keyOps := []*string{to.Ptr("sign"), to.Ptr("verify")}
+	keyOps := []*azkeys.KeyOperation{to.Ptr(azkeys.KeyOperationSign), to.Ptr(azkeys.KeyOperationVerify)}
 	kid := "https://honk-vault.vault.azure.net/keys/honk-key/abc123"
 
 	key := azkeys.JSONWebKey{
 		KID:    to.Ptr(azkeys.ID(kid)),
-		Kty:    to.Ptr(azkeys.JSONWebKeyType(azureKeyType)),
-		Crv:    to.Ptr(azkeys.JSONWebKeyCurveName("P-256")),
+		Kty:    to.Ptr(azkeys.KeyType(azureKeyType)),
+		Crv:    to.Ptr(azkeys.CurveName("P-256")),
 		KeyOps: keyOps,
 	}
 
-	keyType := azkeys.JSONWebKeyType(azureKeyType)
+	keyType := azkeys.KeyType(azureKeyType)
 	switch keyType {
-	case azkeys.JSONWebKeyTypeEC, azkeys.JSONWebKeyTypeECHSM:
+	case azkeys.KeyTypeEC, azkeys.KeyTypeECHSM:
 		privKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 		if err != nil {
 			return azkeys.JSONWebKey{}, err
@@ -86,7 +86,7 @@ func generatePublicKey(azureKeyType string) (azkeys.JSONWebKey, error) {
 		key.Y = ecdsaPub.Y.Bytes()
 
 		return key, nil
-	case azkeys.JSONWebKeyTypeRSA, azkeys.JSONWebKeyTypeRSAHSM:
+	case azkeys.KeyTypeRSA, azkeys.KeyTypeRSAHSM:
 		privKey, err := rsa.GenerateKey(rand.Reader, 256)
 		if err != nil {
 			return azkeys.JSONWebKey{}, err

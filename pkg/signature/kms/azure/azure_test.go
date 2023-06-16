@@ -19,18 +19,25 @@ import "testing"
 
 func TestParseReference(t *testing.T) {
 	tests := []struct {
-		in            string
-		wantVaultURL  string
-		wantVaultName string
-		wantKeyName   string
-		wantErr       bool
+		in             string
+		wantVaultURL   string
+		wantKeyName    string
+		wantKeyVersion string
+		wantErr        bool
 	}{
 		{
-			in:            "azurekms://honk-vault.vault.azure.net/honk-key",
-			wantVaultURL:  "https://honk-vault.vault.azure.net/",
-			wantVaultName: "honk-vault",
-			wantKeyName:   "honk-key",
-			wantErr:       false,
+			in:             "azurekms://honk-vault.vault.azure.net/honk-key",
+			wantVaultURL:   "https://honk-vault.vault.azure.net/",
+			wantKeyName:    "honk-key",
+			wantKeyVersion: "",
+			wantErr:        false,
+		},
+		{
+			in:             "azurekms://honk-vault.vault.azure.net/honk-key/123abc",
+			wantVaultURL:   "https://honk-vault.vault.azure.net/",
+			wantKeyName:    "honk-key",
+			wantKeyVersion: "123abc",
+			wantErr:        false,
 		},
 		{
 			in:      "foo://bar",
@@ -47,7 +54,7 @@ func TestParseReference(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.in, func(t *testing.T) {
-			gotVaultURL, gotVaultName, gotKeyName, err := parseReference(tt.in)
+			gotVaultURL, gotKeyName, gotKeyVersion, err := parseReference(tt.in)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("parseReference() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -55,11 +62,11 @@ func TestParseReference(t *testing.T) {
 			if gotVaultURL != tt.wantVaultURL {
 				t.Errorf("parseReference() gotVaultURL = %v, want %v", gotVaultURL, tt.wantVaultURL)
 			}
-			if gotVaultName != tt.wantVaultName {
-				t.Errorf("parseReference() gotVaultName = %v, want %v", gotVaultName, tt.wantVaultName)
-			}
 			if gotKeyName != tt.wantKeyName {
 				t.Errorf("parseReference() gotKeyName = %v, want %v", gotKeyName, tt.wantKeyName)
+			}
+			if gotKeyVersion != tt.wantKeyVersion {
+				t.Errorf("parseReference() gotKeyVersion = %v, want %v", gotKeyVersion, tt.wantKeyVersion)
 			}
 		})
 	}
