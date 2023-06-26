@@ -14,7 +14,15 @@ The key creation will be handled in sigstore, however the Azure Key Vault and th
 
 Different commands require different Key Vault access policies. For more information check the official [Azure Docs](https://azure.microsoft.com/en-us/services/key-vault/).
 
-**cosign generate-key-pair**
+## Using Azure KMS with Cosign
+
+An Azure KMS key must be provided in the following format:
+`azurekms://[Key Vault Name].vault.azure.net/[Key Name]`
+
+A specific key version can optionally be provided:
+`azurekms://[Key Vault Name].vault.azure.net/[Key Name]/[Key Version]`
+
+### cosign generate-key-pair
 
 Required access policies (keys): `get`, `create`
 
@@ -22,7 +30,7 @@ Required access policies (keys): `get`, `create`
 cosign generate-key-pair --kms azurekms://[Key Vault Name].vault.azure.net/[Key Name]
 ```
 
-**cosign sign**
+### cosign sign
 
 Required access policies (keys): `get`, `sign`
 
@@ -31,7 +39,7 @@ az acr login --name [Container Registry Name]
 cosign sign --key azurekms://[Key Vault Name].vault.azure.net/[Key Name] [Container Registry Name].azurecr.io/[Image Name]
 ```
 
-**cosign verify**
+### cosign verify
 
 Required access policy (keys): `verify`
 
