@@ -235,3 +235,58 @@ func testSetEnv(t *testing.T, s map[string]string) func() {
 		}
 	}
 }
+
+func TestParseReference(t *testing.T) {
+	tests := []struct {
+		in             string
+		wantVaultURL   string
+		wantKeyName    string
+		wantKeyVersion string
+		wantErr        bool
+	}{
+		{
+			in:             "azurekms://honk-vault.vault.azure.net/honk-key",
+			wantVaultURL:   "https://honk-vault.vault.azure.net/",
+			wantKeyName:    "honk-key",
+			wantKeyVersion: "",
+			wantErr:        false,
+		},
+		{
+			in:             "azurekms://honk-vault.vault.azure.net/honk-key/123abc",
+			wantVaultURL:   "https://honk-vault.vault.azure.net/",
+			wantKeyName:    "honk-key",
+			wantKeyVersion: "123abc",
+			wantErr:        false,
+		},
+		{
+			in:      "foo://bar",
+			wantErr: true,
+		},
+		{
+			in:      "",
+			wantErr: true,
+		},
+		{
+			in:      "azurekms://wrong-test/test/1/3",
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.in, func(t *testing.T) {
+			gotVaultURL, gotKeyName, gotKeyVersion, err := parseReference(tt.in)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("parseReference() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if gotVaultURL != tt.wantVaultURL {
+				t.Errorf("parseReference() gotVaultURL = %v, want %v", gotVaultURL, tt.wantVaultURL)
+			}
+			if gotKeyName != tt.wantKeyName {
+				t.Errorf("parseReference() gotKeyName = %v, want %v", gotKeyName, tt.wantKeyName)
+			}
+			if gotKeyVersion != tt.wantKeyVersion {
+				t.Errorf("parseReference() gotKeyVersion = %v, want %v", gotKeyVersion, tt.wantKeyVersion)
+			}
+		})
+	}
+}
