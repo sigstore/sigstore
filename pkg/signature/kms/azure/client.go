@@ -121,6 +121,7 @@ func newAzureKMS(keyResourceID string) (*azureVaultClient, error) {
 
 	azClient := &azureVaultClient{
 		client:     client,
+		vaultURL:   vaultURL,
 		keyName:    keyName,
 		keyVersion: keyVersion,
 		keyCache: ttlcache.New[string, crypto.PublicKey](
