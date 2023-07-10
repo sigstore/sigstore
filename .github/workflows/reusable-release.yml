@@ -69,7 +69,6 @@ jobs:
         uses: google-github-actions/setup-gcloud@e30db14379863a8c79331b04a9969f4c1e225e0b # v1.1.1
         with:
           project_id: ${{ env.PROJECT_ID }}
-          export_default_credentials: true
 
       - name: Start cloudbuild job
         working-directory: ./src/github.com/sigstore/${{ inputs.repo }}
