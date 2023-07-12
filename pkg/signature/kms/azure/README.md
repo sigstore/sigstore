@@ -61,3 +61,9 @@ There are multiple authentication methods supported for Azure Key Vault and by d
 You can force either `FromEnvironment` or `FromCLI` by configuring the environment variable `AZURE_AUTH_METHOD` to either `environment` or `cli`.
 
 For backward compatibility, if you configure `AZURE_TENANT_ID`, `AZURE_CLIENT_ID` and `AZURE_CLIENT_SECRET`, `FromEnvironment` will be used.
+
+## Integration Testing
+
+In addition to unit tests in this module, there is `integration_test.go`, which requires you to provide either environment or CLI credentials. Because the Sigstore project does not use Azure, the tests are not run as part of any CI/CD. These tests are for Azure client developers to test that changes work as expected against their own Azure subscription.
+
+Run the integration tests with `go test ./...` in the root of this module.
