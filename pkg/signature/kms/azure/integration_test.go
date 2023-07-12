@@ -1,3 +1,5 @@
+//go:build integration
+
 //
 // Copyright 2023 The Sigstore Authors.
 //
