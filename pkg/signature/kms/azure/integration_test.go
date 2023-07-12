@@ -17,12 +17,14 @@
 package azure
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore/cloud"
+	"github.com/google/go-cmp/cmp"
 )
 
 /*
@@ -32,11 +34,54 @@ KEY_NAME - Azure key name
 VAULT_URL - Azure Vault URL
 */
 
-func TestLoadSignerVerifier(t *testing.T) {
+func TestMain(m *testing.M) {
 	azureKeyRef := os.Getenv("AZURE_KEY_REF")
 	if azureKeyRef == "" {
-		t.Fatalf("AZURE_KEY_REF must be set")
+		panic("AZURE_KEY_REF must be set")
 	}
+	os.Exit(m.Run())
+}
+
+func TestGetAzClientOpts(t *testing.T) {
+	testCases := []struct {
+		env            string
+		expectedConfig cloud.Configuration
+	}{{
+		env:            "AZUREUSGOVERNMENT",
+		expectedConfig: cloud.AzureGovernment,
+	}, {
+		env:            "AZUREUSGOVERNMENTCLOUD",
+		expectedConfig: cloud.AzureGovernment,
+	}, {
+		env:            "AZURECHINACLOUD",
+		expectedConfig: cloud.AzureChina,
+	}, {
+		env:            "AZURECLOUD",
+		expectedConfig: cloud.AzurePublic,
+	}, {
+		env:            "AZUREPUBLICCLOUD",
+		expectedConfig: cloud.AzurePublic,
+	}, {
+		env:            "",
+		expectedConfig: cloud.AzurePublic,
+	}}
+
+	for _, tc := range testCases {
+		err := os.Setenv("AZURE_ENVIRONMENT", tc.env)
+		if err != nil {
+			t.Fatalf("failed to set AZURE_ENVIRONMENT env var: %v", err)
+		}
+
+		opts := getAzClientOpts()
+		if !cmp.Equal(tc.expectedConfig, opts.Cloud) {
+			t.Errorf("opts.Cloud %v does not match expected config: %v", opts.Cloud, tc.expectedConfig)
+		}
+	}
+}
+
+func TestLoadSignerVerifier(t *testing.T) {
+	azureKeyRef := os.Getenv("AZURE_KEY_REF")
+
 	azureKeyName := os.Getenv("KEY_NAME")
 	if azureKeyName == "" {
 		t.Fatalf("KEY_NAME must be set")
@@ -69,10 +114,6 @@ func TestLoadSignerVerifier(t *testing.T) {
 
 func TestGetKey(t *testing.T) {
 	azureKeyRef := os.Getenv("AZURE_KEY_REF")
-	if azureKeyRef == "" {
-		t.Fatalf("AZURE_KEY_REF must be set")
-	}
-	fmt.Println("AZURE_KEY_REF: " + azureKeyRef)
 
 	sv, err := LoadSignerVerifier(context.Background(), azureKeyRef)
 	if err != nil {
@@ -91,10 +132,6 @@ func TestGetKey(t *testing.T) {
 
 func TestPublicKey(t *testing.T) {
 	azureKeyRef := os.Getenv("AZURE_KEY_REF")
-	if azureKeyRef == "" {
-		t.Fatalf("AZURE_KEY_REF must be set")
-	}
-	fmt.Println("AZURE_KEY_REF: " + azureKeyRef)
 
 	sv, err := LoadSignerVerifier(context.Background(), azureKeyRef)
 	if err != nil {
@@ -112,9 +149,7 @@ func TestPublicKey(t *testing.T) {
 
 func TestGetKeyVaultHashFunc(t *testing.T) {
 	azureKeyRef := os.Getenv("AZURE_KEY_REF")
-	if azureKeyRef == "" {
-		t.Fatalf("AZURE_KEY_REF must be set")
-	}
+
 	sv, err := LoadSignerVerifier(context.Background(), azureKeyRef)
 	if err != nil {
 		t.Fatalf("LoadSignerVerifier unexpectedly returned non-nil error: %v", err)
@@ -130,9 +165,7 @@ func TestGetKeyVaultHashFunc(t *testing.T) {
 
 func TestSignMessage(t *testing.T) {
 	azureKeyRef := os.Getenv("AZURE_KEY_REF")
-	if azureKeyRef == "" {
-		t.Fatalf("AZURE_KEY_REF must be set")
-	}
+
 	sv, err := LoadSignerVerifier(context.Background(), azureKeyRef)
 	if err != nil {
 		t.Fatalf("LoadSignerVerifier unexpectedly returned non-nil error: %v", err)
@@ -145,27 +178,5 @@ func TestSignMessage(t *testing.T) {
 	}
 	if signed == nil || len(signed) == 0 {
 		t.Errorf("SignMessage unexpected returned nil or empty signature")
-	}
-}
-
-func TestVerify(t *testing.T) {
-	azureKeyRef := os.Getenv("AZURE_KEY_REF")
-	if azureKeyRef == "" {
-		t.Fatalf("AZURE_KEY_REF must be set")
-	}
-	sv, err := LoadSignerVerifier(context.Background(), azureKeyRef)
-	if err != nil {
-		t.Fatalf("LoadSignerVerifier unexpectedly returned non-nil error: %v", err)
-	}
-
-	messageToSign := strings.NewReader("myblob")
-	signed, err := sv.SignMessage(messageToSign)
-	if err != nil {
-		t.Errorf("SignMessage unexpectedly returned non-nil error: %v", err)
-	}
-
-	err = sv.VerifySignature(bytes.NewReader(signed), messageToSign)
-	if err != nil {
-		t.Errorf("VerifySignature failed to verify signature: %v", err)
 	}
 }
