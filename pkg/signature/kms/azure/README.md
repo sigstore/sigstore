@@ -62,6 +62,13 @@ You can force either `FromEnvironment` or `FromCLI` by configuring the environme
 
 For backward compatibility, if you configure `AZURE_TENANT_ID`, `AZURE_CLIENT_ID` and `AZURE_CLIENT_SECRET`, `FromEnvironment` will be used.
 
+If you would like to use a cloud other than the Azure public cloud, configure `AZURE_ENVIRONMENT`. The following values are accepted:
+- `AZUREUSGOVERNMENT`, `AZUREUSGOVERNMENTCLOUD` uses the Azure US Government Cloud
+- `AZURECHINACLOUD` uses Azure China Cloud
+- `AZURECLOUD`, `AZUREPUBLICCLOUD` uses the public cloud
+
+If `AZURE_ENVIRONMENT` is not configured, Azure public cloud is used.
+
 ## Integration Testing
 
 In addition to unit tests in this module, there is `integration_test.go`, which requires you to provide either environment or CLI credentials. Because the Sigstore project does not use Azure, the tests are not run as part of any CI/CD. These tests are for Azure client developers to test that changes work as expected against their own Azure subscription.
