@@ -69,10 +69,7 @@ func TestGetAzClientOpts(t *testing.T) {
 	}}
 
 	for _, tc := range testCases {
-		err := os.Setenv("AZURE_ENVIRONMENT", tc.env)
-		if err != nil {
-			t.Fatalf("failed to set AZURE_ENVIRONMENT env var: %v", err)
-		}
+		t.Setenv("AZURE_ENVIRONMENT", tc.env)
 
 		opts := getAzClientOpts()
 		if !cmp.Equal(tc.expectedConfig, opts.Cloud) {
