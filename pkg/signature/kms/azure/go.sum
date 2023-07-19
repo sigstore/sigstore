@@ -4,8 +4,8 @@ github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.3.0 h1:vcYCAze6p19qBW7MhZybI
 github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.3.0/go.mod h1:OQeznEEkTZ9OrhHJoDD8ZDq51FHgXjqtP9z6bEwBq9U=
 github.com/Azure/azure-sdk-for-go/sdk/internal v1.3.0 h1:sXr+ck84g/ZlZUOZiNELInmMgOsuGwdjjVkEIde0OtY=
 github.com/Azure/azure-sdk-for-go/sdk/internal v1.3.0/go.mod h1:okt5dMMTOFjX/aovMlrjvvXoPMBVSPzk9185BT0+eZM=
-github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azkeys v0.12.0 h1:4Kynh6Hn2ekyIsBgNQJb3dn1+/MyvzfUJebti2emB/A=
-github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azkeys v0.12.0/go.mod h1:Q28U+75mpCaSCDowNEmhIo/rmgdkqmkmzI7N6TGR4UY=
+github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azkeys v1.0.0 h1:yfJe15aSwEQ6Oo6J+gdfdulPNoZ3TEhmbhLIoxZcA+U=
+github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azkeys v1.0.0/go.mod h1:Q28U+75mpCaSCDowNEmhIo/rmgdkqmkmzI7N6TGR4UY=
 github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/internal v0.8.0 h1:T028gtTPiYt/RMUfs8nVsAL7FDQrfLlrm/NnRG/zcC4=
 github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/internal v0.8.0/go.mod h1:cw4zVQgBby0Z5f2v0itn6se2dDP17nTjbZFXW5uPyHA=
 github.com/AzureAD/microsoft-authentication-library-for-go v1.0.0 h1:OBhqkivkhkMqLPymWEppkm7vgPQY2XsHoEkaMQ0AdZY=
