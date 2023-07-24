@@ -5,7 +5,7 @@ go 1.19
 require (
 	github.com/coreos/go-oidc/v3 v3.6.0
 	github.com/go-jose/go-jose/v3 v3.0.0
-	github.com/go-rod/rod v0.114.0
+	github.com/go-rod/rod v0.114.1
 	github.com/go-test/deep v1.1.0
 	github.com/google/go-cmp v0.5.9
 	github.com/google/go-containerregistry v0.15.2
