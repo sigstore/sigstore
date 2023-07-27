@@ -9,7 +9,7 @@ require (
 	github.com/jellydator/ttlcache/v3 v3.0.1
 	github.com/sigstore/sigstore v1.6.4
 	golang.org/x/oauth2 v0.10.0
-	google.golang.org/api v0.133.0
+	google.golang.org/api v0.134.0
 	google.golang.org/protobuf v1.31.0
 )
 
