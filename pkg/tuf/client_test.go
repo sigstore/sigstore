@@ -821,42 +821,6 @@ func TestConcurrentAccessInitialize(t *testing.T) {
 	resetForTests()
 }
 
-func TestKeyFormatMigration(t *testing.T) {
-	// Override the expiration time so the test doesn't fail on
-	// expiration.
-	oldIsExpired := verify.IsExpired
-	verify.IsExpired = func(_ time.Time) bool { return false }
-	defer func() {
-		verify.IsExpired = oldIsExpired
-	}()
-	td := t.TempDir()
-	ctx := context.Background()
-	// Set the TUF_ROOT so we don't interact with other tests and local TUF roots.
-	t.Setenv("TUF_ROOT", td)
-
-	// Serve remote repository.
-	s := httptest.NewServer(
-		http.FileServer(http.Dir("./test_data/hex_to_ecdsa_migration")))
-	defer s.Close()
-
-	rootBytes, err := os.ReadFile("./test_data/hex_to_ecdsa_migration/1.root.json")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if err := Initialize(ctx, s.URL, rootBytes); err != nil {
-		t.Error(err)
-	}
-
-	defer resetForTests()
-
-	tuf, err := NewFromEnv(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	checkTargetsAndMeta(t, tuf, []string{"fulcio.crt.pem"})
-}
-
 // Test to validate that sigstore TUF client can cache targets that
 // are located in sub-folders.
 func TestTargetsSubfolder(t *testing.T) {
