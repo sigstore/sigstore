@@ -372,7 +372,7 @@ func (a *azureVaultClient) getKeyVaultHashFunc(ctx context.Context) (crypto.Hash
 		case 384:
 			return crypto.SHA384, azkeys.SignatureAlgorithmRS384, nil
 		case 512:
-			return crypto.SHA512, azkeys.SignatureAlgorithmRS384, nil
+			return crypto.SHA512, azkeys.SignatureAlgorithmRS512, nil
 		default:
 			return 0, "", fmt.Errorf("unsupported key size: %d", keyImpl.Size())
 		}
