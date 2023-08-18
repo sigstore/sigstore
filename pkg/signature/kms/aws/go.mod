@@ -6,7 +6,7 @@ go 1.19
 
 require (
 	github.com/aws/aws-sdk-go v1.44.325
-	github.com/aws/aws-sdk-go-v2 v1.20.1
+	github.com/aws/aws-sdk-go-v2 v1.20.2
 	github.com/aws/aws-sdk-go-v2/config v1.18.33
 	github.com/aws/aws-sdk-go-v2/service/kms v1.24.2
 	github.com/jellydator/ttlcache/v3 v3.0.1
