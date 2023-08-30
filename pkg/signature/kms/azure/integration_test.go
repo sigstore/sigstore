@@ -19,6 +19,7 @@
 package azure
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"os"
@@ -100,7 +101,7 @@ func TestLoadSignerVerifier(t *testing.T) {
 		t.Errorf("LoadSignerVerifier failed to create a SignerVerifier instance")
 	}
 
-	if sv.client.vaultURL != azureVaultURL {
+	if sv.client.vaultURL != fmt.Sprintf("https://%s/", azureVaultURL) {
 		t.Errorf("expected client.vaultURL to be %s, got %s", azureVaultURL, sv.client.vaultURL)
 	}
 	if sv.client.keyName != azureKeyName {
@@ -154,12 +155,10 @@ func TestGetKeyVaultHashFunc(t *testing.T) {
 		t.Fatalf("LoadSignerVerifier unexpectedly returned non-nil error: %v", err)
 	}
 
-	cryptoHash, sigAlg, err := sv.client.getKeyVaultHashFunc(context.Background())
+	_, _, err = sv.client.getKeyVaultHashFunc(context.Background())
 	if err != nil {
 		t.Errorf("failed to get crypto hash and signature algorithm associated with key: %v", err)
 	}
-	fmt.Printf("\ncrypto hash: %v", cryptoHash)
-	fmt.Printf("\nsignature algorithm: %v", sigAlg)
 }
 
 func TestSignMessage(t *testing.T) {
@@ -177,5 +176,28 @@ func TestSignMessage(t *testing.T) {
 	}
 	if signed == nil || len(signed) == 0 {
 		t.Errorf("SignMessage unexpected returned nil or empty signature")
+	}
+}
+
+func TestVerifySignature(t *testing.T) {
+	azureKeyRef := os.Getenv("AZURE_KEY_REF")
+
+	sv, err := LoadSignerVerifier(context.Background(), azureKeyRef)
+	if err != nil {
+		t.Fatalf("LoadSignerVerifier unexpectedly returned non-nil error: %v", err)
+	}
+
+	messageToSign := "myblob"
+	signed, err := sv.SignMessage(strings.NewReader(messageToSign))
+	if err != nil {
+		t.Errorf("SignMessage unexpectedly returned non-nil error: %v", err)
+	}
+	if signed == nil || len(signed) == 0 {
+		t.Errorf("SignMessage unexpected returned nil or empty signature")
+	}
+
+	err = sv.VerifySignature(bytes.NewReader(signed), strings.NewReader(messageToSign))
+	if err != nil {
+		t.Errorf("VerifySignature unexpectedly returned non-nil error: %v", err)
 	}
 }
