@@ -9,7 +9,7 @@ permissions:
 # modules, the repo must have a tag named like '<module>/<version>'. This
 # workflow responds to pushes of tags named like "vXXX" by also tagging
 # <module>/<version> accordingly, for all sub-Go-modules.
-# 
+#
 # For example, when tagging v2.3.4, this workflow will tag the same commit with
 # pkg/signature/kms/aws/v2.3.4, so that the kms/aws module is also tagged
 # v2.3.4.
