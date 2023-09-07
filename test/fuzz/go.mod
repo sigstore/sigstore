@@ -10,7 +10,7 @@ require (
 )
 
 require (
-	github.com/cyphar/filepath-securejoin v0.2.3 // indirect
+	github.com/cyphar/filepath-securejoin v0.2.4 // indirect
 	github.com/elazarl/go-bindata-assetfs v1.0.1 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/google/go-containerregistry v0.16.1 // indirect
