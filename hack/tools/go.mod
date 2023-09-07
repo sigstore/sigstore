@@ -9,7 +9,7 @@ require (
 
 require (
 	github.com/containerd/stargz-snapshotter/estargz v0.10.0 // indirect
-	github.com/cyphar/filepath-securejoin v0.2.3 // indirect
+	github.com/cyphar/filepath-securejoin v0.2.4 // indirect
 	github.com/google/go-containerregistry v0.7.0 // indirect
 	github.com/klauspost/compress v1.13.6 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
