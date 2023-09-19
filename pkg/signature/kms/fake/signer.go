@@ -153,3 +153,7 @@ func (g *SignerVerifier) SupportedAlgorithms() (result []string) {
 func (g *SignerVerifier) DefaultAlgorithm() string {
 	return "ecdsa-p256-sha256"
 }
+
+func (g *SignerVerifier) HashFunc() crypto.Hash {
+	return crypto.SHA256
+}

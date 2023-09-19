@@ -44,7 +44,12 @@ var awsSupportedHashFuncs = []crypto.Hash{
 
 // SignerVerifier is a signature.SignerVerifier that uses the AWS Key Management Service
 type SignerVerifier struct {
-	client *awsClient
+	client   *awsClient
+	hashFunc crypto.Hash
+}
+
+func (sv SignerVerifier) HashFunc() crypto.Hash {
+	return sv.hashFunc
 }
 
 // LoadSignerVerifier generates signatures using the specified key object in AWS KMS and hash algorithm.
@@ -58,6 +63,13 @@ func LoadSignerVerifier(ctx context.Context, referenceStr string, opts ...func(*
 	if err != nil {
 		return nil, err
 	}
+
+	hashFunc, err := a.client.getHashFunc(context.Background())
+	if err != nil {
+		return nil, err
+	}
+
+	a.hashFunc = hashFunc
 
 	return a, nil
 }

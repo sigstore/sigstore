@@ -56,6 +56,10 @@ type SignerVerifier struct {
 	client     *azureVaultClient
 }
 
+func (sv SignerVerifier) HashFunc() crypto.Hash {
+	return sv.hashFunc
+}
+
 // LoadSignerVerifier generates signatures using the specified key in Azure Key Vault and hash algorithm.
 //
 // It also can verify signatures locally using the public key. hashFunc must not be crypto.Hash(0).
