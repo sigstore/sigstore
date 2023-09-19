@@ -23,6 +23,7 @@ import (
 	"io"
 
 	"github.com/sigstore/sigstore/pkg/signature"
+	"github.com/sigstore/sigstore/pkg/signature/kms"
 	"github.com/sigstore/sigstore/pkg/signature/options"
 	"google.golang.org/api/option"
 )
@@ -180,7 +181,7 @@ func (c cryptoSignerWrapper) Sign(_ io.Reader, digest []byte, opts crypto.Signer
 
 // CryptoSigner returns a crypto.Signer object that uses the underlying SignerVerifier, along with a crypto.SignerOpts object
 // that allows the KMS to be used in APIs that only accept the standard golang objects
-func (g *SignerVerifier) CryptoSigner(ctx context.Context, errFunc func(error)) (crypto.Signer, crypto.SignerOpts, error) {
+func (g *SignerVerifier) CryptoSigner(ctx context.Context, errFunc func(error)) (kms.CryptoSignerWrapper, crypto.SignerOpts, error) {
 	defaultHf, err := g.client.getHashFunc()
 	if err != nil {
 		return nil, nil, fmt.Errorf("getting fetching default hash function: %w", err)

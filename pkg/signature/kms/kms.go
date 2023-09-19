@@ -73,7 +73,7 @@ func SupportedProviders() []string {
 type SignerVerifier interface {
 	signature.SignerVerifier
 	CreateKey(ctx context.Context, algorithm string) (crypto.PublicKey, error)
-	CryptoSigner(ctx context.Context, errFunc func(error)) (crypto.Signer, crypto.SignerOpts, error)
+	CryptoSigner(ctx context.Context, errFunc func(error)) (CryptoSignerWrapper, crypto.SignerOpts, error)
 	SupportedAlgorithms() []string
 	DefaultAlgorithm() string
 	HashFunc() crypto.Hash
