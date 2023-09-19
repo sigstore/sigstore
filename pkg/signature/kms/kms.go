@@ -79,7 +79,7 @@ type SignerVerifier interface {
 	HashFunc() crypto.Hash
 }
 
-type cryptoSignerWrapper interface {
+type CryptoSignerWrapper interface {
 	crypto.Signer
 	HashFunc() crypto.Hash
 	Public() crypto.PublicKey
