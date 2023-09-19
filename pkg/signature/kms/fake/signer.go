@@ -109,6 +109,10 @@ type cryptoSignerWrapper struct {
 	errFunc  func(error)
 }
 
+func (c cryptoSignerWrapper) HashFunc() crypto.Hash {
+	return c.hashFunc
+}
+
 func (c cryptoSignerWrapper) Public() crypto.PublicKey {
 	pk, err := c.sv.PublicKey(options.WithContext(c.ctx))
 	if err != nil && c.errFunc != nil {
