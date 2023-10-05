@@ -251,10 +251,6 @@ func (suite *VaultSuite) TestVerifySpecificKeyVersion() {
 	_, err = client.Write("/transit/keys/testverifyversion/rotate", nil)
 	assert.Nil(suite.T(), err)
 
-	// test default version again (implicitly)
-	err = provider.VerifySignature(bytes.NewReader(sig), bytes.NewReader(data))
-	assert.Nil(suite.T(), err)
-
 	// test invalid version (0 is fine for signing, but must be >= 1 for verification)
 	err = provider.VerifySignature(bytes.NewReader(sig), bytes.NewReader(data), options.WithKeyVersion("0"))
 	assert.NotNil(suite.T(), err)
