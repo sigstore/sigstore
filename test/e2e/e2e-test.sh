@@ -69,5 +69,6 @@ do
   cd $dir && go test -tags e2e -count=1 ./...
   cd ../../../../
 done
+cd test/e2e
 
 cleanup
