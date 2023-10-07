@@ -63,5 +63,11 @@ export OIDC_ISSUER=http://127.0.0.1:5556/auth
 export OIDC_ID=sigstore
 
 go test -tags e2e -count=1 ../../...
+cd ../..
+for dir in $(find pkg/signature/kms/ -name go.mod | sed -e 's/go\.mod//g')
+do
+  cd $dir && go test -tags e2e -count=1 ./...
+  cd ../../../../
+done
 
 cleanup
