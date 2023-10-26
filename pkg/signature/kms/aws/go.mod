@@ -7,7 +7,7 @@ go 1.20
 require (
 	github.com/aws/aws-sdk-go v1.46.3
 	github.com/aws/aws-sdk-go-v2 v1.21.2
-	github.com/aws/aws-sdk-go-v2/config v1.19.0
+	github.com/aws/aws-sdk-go-v2/config v1.19.1
 	github.com/aws/aws-sdk-go-v2/service/kms v1.24.7
 	github.com/jellydator/ttlcache/v3 v3.1.0
 	github.com/sigstore/sigstore v1.6.4
