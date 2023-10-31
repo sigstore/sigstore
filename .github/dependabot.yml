@@ -6,6 +6,11 @@ updates:
     schedule:
       interval: "daily"
     open-pull-requests-limit: 10
+    groups:
+      all:
+        update-types:
+        - "minor"
+        - "patch"
 
   # hack/tools/go.mod
   - package-ecosystem: gomod
@@ -13,6 +18,11 @@ updates:
     schedule:
       interval: "daily"
     open-pull-requests-limit: 10
+    groups:
+      all:
+        update-types:
+        - "minor"
+        - "patch"
 
   # test/fuzz/go.mod
   - package-ecosystem: gomod
@@ -20,6 +30,11 @@ updates:
     schedule:
       interval: "daily"
     open-pull-requests-limit: 10
+    groups:
+      all:
+        update-types:
+        - "minor"
+        - "patch"
 
   # pkg/signature/kms/aws/go.mod
   - package-ecosystem: gomod
@@ -27,6 +42,11 @@ updates:
     schedule:
       interval: "daily"
     open-pull-requests-limit: 10
+    groups:
+      all:
+        update-types:
+        - "minor"
+        - "patch"
 
   # pkg/signature/kms/azure/go.mod
   - package-ecosystem: gomod
@@ -34,6 +54,11 @@ updates:
     schedule:
       interval: "daily"
     open-pull-requests-limit: 10
+    groups:
+      all:
+        update-types:
+        - "minor"
+        - "patch"
 
   # pkg/signature/kms/gcp/go.mod
   - package-ecosystem: gomod
@@ -41,6 +66,11 @@ updates:
     schedule:
       interval: "daily"
     open-pull-requests-limit: 10
+    groups:
+      all:
+        update-types:
+        - "minor"
+        - "patch"
 
   # pkg/signature/kms/hashivault/go.mod
   - package-ecosystem: gomod
@@ -48,13 +78,28 @@ updates:
     schedule:
       interval: "daily"
     open-pull-requests-limit: 10
+    groups:
+      all:
+        update-types:
+        - "minor"
+        - "patch"
 
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "daily"
+    groups:
+      all:
+        update-types:
+        - "minor"
+        - "patch"
 
   - package-ecosystem: "docker"
     directory: "/test/e2e"
     schedule:
       interval: "daily"
+    groups:
+      all:
+        update-types:
+        - "minor"
+        - "patch"
