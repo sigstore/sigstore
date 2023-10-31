@@ -159,6 +159,7 @@ func (g *SignerVerifier) DefaultAlgorithm() string {
 	return "ecdsa-p256-sha256"
 }
 
+// HashFunc returns the hash function for this object
 func (g *SignerVerifier) HashFunc() crypto.Hash {
 	return crypto.SHA256
 }

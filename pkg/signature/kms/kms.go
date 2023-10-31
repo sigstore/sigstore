@@ -79,6 +79,7 @@ type SignerVerifier interface {
 	HashFunc() crypto.Hash
 }
 
+// CryptoSignerWrapper is a wrapper interface for crypto.Signer
 type CryptoSignerWrapper interface {
 	crypto.Signer
 	HashFunc() crypto.Hash

@@ -252,10 +252,10 @@ func TestParseReference(t *testing.T) {
 			wantErr:        false,
 		},
 		{
-			in:             "azurekms://honk-vault.vault.azure.net/honk-key/1b4ef7a5f9984581b3c5ffd0ba8f96b9",
+			in:             "azurekms://honk-vault.vault.azure.net/honk-key/123abc",
 			wantVaultURL:   "https://honk-vault.vault.azure.net/",
 			wantKeyName:    "honk-key",
-			wantKeyVersion: "1b4ef7a5f9984581b3c5ffd0ba8f96b9",
+			wantKeyVersion: "123abc",
 			wantErr:        false,
 		},
 		{
