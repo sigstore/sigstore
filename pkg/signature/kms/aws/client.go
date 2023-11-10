@@ -136,9 +136,12 @@ func (a *awsClient) setupClient(ctx context.Context, opts ...func(*config.LoadOp
 	if a.endpoint != "" {
 		opts = append(opts, config.WithEndpointResolverWithOptions(
 			aws.EndpointResolverWithOptionsFunc(func(service, region string, options ...interface{}) (aws.Endpoint, error) {
-				return aws.Endpoint{
-					URL: "https://" + a.endpoint,
-				}, nil
+				if service == kms.ServiceID {
+					return aws.Endpoint{
+						URL: "https://" + a.endpoint,
+					}, nil
+				}
+				return aws.Endpoint{}, nil
 			}),
 		))
 	}
