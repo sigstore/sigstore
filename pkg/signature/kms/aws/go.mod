@@ -5,7 +5,7 @@ replace github.com/sigstore/sigstore => ../../../../
 go 1.20
 
 require (
-	github.com/aws/aws-sdk-go v1.47.8
+	github.com/aws/aws-sdk-go v1.47.9
 	github.com/aws/aws-sdk-go-v2 v1.22.2
 	github.com/aws/aws-sdk-go-v2/config v1.23.0
 	github.com/aws/aws-sdk-go-v2/service/kms v1.26.1
