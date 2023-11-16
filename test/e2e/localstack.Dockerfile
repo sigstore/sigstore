@@ -13,4 +13,4 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-FROM docker.io/localstack/localstack:2.3.2
+FROM docker.io/localstack/localstack:3.0.0
