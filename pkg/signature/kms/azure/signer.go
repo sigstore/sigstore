@@ -70,11 +70,6 @@ func LoadSignerVerifier(defaultCtx context.Context, referenceStr string) (*Signe
 		return nil, err
 	}
 
-	a.hashFunc, _, err = a.client.getKeyVaultHashFunc(defaultCtx)
-	if err != nil {
-		return nil, err
-	}
-
 	return a, nil
 }
 
@@ -142,14 +137,19 @@ func (a *SignerVerifier) SignMessage(message io.Reader, opts ...signature.SignOp
 //
 // All other options are ignored if specified.
 func (a *SignerVerifier) VerifySignature(sig, message io.Reader, opts ...signature.VerifyOption) error {
+	hashFunc, _, err := a.client.getKeyVaultHashFunc(context.Background())
+	if err != nil {
+		return err
+	}
+
 	ctx := context.Background()
 	var digest []byte
-	var signerOpts crypto.SignerOpts = a.hashFunc
+	var signerOpts crypto.SignerOpts = hashFunc
 	for _, opt := range opts {
 		opt.ApplyDigest(&digest)
 	}
 
-	digest, _, err := signature.ComputeDigestForVerifying(message, signerOpts.HashFunc(), azureSupportedHashFuncs, opts...)
+	digest, _, err = signature.ComputeDigestForVerifying(message, signerOpts.HashFunc(), azureSupportedHashFuncs, opts...)
 	if err != nil {
 		return err
 	}
@@ -223,14 +223,19 @@ func (c cryptoSignerWrapper) Sign(_ io.Reader, digest []byte, opts crypto.Signer
 // CryptoSigner returns a crypto.Signer object that uses the underlying SignerVerifier, along with a crypto.SignerOpts object
 // that allows the KMS to be used in APIs that only accept the standard golang objects
 func (a *SignerVerifier) CryptoSigner(ctx context.Context, errFunc func(error)) (crypto.Signer, crypto.SignerOpts, error) {
+	hashFunc, _, err := a.client.getKeyVaultHashFunc(context.Background())
+	if err != nil {
+		return nil, nil, err
+	}
+
 	csw := &cryptoSignerWrapper{
 		ctx:      ctx,
 		sv:       a,
-		hashFunc: a.hashFunc,
+		hashFunc: hashFunc,
 		errFunc:  errFunc,
 	}
 
-	return csw, a.hashFunc, nil
+	return csw, hashFunc, nil
 }
 
 // SupportedAlgorithms returns the list of algorithms supported by the Azure KMS service
