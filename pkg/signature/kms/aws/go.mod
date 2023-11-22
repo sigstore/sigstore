@@ -5,9 +5,9 @@ replace github.com/sigstore/sigstore => ../../../../
 go 1.20
 
 require (
-	github.com/aws/aws-sdk-go v1.48.1
+	github.com/aws/aws-sdk-go v1.48.2
 	github.com/aws/aws-sdk-go-v2 v1.23.1
-	github.com/aws/aws-sdk-go-v2/config v1.25.4
+	github.com/aws/aws-sdk-go-v2/config v1.25.5
 	github.com/aws/aws-sdk-go-v2/service/kms v1.26.3
 	github.com/jellydator/ttlcache/v3 v3.1.0
 	github.com/sigstore/sigstore v1.6.4
@@ -15,7 +15,7 @@ require (
 )
 
 require (
-	github.com/aws/aws-sdk-go-v2/credentials v1.16.3 // indirect
+	github.com/aws/aws-sdk-go-v2/credentials v1.16.4 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.14.5 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/configsources v1.2.4 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.5.4 // indirect
