@@ -332,8 +332,7 @@ func (a *azureVaultClient) createKey(ctx context.Context) (crypto.PublicKey, err
 	// returned a 404, we know that the key does not exist
 	// and we can create it.
 	var respErr *azcore.ResponseError
-	ok := errors.As(err, &respErr)
-	if !ok {
+	if ok := errors.As(err, &respErr); !ok {
 		return nil, fmt.Errorf("unexpected error during get key operation: %w", err)
 	}
 
