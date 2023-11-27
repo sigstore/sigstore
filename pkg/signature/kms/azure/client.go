@@ -320,7 +320,10 @@ func (a *azureVaultClient) public(ctx context.Context) (crypto.PublicKey, error)
 }
 
 func (a *azureVaultClient) createKey(ctx context.Context) (crypto.PublicKey, error) {
+	// check if the key already exists by attempting to fetch it
 	_, err := a.getKey(ctx)
+	// if the error is nil, this means the key already exists
+	// and we can return the public key
 	if err == nil {
 		return a.public(ctx)
 	}
