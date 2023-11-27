@@ -17,20 +17,27 @@ package azure
 
 import (
 	"context"
+	"crypto"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/rsa"
+	"errors"
 	"fmt"
+	"net/http"
 	"os"
 	"testing"
 
+	"github.com/jellydator/ttlcache/v3"
+
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/to"
 	"github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azkeys"
 )
 
 type testKVClient struct {
 	key azkeys.JSONWebKey
+	keyCache   *ttlcache.Cache[string, crypto.PublicKey]
 }
 
 func (c *testKVClient) CreateKey(_ context.Context, _ string, _ azkeys.CreateKeyParameters, _ *azkeys.CreateKeyOptions) (result azkeys.CreateKeyResponse, err error) {
@@ -46,6 +53,9 @@ func (c *testKVClient) CreateKey(_ context.Context, _ string, _ azkeys.CreateKey
 
 func (c *testKVClient) GetKey(_ context.Context, _, _ string, _ *azkeys.GetKeyOptions) (result azkeys.GetKeyResponse, err error) {
 	result.Key = &c.key
+	result.KeyBundle = azkeys.KeyBundle{
+		Key: &c.key,
+	}
 
 	return result, nil
 }
@@ -56,6 +66,45 @@ func (c *testKVClient) Sign(_ context.Context, _, _ string, _ azkeys.SignParamet
 
 func (c *testKVClient) Verify(_ context.Context, _, _ string, _ azkeys.VerifyParameters, _ *azkeys.VerifyOptions) (result azkeys.VerifyResponse, err error) {
 	return result, nil
+}
+
+type keyNotFoundClient struct {
+	testKVClient
+	key azkeys.JSONWebKey
+	keyCache   *ttlcache.Cache[string, crypto.PublicKey]
+}
+
+func (c *keyNotFoundClient) GetKey(_ context.Context, _, _ string, _ *azkeys.GetKeyOptions) (result azkeys.GetKeyResponse, err error) {
+	err = &azcore.ResponseError{
+		StatusCode: http.StatusNotFound,
+	}
+
+	return result, err
+}
+
+type nonResponseErrClient struct {
+	testKVClient
+	key azkeys.JSONWebKey
+	keyCache   *ttlcache.Cache[string, crypto.PublicKey]
+}
+
+func (c *nonResponseErrClient) GetKey(_ context.Context, _, _ string, _ *azkeys.GetKeyOptions) (result azkeys.GetKeyResponse, err error) {
+	err = errors.New("unexpected error")
+	return result, err
+}
+
+type non404RespClient struct {
+	testKVClient
+	key azkeys.JSONWebKey
+	keyCache   *ttlcache.Cache[string, crypto.PublicKey]
+}
+
+func (c *non404RespClient) GetKey(_ context.Context, _, _ string, _ *azkeys.GetKeyOptions) (result azkeys.GetKeyResponse, err error) {
+	err = &azcore.ResponseError{
+		StatusCode: http.StatusServiceUnavailable,
+	}
+
+	return result, err
 }
 
 func generatePublicKey(azureKeyType string) (azkeys.JSONWebKey, error) {
@@ -143,6 +192,76 @@ func TestAzureVaultClientFetchPublicKey(t *testing.T) {
 		}
 
 		_, err = client.fetchPublicKey(context.Background())
+		if err != nil && tc.expectSuccess {
+			t.Fatalf("expected error to be nil, actual value: %v", err)
+		}
+		if err == nil && !tc.expectSuccess {
+			t.Fatal("expected error not to be nil")
+		}
+	}
+}
+
+func TestAzureVaultClientCreateKey(t *testing.T) {
+	type test struct {
+		name string
+		client  kvClient
+		expectSuccess bool
+	}
+
+	key, err := generatePublicKey("EC")
+	if err != nil {
+		t.Fatalf("unexpected error while generating public key for testing: %v", err)
+	}
+
+	tests := []test{
+		{
+			name: "Successfully create key if it doesn't exist",
+			client: &keyNotFoundClient{
+				key: key,
+				keyCache: ttlcache.New[string, crypto.PublicKey](
+					ttlcache.WithDisableTouchOnHit[string, crypto.PublicKey](),
+				),
+			},
+			expectSuccess: true,
+		},
+		{
+			name: "Return public key if it already exists",
+			client:  &testKVClient{
+				key: key,
+				keyCache: ttlcache.New[string, crypto.PublicKey](
+					ttlcache.WithDisableTouchOnHit[string, crypto.PublicKey](),
+				),
+			},
+			expectSuccess: true,
+		},
+		{
+			name: "Fail to create key due to unknown error",
+			client:  &nonResponseErrClient{
+				key: key,
+				keyCache: ttlcache.New[string, crypto.PublicKey](
+					ttlcache.WithDisableTouchOnHit[string, crypto.PublicKey](),
+				),
+			},
+			expectSuccess: false,
+		},
+		{
+			name: "Fail to create key due to non-404 status code error",
+			client:  &non404RespClient{
+				key: key,
+				keyCache: ttlcache.New[string, crypto.PublicKey](
+					ttlcache.WithDisableTouchOnHit[string, crypto.PublicKey](),
+				),
+			},
+			expectSuccess: false,
+		},
+	}
+
+	for _, tc := range tests {
+		client := azureVaultClient{
+			client: tc.client,
+		}
+
+		_, err = client.createKey(context.Background())
 		if err != nil && tc.expectSuccess {
 			t.Fatalf("expected error to be nil, actual value: %v", err)
 		}
