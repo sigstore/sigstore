@@ -77,20 +77,6 @@ type keyNotFoundClient struct {
 	getKeyCallCount int
 }
 
-func (c *keyNotFoundClient) CreateKey(_ context.Context, _ string, _ azkeys.CreateKeyParameters, _ *azkeys.CreateKeyOptions) (azkeys.CreateKeyResponse, error) {
-	key, err := generatePublicKey("EC")
-	if err != nil {
-		return azkeys.CreateKeyResponse{}, err
-	}
-	c.key = key
-
-	return azkeys.CreateKeyResponse{
-		KeyBundle: azkeys.KeyBundle{
-			Key: &key,
-		},
-	}, nil
-}
-
 func (c *keyNotFoundClient) GetKey(_ context.Context, _, _ string, _ *azkeys.GetKeyOptions) (azkeys.GetKeyResponse, error) {
 	if c.getKeyReturnsErr && c.getKeyCallCount < c.getKeyCallThreshold {
 		c.getKeyCallCount++
