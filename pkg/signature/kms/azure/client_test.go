@@ -239,15 +239,15 @@ func TestAzureVaultClientCreateKey(t *testing.T) {
 	}
 
 	tests := []test{
-		// {
-		// 	name: "Successfully create key if it doesn't exist",
-		// 	client: &keyNotFoundClient{
-		// 		key: key,
-		// 		getKeyReturnsErr: true,
-		// 		getKeyCallThreshold: 1,
-		// 	},
-		// 	expectSuccess: true,
-		// },
+		{
+			name: "Successfully create key if it doesn't exist",
+			client: &keyNotFoundClient{
+				key: key,
+				getKeyReturnsErr: true,
+				getKeyCallThreshold: 1,
+			},
+			expectSuccess: true,
+		},
 		{
 			name: "Return public key if it already exists",
 			client:  &testKVClient{
