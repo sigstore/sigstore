@@ -336,13 +336,13 @@ func (a *azureVaultClient) createKey(ctx context.Context) (crypto.PublicKey, err
 	// and we can create it.
 	var respErr *azcore.ResponseError
 	if ok := errors.As(err, &respErr); !ok {
-		return nil, fmt.Errorf("unexpected error during get key operation: %w", err)
+		return nil, fmt.Errorf("unexpected error returned by get key operation: %w", err)
 	}
 
 	// if a non-404 status code is returned, return the error
 	// since this is an unexpected error response
 	if respErr.StatusCode != http.StatusNotFound {
-		return nil, fmt.Errorf("unexpected status code returned during get key operation: %w", err)
+		return nil, fmt.Errorf("unexpected status code returned by get key operation: %w", err)
 	}
 
 	// if a 404 was returned, then we can create the key

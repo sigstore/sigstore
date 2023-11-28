@@ -95,7 +95,6 @@ func (c *keyNotFoundClient) GetKey(_ context.Context, _, _ string, _ *azkeys.Get
 
 type nonResponseErrClient struct {
 	testKVClient
-	key azkeys.JSONWebKey
 	keyCache   *ttlcache.Cache[string, crypto.PublicKey]
 }
 
@@ -106,7 +105,6 @@ func (c *nonResponseErrClient) GetKey(_ context.Context, _, _ string, _ *azkeys.
 
 type non404RespClient struct {
 	testKVClient
-	key azkeys.JSONWebKey
 	keyCache   *ttlcache.Cache[string, crypto.PublicKey]
 }
 
@@ -243,16 +241,12 @@ func TestAzureVaultClientCreateKey(t *testing.T) {
 		},
 		{
 			name: "Fail to create key due to unknown error",
-			client:  &nonResponseErrClient{
-				key: key,
-			},
+			client:  &nonResponseErrClient{},
 			expectSuccess: false,
 		},
 		{
 			name: "Fail to create key due to non-404 status code error",
-			client:  &non404RespClient{
-				key: key,
-			},
+			client:  &non404RespClient{},
 			expectSuccess: false,
 		},
 	}
@@ -267,10 +261,10 @@ func TestAzureVaultClientCreateKey(t *testing.T) {
 
 		_, err = client.createKey(context.Background())
 		if err != nil && tc.expectSuccess {
-			t.Fatalf("expected error to be nil, actual value: %v", err)
+			t.Fatalf("Test '%s' failed. Expected nil error, actual value: %v", tc.name, err)
 		}
 		if err == nil && !tc.expectSuccess {
-			t.Fatal("expected error not to be nil")
+			t.Fatalf("Test '%s' failed. Expected non-nil error", tc.name)
 		}
 	}
 }
