@@ -112,6 +112,27 @@ func TestLoadSignerVerifier(t *testing.T) {
 	}
 }
 
+func TestCreateKey(t *testing.T) {
+	azureKeyRef := os.Getenv("AZURE_KEY_REF")
+
+	sv, err := LoadSignerVerifier(context.Background(), azureKeyRef)
+	if err != nil {
+		t.Fatalf("LoadSignerVerifier unexpectedly returned non-nil error: %v", err)
+	}
+
+	publicKey, err := sv.client.createKey(context.Background())
+	if err != nil {
+		t.Errorf("getKey failed with error: %v", err)
+	}
+	if publicKey == nil {
+		t.Errorf("public key is nil")
+	}
+
+	if _, ok := publicKey.(*ecdsa.PublicKey); !ok {
+		t.Errorf("expected public key to be of type *ecdsa.PublicKey, got %T", publicKey)
+	}
+}
+
 func TestGetKey(t *testing.T) {
 	azureKeyRef := os.Getenv("AZURE_KEY_REF")
 
