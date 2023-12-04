@@ -112,6 +112,32 @@ func TestLoadSignerVerifier(t *testing.T) {
 	}
 }
 
+func TestCreateKey(t *testing.T) {
+	azureVaultURL := os.Getenv("VAULT_URL")
+	if azureVaultURL == "" {
+		t.Fatalf("VAULT_URL must be set")
+	}
+	
+	newKeyRef := fmt.Sprintf("azurekms://%s.vault.azure.net/%s", azureVaultURL, "new-test-key")
+
+	sv, err := LoadSignerVerifier(context.Background(), newKeyRef)
+	if err != nil {
+		t.Fatalf("LoadSignerVerifier unexpectedly returned non-nil error: %v", err)
+	}
+
+	publicKey, err := sv.client.createKey(context.Background())
+	if err != nil {
+		t.Errorf("getKey failed with error: %v", err)
+	}
+	if publicKey == nil {
+		t.Errorf("public key is nil")
+	}
+
+	if _, ok := publicKey.(*ecdsa.PublicKey); !ok {
+		t.Errorf("expected public key to be of type *ecdsa.PublicKey")
+	}
+}
+
 func TestGetKey(t *testing.T) {
 	azureKeyRef := os.Getenv("AZURE_KEY_REF")
 
