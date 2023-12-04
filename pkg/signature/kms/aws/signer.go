@@ -65,7 +65,7 @@ func LoadSignerVerifier(ctx context.Context, referenceStr string, opts ...func(*
 		return nil, err
 	}
 
-	hashFunc, err := a.client.getHashFunc(context.Background())
+	hashFunc, err := a.client.getHashFunc(ctx)
 	if err != nil {
 		return nil, err
 	}
