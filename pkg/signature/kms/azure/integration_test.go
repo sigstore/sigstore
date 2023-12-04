@@ -120,7 +120,7 @@ func TestCreateKey(t *testing.T) {
 	
 	newKeyRef := fmt.Sprintf("azurekms://%s.vault.azure.net/%s", azureVaultURL, "new-test-key")
 
-	sv, err := LoadSignerVerifier(context.Background(), azureKeyRef)
+	sv, err := LoadSignerVerifier(context.Background(), newKeyRef)
 	if err != nil {
 		t.Fatalf("LoadSignerVerifier unexpectedly returned non-nil error: %v", err)
 	}
