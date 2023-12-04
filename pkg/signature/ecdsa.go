@@ -50,10 +50,6 @@ type ECDSASigner struct {
 	priv     *ecdsa.PrivateKey
 }
 
-// func (e ECDSASigner) HashFunc() crypto.Hash {
-// 	return e.hashFunc
-// }
-
 // LoadECDSASigner calculates signatures using the specified private key and hash algorithm.
 //
 // hf must not be crypto.Hash(0).

@@ -83,6 +83,6 @@ type SignerVerifier interface {
 type CryptoSignerWrapper interface {
 	crypto.Signer
 	HashFunc() crypto.Hash
-	Public() crypto.PublicKey
-	Sign(_ io.Reader, digest []byte, opts crypto.SignerOpts) ([]byte, error)
+	// Public() crypto.PublicKey
+	// Sign(_ io.Reader, digest []byte, opts crypto.SignerOpts) ([]byte, error)
 }
