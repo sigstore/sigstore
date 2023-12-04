@@ -134,7 +134,7 @@ func TestCreateKey(t *testing.T) {
 	}
 
 	if _, ok := publicKey.(*ecdsa.PublicKey); !ok {
-		t.Errorf("expected public key to be of type *ecdsa.PublicKey, got %T", publicKey)
+		t.Errorf("expected public key to be of type *ecdsa.PublicKey")
 	}
 }
 
