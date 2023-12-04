@@ -113,8 +113,12 @@ func TestLoadSignerVerifier(t *testing.T) {
 }
 
 func TestCreateKey(t *testing.T) {
-	// The key referenced in AZURE_KEY_REF should not exist yet
-	azureKeyRef := os.Getenv("AZURE_KEY_REF")
+	azureVaultURL := os.Getenv("VAULT_URL")
+	if azureVaultURL == "" {
+		t.Fatalf("VAULT_URL must be set")
+	}
+	
+	newKeyRef := fmt.Sprintf("azurekms://%s.vault.azure.net/%s", azureVaultURL, "new-test-key")
 
 	sv, err := LoadSignerVerifier(context.Background(), azureKeyRef)
 	if err != nil {
