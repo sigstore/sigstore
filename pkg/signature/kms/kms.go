@@ -20,7 +20,7 @@ import (
 	"context"
 	"crypto"
 	"fmt"
-	"io"
+	// "io"
 	"strings"
 
 	"github.com/sigstore/sigstore/pkg/signature"
