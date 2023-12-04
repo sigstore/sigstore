@@ -20,7 +20,6 @@ import (
 	"context"
 	"crypto"
 	"fmt"
-	// "io"
 	"strings"
 
 	"github.com/sigstore/sigstore/pkg/signature"
@@ -83,6 +82,4 @@ type SignerVerifier interface {
 type CryptoSignerWrapper interface {
 	crypto.Signer
 	HashFunc() crypto.Hash
-	// Public() crypto.PublicKey
-	// Sign(_ io.Reader, digest []byte, opts crypto.SignerOpts) ([]byte, error)
 }
