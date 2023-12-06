@@ -9,7 +9,7 @@ require (
 	github.com/go-test/deep v1.1.0
 	github.com/google/go-cmp v0.6.0
 	github.com/google/go-containerregistry v0.16.1
-	github.com/letsencrypt/boulder v0.0.0-20231205003510-124d2eb5d371
+	github.com/letsencrypt/boulder v0.0.0-20230907030200-6d76a0f91e1e
 	github.com/pkg/browser v0.0.0-20210911075715-681adbf594b8
 	github.com/secure-systems-lab/go-securesystemslib v0.7.0
 	github.com/segmentio/ksuid v1.0.4
