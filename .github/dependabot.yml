@@ -4,7 +4,7 @@ updates:
   - package-ecosystem: gomod
     directory: "/"
     schedule:
-      interval: "daily"
+      interval: "weekly"
     open-pull-requests-limit: 10
     groups:
       all:
@@ -16,7 +16,7 @@ updates:
   - package-ecosystem: gomod
     directory: "./hack/tools"
     schedule:
-      interval: "daily"
+      interval: "weekly"
     open-pull-requests-limit: 10
     groups:
       all:
@@ -28,7 +28,7 @@ updates:
   - package-ecosystem: gomod
     directory: "./test/fuzz"
     schedule:
-      interval: "daily"
+      interval: "weekly"
     open-pull-requests-limit: 10
     groups:
       all:
@@ -40,7 +40,7 @@ updates:
   - package-ecosystem: gomod
     directory: "./pkg/signature/kms/aws"
     schedule:
-      interval: "daily"
+      interval: "weekly"
     open-pull-requests-limit: 10
     groups:
       all:
@@ -52,7 +52,7 @@ updates:
   - package-ecosystem: gomod
     directory: "./pkg/signature/kms/azure"
     schedule:
-      interval: "daily"
+      interval: "weekly"
     open-pull-requests-limit: 10
     groups:
       all:
@@ -64,7 +64,7 @@ updates:
   - package-ecosystem: gomod
     directory: "./pkg/signature/kms/gcp"
     schedule:
-      interval: "daily"
+      interval: "weekly"
     open-pull-requests-limit: 10
     groups:
       all:
@@ -76,7 +76,7 @@ updates:
   - package-ecosystem: gomod
     directory: "./pkg/signature/kms/hashivault"
     schedule:
-      interval: "daily"
+      interval: "weekly"
     open-pull-requests-limit: 10
     groups:
       all:
@@ -87,7 +87,7 @@ updates:
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "daily"
+      interval: "weekly"
     groups:
       all:
         update-types:
@@ -97,7 +97,7 @@ updates:
   - package-ecosystem: "docker"
     directory: "/test/e2e"
     schedule:
-      interval: "daily"
+      interval: "weekly"
     groups:
       all:
         update-types:
