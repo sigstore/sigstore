@@ -12,7 +12,7 @@ require (
 	github.com/google/go-cmp v0.6.0
 	github.com/jellydator/ttlcache/v3 v3.1.1
 	github.com/sigstore/sigstore v1.6.4
-	golang.org/x/crypto v0.16.0
+	golang.org/x/crypto v0.17.0
 )
 
 require (
