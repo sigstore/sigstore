@@ -198,24 +198,24 @@ func TestValidatePubKeyRsa(t *testing.T) {
 	if err != nil {
 		t.Fatalf("rsa.GenerateKey failed: %v", err)
 	}
-	if err := ValidatePubKey(priv.Public()); err == nil || err.Error() != "key too small: 1024" {
-		t.Errorf("expected rsa key size too small, got %v", err)
+	if err := ValidatePubKey(priv.Public()); err == nil || err.Error() != "key size not supported: 1024" {
+		t.Errorf("expected rsa key size not supported, got %v", err)
 	}
 	// Fails with large key size
 	priv, err = rsa.GenerateKey(rand.Reader, 5000)
 	if err != nil {
 		t.Fatalf("rsa.GenerateKey failed: %v", err)
 	}
-	if err := ValidatePubKey(priv.Public()); err == nil || err.Error() != "key too large: 5000 > 4096" {
-		t.Errorf("expected rsa key size too large, got %v", err)
+	if err := ValidatePubKey(priv.Public()); err == nil || err.Error() != "key size not supported: 5000" {
+		t.Errorf("expected rsa key size not supported, got %v", err)
 	}
 	// Fails with key size that's not a multiple of 8
 	priv, err = rsa.GenerateKey(rand.Reader, 4095)
 	if err != nil {
 		t.Fatalf("rsa.GenerateKey failed: %v", err)
 	}
-	if err := ValidatePubKey(priv.Public()); err == nil || err.Error() != "key length wasn't a multiple of 8: 4095" {
-		t.Errorf("expected rsa key multiple error, got %v", err)
+	if err := ValidatePubKey(priv.Public()); err == nil || err.Error() != "key size not supported: 4095" {
+		t.Errorf("expected rsa key size not supported, got %v", err)
 	}
 }
 
