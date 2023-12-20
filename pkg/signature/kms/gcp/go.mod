@@ -6,7 +6,7 @@ go 1.20
 
 require (
 	cloud.google.com/go/kms v1.15.5
-	github.com/jellydator/ttlcache/v3 v3.1.0
+	github.com/jellydator/ttlcache/v3 v3.1.1
 	github.com/sigstore/sigstore v1.6.4
 	golang.org/x/oauth2 v0.15.0
 	google.golang.org/api v0.154.0
