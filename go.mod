@@ -18,7 +18,7 @@ require (
 	github.com/theupdateframework/go-tuf v0.7.0
 	golang.org/x/crypto v0.17.0
 	golang.org/x/oauth2 v0.15.0
-	golang.org/x/term v0.15.0
+	golang.org/x/term v0.16.0
 )
 
 require (
@@ -34,7 +34,7 @@ require (
 	github.com/ysmood/got v0.34.1 // indirect
 	github.com/ysmood/gson v0.7.3 // indirect
 	github.com/ysmood/leakless v0.8.0 // indirect
-	golang.org/x/sys v0.15.0 // indirect
+	golang.org/x/sys v0.16.0 // indirect
 	google.golang.org/appengine v1.6.8 // indirect
 	google.golang.org/protobuf v1.31.0 // indirect
 	gopkg.in/go-jose/go-jose.v2 v2.6.1 // indirect
