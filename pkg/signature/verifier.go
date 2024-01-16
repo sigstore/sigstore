@@ -40,12 +40,26 @@ type Verifier interface {
 // If publicKey is an RSA key, a RSAPKCS1v15Verifier will be returned. If a
 // RSAPSSVerifier is desired instead, use the LoadRSAPSSVerifier() method directly.
 func LoadVerifier(publicKey crypto.PublicKey, hashFunc crypto.Hash) (Verifier, error) {
+	return LoadVerifierWithOpts(publicKey, WithHash(hashFunc))
+}
+
+// LoadVerifierWithOpts returns a signature.Verifier based on the algorithm of the public key
+// provided that will use the hash function specified when computing digests.
+func LoadVerifierWithOpts(publicKey crypto.PublicKey, opts ...LoadOption) (Verifier, error) {
+	o := makeSignerVerifierOpts(opts...)
+
 	switch pk := publicKey.(type) {
 	case *rsa.PublicKey:
-		return LoadRSAPKCS1v15Verifier(pk, hashFunc)
+		if o.rsaPSSOptions != nil {
+			return LoadRSAPSSVerifier(pk, o.hashFunc, o.rsaPSSOptions)
+		}
+		return LoadRSAPKCS1v15Verifier(pk, o.hashFunc)
 	case *ecdsa.PublicKey:
-		return LoadECDSAVerifier(pk, hashFunc)
+		return LoadECDSAVerifier(pk, o.hashFunc)
 	case ed25519.PublicKey:
+		if o.useED25519ph {
+			return LoadED25519phVerifier(pk)
+		}
 		return LoadED25519Verifier(pk)
 	}
 	return nil, errors.New("unsupported public key type")
@@ -97,4 +111,20 @@ func LoadVerifierFromPEMFile(path string, hashFunc crypto.Hash) (Verifier, error
 	}
 
 	return LoadVerifier(pubKey, hashFunc)
+}
+
+// LoadVerifierFromPEMFileWithOpts returns a signature.Verifier based on the contents of a
+// file located at path. The Verifier wil use the hash function specified in the options when computing digests.
+func LoadVerifierFromPEMFileWithOpts(path string, opts ...LoadOption) (Verifier, error) {
+	fileBytes, err := os.ReadFile(filepath.Clean(path))
+	if err != nil {
+		return nil, err
+	}
+
+	pubKey, err := cryptoutils.UnmarshalPEMToPublicKey(fileBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	return LoadVerifierWithOpts(pubKey, opts...)
 }

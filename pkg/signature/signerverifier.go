@@ -39,12 +39,26 @@ type SignerVerifier interface {
 // If privateKey is an RSA key, a RSAPKCS1v15SignerVerifier will be returned. If a
 // RSAPSSSignerVerifier is desired instead, use the LoadRSAPSSSignerVerifier() method directly.
 func LoadSignerVerifier(privateKey crypto.PrivateKey, hashFunc crypto.Hash) (SignerVerifier, error) {
+	return LoadSignerVerifierWithOpts(privateKey, WithHash(hashFunc))
+}
+
+// LoadSignerVerifierWithOpts returns a signature.SignerVerifier based on the
+// algorithm of the private key provided and the user's choice.
+func LoadSignerVerifierWithOpts(privateKey crypto.PrivateKey, opts ...LoadOption) (SignerVerifier, error) {
+	o := makeSignerVerifierOpts(opts...)
+
 	switch pk := privateKey.(type) {
 	case *rsa.PrivateKey:
-		return LoadRSAPKCS1v15SignerVerifier(pk, hashFunc)
+		if o.rsaPSSOptions != nil {
+			return LoadRSAPSSSignerVerifier(pk, o.hashFunc, o.rsaPSSOptions)
+		}
+		return LoadRSAPKCS1v15SignerVerifier(pk, o.hashFunc)
 	case *ecdsa.PrivateKey:
-		return LoadECDSASignerVerifier(pk, hashFunc)
+		return LoadECDSASignerVerifier(pk, o.hashFunc)
 	case ed25519.PrivateKey:
+		if o.useED25519ph {
+			return LoadED25519phSignerVerifier(pk)
+		}
 		return LoadED25519SignerVerifier(pk)
 	}
 	return nil, errors.New("unsupported public key type")
@@ -66,4 +80,18 @@ func LoadSignerVerifierFromPEMFile(path string, hashFunc crypto.Hash, pf cryptou
 		return nil, err
 	}
 	return LoadSignerVerifier(priv, hashFunc)
+}
+
+// LoadSignerVerifierFromPEMFileWithOpts returns a signature.SignerVerifier based on the algorithm of the private key
+// in the file. The SignerVerifier will use the hash function specified in the options when computing digests.
+func LoadSignerVerifierFromPEMFileWithOpts(path string, pf cryptoutils.PassFunc, opts ...LoadOption) (SignerVerifier, error) {
+	fileBytes, err := os.ReadFile(filepath.Clean(path))
+	if err != nil {
+		return nil, err
+	}
+	priv, err := cryptoutils.UnmarshalPEMToPrivateKey(fileBytes, pf)
+	if err != nil {
+		return nil, err
+	}
+	return LoadSignerVerifierWithOpts(priv, opts...)
 }

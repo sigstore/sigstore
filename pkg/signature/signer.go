@@ -59,12 +59,26 @@ func (s SignerOpts) HashFunc() crypto.Hash {
 // If privateKey is an RSA key, a RSAPKCS1v15Signer will be returned. If a
 // RSAPSSSigner is desired instead, use the LoadRSAPSSSigner() method directly.
 func LoadSigner(privateKey crypto.PrivateKey, hashFunc crypto.Hash) (Signer, error) {
+	return LoadSignerWithOpts(privateKey, WithHash(hashFunc))
+}
+
+// LoadSignerWithOpts returns a signature.Signer based on the algorithm of the private key
+// provided.
+func LoadSignerWithOpts(privateKey crypto.PrivateKey, opts ...LoadOption) (Signer, error) {
+	o := makeSignerVerifierOpts(opts...)
+
 	switch pk := privateKey.(type) {
 	case *rsa.PrivateKey:
-		return LoadRSAPKCS1v15Signer(pk, hashFunc)
+		if o.rsaPSSOptions != nil {
+			return LoadRSAPSSSigner(pk, o.hashFunc, o.rsaPSSOptions)
+		}
+		return LoadRSAPKCS1v15Signer(pk, o.hashFunc)
 	case *ecdsa.PrivateKey:
-		return LoadECDSASigner(pk, hashFunc)
+		return LoadECDSASigner(pk, o.hashFunc)
 	case ed25519.PrivateKey:
+		if o.useED25519ph {
+			return LoadED25519phSigner(pk)
+		}
 		return LoadED25519Signer(pk)
 	}
 	return nil, errors.New("unsupported public key type")
@@ -86,4 +100,18 @@ func LoadSignerFromPEMFile(path string, hashFunc crypto.Hash, pf cryptoutils.Pas
 		return nil, err
 	}
 	return LoadSigner(priv, hashFunc)
+}
+
+// LoadSignerFromPEMFileWithOpts returns a signature.Signer based on the algorithm of the private key
+// in the file. The Signer will use the hash function specified in the options when computing digests.
+func LoadSignerFromPEMFileWithOpts(path string, pf cryptoutils.PassFunc, opts ...LoadOption) (Signer, error) {
+	fileBytes, err := os.ReadFile(filepath.Clean(path))
+	if err != nil {
+		return nil, err
+	}
+	priv, err := cryptoutils.UnmarshalPEMToPrivateKey(fileBytes, pf)
+	if err != nil {
+		return nil, err
+	}
+	return LoadSignerWithOpts(priv, opts...)
 }
