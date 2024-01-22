@@ -6,7 +6,7 @@ require (
 	github.com/AdaLogics/go-fuzz-headers v0.0.0-20211102141018-f7be0cbad29c
 	github.com/dvyukov/go-fuzz v0.0.0-20210914135545-4980593459a1
 	github.com/secure-systems-lab/go-securesystemslib v0.8.0
-	github.com/sigstore/sigstore v1.8.0
+	github.com/sigstore/sigstore v1.8.1
 )
 
 require (
@@ -18,10 +18,10 @@ require (
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/stephens2424/writerset v1.0.2 // indirect
 	github.com/titanous/rocacheck v0.0.0-20171023193734-afe73141d399 // indirect
-	golang.org/x/crypto v0.17.0 // indirect
+	golang.org/x/crypto v0.18.0 // indirect
 	golang.org/x/mod v0.10.0 // indirect
-	golang.org/x/sys v0.15.0 // indirect
-	golang.org/x/term v0.15.0 // indirect
+	golang.org/x/sys v0.16.0 // indirect
+	golang.org/x/term v0.16.0 // indirect
 	golang.org/x/tools v0.9.1 // indirect
 	google.golang.org/grpc v1.56.3 // indirect
 	gopkg.in/go-jose/go-jose.v2 v2.6.1 // indirect
