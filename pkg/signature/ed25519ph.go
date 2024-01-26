@@ -30,8 +30,7 @@ var ed25519phSupportedHashFuncs = []crypto.Hash{
 	crypto.SHA512,
 }
 
-// ED25519phSigner is a signature.Signer that uses the Ed25519 public-key
-// signature system with pre-hashing
+// ED25519phSigner is a signature.Signer that uses the Ed25519 public-key signature system with pre-hashing
 type ED25519phSigner struct {
 	priv ed25519.PrivateKey
 }
