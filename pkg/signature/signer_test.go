@@ -22,6 +22,7 @@ import (
 	"testing"
 
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
+	"github.com/sigstore/sigstore/pkg/signature/options"
 )
 
 func TestLoadEd25519Signer(t *testing.T) {
@@ -61,7 +62,7 @@ func TestLoadEd25519phSigner(t *testing.T) {
 		t.Fatalf("expected ed25519.PrivateKey")
 	}
 
-	signer, err := LoadSignerWithOpts(edPriv, WithED25519ph(), WithHash(crypto.SHA512))
+	signer, err := LoadSignerWithOpts(edPriv, options.WithED25519ph(), options.WithHash(crypto.SHA512))
 	if err != nil {
 		t.Fatalf("unexpected error loading verifier: %v", err)
 	}

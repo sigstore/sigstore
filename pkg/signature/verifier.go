@@ -26,6 +26,7 @@ import (
 	"path/filepath"
 
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
+	"github.com/sigstore/sigstore/pkg/signature/options"
 )
 
 // Verifier verifies the digital signature using a specified public key
@@ -40,24 +41,31 @@ type Verifier interface {
 // If publicKey is an RSA key, a RSAPKCS1v15Verifier will be returned. If a
 // RSAPSSVerifier is desired instead, use the LoadRSAPSSVerifier() method directly.
 func LoadVerifier(publicKey crypto.PublicKey, hashFunc crypto.Hash) (Verifier, error) {
-	return LoadVerifierWithOpts(publicKey, WithHash(hashFunc))
+	return LoadVerifierWithOpts(publicKey, options.WithHash(hashFunc))
 }
 
 // LoadVerifierWithOpts returns a signature.Verifier based on the algorithm of the public key
 // provided that will use the hash function specified when computing digests.
 func LoadVerifierWithOpts(publicKey crypto.PublicKey, opts ...LoadOption) (Verifier, error) {
-	o := makeSignerVerifierOpts(opts...)
+	var rsaPSSOptions *rsa.PSSOptions
+	var useED25519ph bool
+	hashFunc := crypto.SHA256
+	for _, o := range opts {
+		o.ApplyED25519ph(&useED25519ph)
+		o.ApplyHash(&hashFunc)
+		o.ApplyRSAPSS(&rsaPSSOptions)
+	}
 
 	switch pk := publicKey.(type) {
 	case *rsa.PublicKey:
-		if o.rsaPSSOptions != nil {
-			return LoadRSAPSSVerifier(pk, o.hashFunc, o.rsaPSSOptions)
+		if rsaPSSOptions != nil {
+			return LoadRSAPSSVerifier(pk, hashFunc, rsaPSSOptions)
 		}
-		return LoadRSAPKCS1v15Verifier(pk, o.hashFunc)
+		return LoadRSAPKCS1v15Verifier(pk, hashFunc)
 	case *ecdsa.PublicKey:
-		return LoadECDSAVerifier(pk, o.hashFunc)
+		return LoadECDSAVerifier(pk, hashFunc)
 	case ed25519.PublicKey:
-		if o.useED25519ph {
+		if useED25519ph {
 			return LoadED25519phVerifier(pk)
 		}
 		return LoadED25519Verifier(pk)

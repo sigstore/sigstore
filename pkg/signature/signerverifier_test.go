@@ -22,6 +22,7 @@ import (
 	"testing"
 
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
+	"github.com/sigstore/sigstore/pkg/signature/options"
 )
 
 func TestLoadRSAPSSSignerVerifier(t *testing.T) {
@@ -33,7 +34,7 @@ func TestLoadRSAPSSSignerVerifier(t *testing.T) {
 	if err != nil {
 		t.Errorf("unexpected error unmarshalling private key: %v", err)
 	}
-	sv, err := LoadSignerVerifierWithOpts(privateKey, WithHash(crypto.SHA256), WithED25519ph(), WithRSAPSS(opts))
+	sv, err := LoadSignerVerifierWithOpts(privateKey, options.WithHash(crypto.SHA256), options.WithED25519ph(), options.WithRSAPSS(opts))
 	if err != nil {
 		t.Errorf("unexpected error creating signer/verifier: %v", err)
 	}

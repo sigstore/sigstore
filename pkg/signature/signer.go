@@ -30,6 +30,7 @@ import (
 	_ "crypto/sha512"
 
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
+	"github.com/sigstore/sigstore/pkg/signature/options"
 
 	// these ensure we have the implementations loaded
 	_ "golang.org/x/crypto/sha3"
@@ -59,24 +60,31 @@ func (s SignerOpts) HashFunc() crypto.Hash {
 // If privateKey is an RSA key, a RSAPKCS1v15Signer will be returned. If a
 // RSAPSSSigner is desired instead, use the LoadRSAPSSSigner() method directly.
 func LoadSigner(privateKey crypto.PrivateKey, hashFunc crypto.Hash) (Signer, error) {
-	return LoadSignerWithOpts(privateKey, WithHash(hashFunc))
+	return LoadSignerWithOpts(privateKey, options.WithHash(hashFunc))
 }
 
 // LoadSignerWithOpts returns a signature.Signer based on the algorithm of the private key
 // provided.
 func LoadSignerWithOpts(privateKey crypto.PrivateKey, opts ...LoadOption) (Signer, error) {
-	o := makeSignerVerifierOpts(opts...)
+	var rsaPSSOptions *rsa.PSSOptions
+	var useED25519ph bool
+	hashFunc := crypto.SHA256
+	for _, o := range opts {
+		o.ApplyED25519ph(&useED25519ph)
+		o.ApplyHash(&hashFunc)
+		o.ApplyRSAPSS(&rsaPSSOptions)
+	}
 
 	switch pk := privateKey.(type) {
 	case *rsa.PrivateKey:
-		if o.rsaPSSOptions != nil {
-			return LoadRSAPSSSigner(pk, o.hashFunc, o.rsaPSSOptions)
+		if rsaPSSOptions != nil {
+			return LoadRSAPSSSigner(pk, hashFunc, rsaPSSOptions)
 		}
-		return LoadRSAPKCS1v15Signer(pk, o.hashFunc)
+		return LoadRSAPKCS1v15Signer(pk, hashFunc)
 	case *ecdsa.PrivateKey:
-		return LoadECDSASigner(pk, o.hashFunc)
+		return LoadECDSASigner(pk, hashFunc)
 	case ed25519.PrivateKey:
-		if o.useED25519ph {
+		if useED25519ph {
 			return LoadED25519phSigner(pk)
 		}
 		return LoadED25519Signer(pk)
