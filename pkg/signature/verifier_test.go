@@ -15,6 +15,7 @@
 package signature
 
 import (
+	"crypto"
 	"crypto/rand"
 	"crypto/rsa"
 	"testing"
@@ -26,6 +27,21 @@ func TestLoadUnsafeVerifier(t *testing.T) {
 		t.Fatalf("unexpected error generating key: %v", err)
 	}
 	verifier, err := LoadUnsafeVerifier(key.Public())
+	if err != nil {
+		t.Fatalf("unexpected error loading verifier: %v", err)
+	}
+	pubKey, _ := verifier.PublicKey()
+	if !key.PublicKey.Equal(pubKey) {
+		t.Fatalf("public keys were not equal")
+	}
+}
+
+func TestLoadVerifier(t *testing.T) {
+	key, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatalf("unexpected error generating key: %v", err)
+	}
+	verifier, err := LoadVerifier(key.Public(), crypto.SHA256)
 	if err != nil {
 		t.Fatalf("unexpected error loading verifier: %v", err)
 	}
