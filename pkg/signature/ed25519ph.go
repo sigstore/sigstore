@@ -46,6 +46,16 @@ func LoadED25519phSigner(priv ed25519.PrivateKey) (*ED25519phSigner, error) {
 	}, nil
 }
 
+// ToED25519SignerVerifier creates a ED25519SignerVerifier from a ED25519phSignerVerifier
+//
+// Clients that use ED25519phSignerVerifier should use this method to get a
+// SignerVerifier that uses the same ED25519 private key, but with the Pure
+// Ed25519 algorithm. This might be necessary to interact with Fulcio, which
+// only supports the Pure Ed25519 algorithm.
+func (e ED25519phSignerVerifier) ToED25519SignerVerifier() (*ED25519SignerVerifier, error) {
+	return LoadED25519SignerVerifier(e.priv)
+}
+
 // SignMessage signs the provided message. If the message is provided,
 // this method will compute the digest according to the hash function specified
 // when the ED25519phSigner was created.
