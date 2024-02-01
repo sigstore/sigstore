@@ -84,10 +84,15 @@ func (suite *InteractiveOIDCSuite) TestInteractiveIDTokenSource() {
 		Scopes:       []string{coreoidc.ScopeOpenID, "email"},
 	}
 
+	autoclose := false
+	autocloseTimeout := 0
+
 	ts := &interactiveIDTokenSource{
-		cfg:     cfg,
-		oidp:    provider,
-		browser: browserOpener,
+		cfg:              cfg,
+		oidp:             provider,
+		browser:          browserOpener,
+		autoclose:        autoclose,
+		autocloseTimeout: autocloseTimeout,
 	}
 
 	go func() {
