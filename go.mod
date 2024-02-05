@@ -5,10 +5,10 @@ go 1.20
 require (
 	github.com/coreos/go-oidc/v3 v3.9.0
 	github.com/go-jose/go-jose/v3 v3.0.1
-	github.com/go-rod/rod v0.114.6
+	github.com/go-rod/rod v0.114.7
 	github.com/go-test/deep v1.1.0
 	github.com/google/go-cmp v0.6.0
-	github.com/google/go-containerregistry v0.18.0
+	github.com/google/go-containerregistry v0.19.0
 	github.com/letsencrypt/boulder v0.0.0-20230907030200-6d76a0f91e1e
 	github.com/pkg/browser v0.0.0-20210911075715-681adbf594b8
 	github.com/secure-systems-lab/go-securesystemslib v0.8.0
