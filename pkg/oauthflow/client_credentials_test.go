@@ -19,21 +19,17 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/coreos/go-oidc/v3/oidc"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/coreos/go-oidc/v3/oidc"
 )
 
 type testccDriver struct {
-	msgs   []string
 	respCh chan interface{}
 	t      *testing.T
-}
-
-func (td *testccDriver) writeMsg(s string) {
-	td.msgs = append(td.msgs, s)
 }
 
 func (td *testccDriver) handler(w http.ResponseWriter, r *http.Request) {

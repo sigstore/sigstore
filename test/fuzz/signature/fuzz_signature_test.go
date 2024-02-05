@@ -33,7 +33,6 @@ import (
 
 func FuzzECDSASigner(f *testing.F) {
 	f.Fuzz(func(t *testing.T, data []byte) {
-
 		x := ecdsa.PrivateKey{}
 		z := new(big.Int)
 		z.SetBytes(data)
@@ -63,6 +62,7 @@ func FuzzECDSASigner(f *testing.F) {
 		}
 	})
 }
+
 func FuzzComputeDigest(f *testing.F) {
 	f.Fuzz(func(t *testing.T, data []byte) {
 		hashFuncs := []crypto.Hash{

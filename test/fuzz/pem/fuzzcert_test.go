@@ -18,8 +18,9 @@ package pem
 import (
 	"bytes"
 	"encoding/pem"
-	"github.com/sigstore/sigstore/pkg/cryptoutils"
 	"testing"
+
+	"github.com/sigstore/sigstore/pkg/cryptoutils"
 )
 
 func FuzzLoadCertificates(f *testing.F) {
