@@ -106,6 +106,8 @@ func (td *testDriver) handler(w http.ResponseWriter, r *http.Request) {
 	switch r.URL.Path {
 	case "/token", "/device/code":
 		_, _ = w.Write(b)
+	case "/token/authorize":
+		_, _ = w.Write(b)
 	default:
 		w.WriteHeader(http.StatusBadRequest)
 		return
