@@ -71,17 +71,17 @@ func (c *testKVClient) Verify(_ context.Context, _, _ string, _ azkeys.VerifyPar
 
 type keyNotFoundClient struct {
 	testKVClient
-	key azkeys.JSONWebKey
-	getKeyReturnsErr bool
+	key                 azkeys.JSONWebKey
+	getKeyReturnsErr    bool
 	getKeyCallThreshold int
-	getKeyCallCount int
+	getKeyCallCount     int
 }
 
 func (c *keyNotFoundClient) GetKey(_ context.Context, _, _ string, _ *azkeys.GetKeyOptions) (azkeys.GetKeyResponse, error) {
 	if c.getKeyReturnsErr && c.getKeyCallCount < c.getKeyCallThreshold {
 		c.getKeyCallCount++
 		return azkeys.GetKeyResponse{}, &azcore.ResponseError{
-			StatusCode: http.StatusNotFound,
+			StatusCode:  http.StatusNotFound,
 			RawResponse: &http.Response{},
 		}
 	}
@@ -95,7 +95,7 @@ func (c *keyNotFoundClient) GetKey(_ context.Context, _, _ string, _ *azkeys.Get
 
 type nonResponseErrClient struct {
 	testKVClient
-	keyCache   *ttlcache.Cache[string, crypto.PublicKey]
+	keyCache *ttlcache.Cache[string, crypto.PublicKey]
 }
 
 func (c *nonResponseErrClient) GetKey(_ context.Context, _, _ string, _ *azkeys.GetKeyOptions) (result azkeys.GetKeyResponse, err error) {
@@ -105,7 +105,7 @@ func (c *nonResponseErrClient) GetKey(_ context.Context, _, _ string, _ *azkeys.
 
 type non404RespClient struct {
 	testKVClient
-	keyCache   *ttlcache.Cache[string, crypto.PublicKey]
+	keyCache *ttlcache.Cache[string, crypto.PublicKey]
 }
 
 func (c *non404RespClient) GetKey(_ context.Context, _, _ string, _ *azkeys.GetKeyOptions) (result azkeys.GetKeyResponse, err error) {
@@ -212,8 +212,8 @@ func TestAzureVaultClientFetchPublicKey(t *testing.T) {
 
 func TestAzureVaultClientCreateKey(t *testing.T) {
 	type test struct {
-		name string
-		client  kvClient
+		name          string
+		client        kvClient
 		expectSuccess bool
 	}
 
@@ -226,27 +226,27 @@ func TestAzureVaultClientCreateKey(t *testing.T) {
 		{
 			name: "Successfully create key if it doesn't exist",
 			client: &keyNotFoundClient{
-				key: key,
-				getKeyReturnsErr: true,
+				key:                 key,
+				getKeyReturnsErr:    true,
 				getKeyCallThreshold: 1,
 			},
 			expectSuccess: true,
 		},
 		{
 			name: "Return public key if it already exists",
-			client:  &testKVClient{
+			client: &testKVClient{
 				key: key,
 			},
 			expectSuccess: true,
 		},
 		{
-			name: "Fail to create key due to unknown error",
-			client:  &nonResponseErrClient{},
+			name:          "Fail to create key due to unknown error",
+			client:        &nonResponseErrClient{},
 			expectSuccess: false,
 		},
 		{
-			name: "Fail to create key due to non-404 status code error",
-			client:  &non404RespClient{},
+			name:          "Fail to create key due to non-404 status code error",
+			client:        &non404RespClient{},
 			expectSuccess: false,
 		},
 	}

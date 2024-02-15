@@ -117,7 +117,7 @@ func TestCreateKey(t *testing.T) {
 	if azureVaultURL == "" {
 		t.Fatalf("VAULT_URL must be set")
 	}
-	
+
 	newKeyRef := fmt.Sprintf("azurekms://%s.vault.azure.net/%s", azureVaultURL, "new-test-key")
 
 	sv, err := LoadSignerVerifier(context.Background(), newKeyRef)
