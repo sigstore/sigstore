@@ -129,6 +129,8 @@ type interactiveIDTokenSource struct {
 	oidp              *coreoidc.Provider
 	extraAuthCodeOpts []oauth2.AuthCodeOption
 	browser           browserOpener
+	autoclose         bool // autoclose specifies whether to close window after successful authentication
+	autocloseTimeout  int  // autocloseTimeout specifies the time to wait before closing the window
 }
 
 var errWontOpenBrowser = errors.New("not opening that browser")
@@ -147,8 +149,21 @@ func (idts *interactiveIDTokenSource) IDToken(ctx context.Context) (*IDToken, er
 
 	codeCh := make(chan string)
 	errCh := make(chan error)
+
+	// get html success page with configured autoclose and autocloseTimeout settings
+	htmlPage, err := oauth.GetInteractiveSuccessHTML(idts.autoclose, idts.autocloseTimeout)
+	if err != nil {
+		return nil, err
+	}
+
 	// starts listener using the redirect_uri, otherwise starts on ephemeral port
-	redirectServer, redirectURL, err := startRedirectListener(stateToken, oauth.InteractiveSuccessHTML, cfg.RedirectURL, codeCh, errCh)
+	redirectServer, redirectURL, err := startRedirectListener(
+		stateToken,
+		htmlPage,
+		cfg.RedirectURL,
+		codeCh,
+		errCh,
+	)
 	if err != nil {
 		close(codeCh)
 		close(errCh)
@@ -200,8 +215,8 @@ func (idts *interactiveIDTokenSource) IDToken(ctx context.Context) (*IDToken, er
 }
 
 // InteractiveIDTokenSource returns an `IDTokenSource` which performs an interactive Oauth token flow in order to retrieve an `IDToken`.
-func InteractiveIDTokenSource(cfg oauth2.Config, oidp *coreoidc.Provider, extraAuthCodeOpts []oauth2.AuthCodeOption, allowBrowser bool) IDTokenSource {
-	ts := &interactiveIDTokenSource{cfg: cfg, oidp: oidp, extraAuthCodeOpts: extraAuthCodeOpts, browser: failBrowser}
+func InteractiveIDTokenSource(cfg oauth2.Config, oidp *coreoidc.Provider, extraAuthCodeOpts []oauth2.AuthCodeOption, allowBrowser, autoclose bool, autocloseTimeout int) IDTokenSource {
+	ts := &interactiveIDTokenSource{cfg: cfg, oidp: oidp, extraAuthCodeOpts: extraAuthCodeOpts, browser: failBrowser, autoclose: autoclose, autocloseTimeout: autocloseTimeout}
 	if allowBrowser {
 		ts.browser = browser.OpenURL
 	}
