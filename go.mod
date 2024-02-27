@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	github.com/coreos/go-oidc/v3 v3.9.0
-	github.com/go-jose/go-jose/v3 v3.0.1
+	github.com/go-jose/go-jose/v3 v3.0.2
 	github.com/go-rod/rod v0.114.7
 	github.com/go-test/deep v1.1.0
 	github.com/google/go-cmp v0.6.0
@@ -16,7 +16,7 @@ require (
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966
 	github.com/stretchr/testify v1.8.4
 	github.com/theupdateframework/go-tuf v0.7.0
-	golang.org/x/crypto v0.19.0
+	golang.org/x/crypto v0.20.0
 	golang.org/x/oauth2 v0.17.0
 	golang.org/x/term v0.17.0
 )
