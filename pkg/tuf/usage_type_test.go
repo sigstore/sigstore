@@ -23,12 +23,12 @@ import (
 )
 
 func TestMarshalUsageType(t *testing.T) {
-	usages := []UsageKind{UnknownUsage, Fulcio, Rekor, CTFE}
+	usages := []UsageKind{UnknownUsage, Fulcio, Rekor, CTFE, TSA}
 	bytes, err := json.Marshal(usages)
 	if err != nil {
 		t.Fatalf("expected no error marshalling struct, got: %v", err)
 	}
-	expected := `["Unknown","Fulcio","Rekor","CTFE"]`
+	expected := `["Unknown","Fulcio","Rekor","CTFE","TSA"]`
 	if string(bytes) != expected {
 		t.Fatalf("error while marshalling, expected: %s, got: %s", expected, bytes)
 	}
@@ -49,26 +49,26 @@ func TestMarshalInvalidUsageType(t *testing.T) {
 
 func TestUnmarshalUsageType(t *testing.T) {
 	var usages []UsageKind
-	j := json.RawMessage(`["fulcio", "rekor", "ctfe", "unknown"]`)
+	j := json.RawMessage(`["fulcio", "rekor", "ctfe", "tsa", "unknown"]`)
 	err := json.Unmarshal(j, &usages)
 	if err != nil {
 		t.Fatalf("expected no error unmarshalling struct, got: %v", err)
 	}
-	if !reflect.DeepEqual(usages, []UsageKind{Fulcio, Rekor, CTFE, UnknownUsage}) {
-		t.Fatalf("expected [Fulcio, Rekor, CTFE, UnknownUsage], got: %v", usages)
+	if !reflect.DeepEqual(usages, []UsageKind{Fulcio, Rekor, CTFE, TSA, UnknownUsage}) {
+		t.Fatalf("expected [Fulcio, Rekor, CTFE, ,TSA, UnknownUsage], got: %v", usages)
 	}
 }
 
 func TestUnmarshalUsageTypeCapitalization(t *testing.T) {
 	// Any capitalization is allowed.
 	var usages []UsageKind
-	j := json.RawMessage(`["fUlCiO", "rEkOr", "cTfE", "uNkNoWn"]`)
+	j := json.RawMessage(`["fUlCiO", "rEkOr", "cTfE", "tSa", "uNkNoWn"]`)
 	err := json.Unmarshal(j, &usages)
 	if err != nil {
 		t.Fatalf("expected no error unmarshalling struct, got: %v", err)
 	}
-	if !reflect.DeepEqual(usages, []UsageKind{Fulcio, Rekor, CTFE, UnknownUsage}) {
-		t.Fatalf("expected [Fulcio, Rekor, CTFE, UnknownUsage], got: %v", usages)
+	if !reflect.DeepEqual(usages, []UsageKind{Fulcio, Rekor, CTFE, TSA, UnknownUsage}) {
+		t.Fatalf("expected [Fulcio, Rekor, CTFE, TSA, UnknownUsage], got: %v", usages)
 	}
 }
 
