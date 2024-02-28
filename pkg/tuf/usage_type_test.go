@@ -55,7 +55,7 @@ func TestUnmarshalUsageType(t *testing.T) {
 		t.Fatalf("expected no error unmarshalling struct, got: %v", err)
 	}
 	if !reflect.DeepEqual(usages, []UsageKind{Fulcio, Rekor, CTFE, TSA, UnknownUsage}) {
-		t.Fatalf("expected [Fulcio, Rekor, CTFE, ,TSA, UnknownUsage], got: %v", usages)
+		t.Fatalf("expected [Fulcio, Rekor, CTFE, TSA, UnknownUsage], got: %v", usages)
 	}
 }
 
