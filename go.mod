@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	github.com/coreos/go-oidc/v3 v3.9.0
-	github.com/go-jose/go-jose/v3 v3.0.2
+	github.com/go-jose/go-jose/v3 v3.0.3
 	github.com/go-rod/rod v0.114.7
 	github.com/go-test/deep v1.1.0
 	github.com/google/go-cmp v0.6.0
