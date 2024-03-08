@@ -4,8 +4,8 @@ go 1.20
 
 require (
 	github.com/coreos/go-oidc/v3 v3.9.0
-	github.com/go-jose/go-jose/v3 v3.0.2
-	github.com/go-rod/rod v0.114.7
+	github.com/go-jose/go-jose/v3 v3.0.3
+	github.com/go-rod/rod v0.114.8
 	github.com/go-test/deep v1.1.0
 	github.com/google/go-cmp v0.6.0
 	github.com/google/go-containerregistry v0.19.0
@@ -14,11 +14,11 @@ require (
 	github.com/secure-systems-lab/go-securesystemslib v0.8.0
 	github.com/segmentio/ksuid v1.0.4
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966
-	github.com/stretchr/testify v1.8.4
+	github.com/stretchr/testify v1.9.0
 	github.com/theupdateframework/go-tuf v0.7.0
-	golang.org/x/crypto v0.20.0
-	golang.org/x/oauth2 v0.17.0
-	golang.org/x/term v0.17.0
+	golang.org/x/crypto v0.21.0
+	golang.org/x/oauth2 v0.18.0
+	golang.org/x/term v0.18.0
 )
 
 require (
@@ -34,7 +34,7 @@ require (
 	github.com/ysmood/got v0.34.1 // indirect
 	github.com/ysmood/gson v0.7.3 // indirect
 	github.com/ysmood/leakless v0.8.0 // indirect
-	golang.org/x/sys v0.17.0 // indirect
+	golang.org/x/sys v0.18.0 // indirect
 	google.golang.org/appengine v1.6.8 // indirect
 	google.golang.org/protobuf v1.31.0 // indirect
 	gopkg.in/go-jose/go-jose.v2 v2.6.1 // indirect
