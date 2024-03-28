@@ -72,6 +72,13 @@ func TestECDSASignerVerifier(t *testing.T) {
 		t.Errorf("unexpected error creating verifier: %v", err)
 	}
 	testingVerifier(t, v, "ecdsa", crypto.SHA256, sig, message)
+
+	// test IEEE P1363 encoded signature
+	// created via
+	// import "github.com/tink-crypto/tink-go/signature/subtle"
+	// subtle.NewECDSASignerFromPrivateKey("SHA256", "IEEE_P1363", privKey.(*ecdsa.PrivateKey))
+	ieeeSig, _ := base64.StdEncoding.DecodeString("bmvQGbNZEJyS3HAVPiuXY0/BGFcUq5cl22v3+sttMxBls5LO0W52qR2yk6q0E59wDNs15gvaODeTZ2d6MwH9OQ==")
+	testingVerifier(t, v, "ecdsa", crypto.SHA256, ieeeSig, message)
 }
 
 func TestECDSASignerVerifierUnsupportedHash(t *testing.T) {
