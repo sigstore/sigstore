@@ -192,7 +192,9 @@ func (e ECDSAVerifier) VerifySignature(signature, message io.Reader, opts ...Ver
 		return fmt.Errorf("invalid ECDSA public key for %s", e.publicKey.Params().Name)
 	}
 
-	var asnParseTest []*big.Int
+	asnParseTest := struct {
+		R, S *big.Int
+	}{}
 	if _, err := asn1.Unmarshal(sigBytes, &asnParseTest); err == nil {
 		if !ecdsa.VerifyASN1(e.publicKey, digest, sigBytes) {
 			return errors.New("invalid signature when validating ASN.1 encoded signature")
