@@ -15,7 +15,7 @@
 
 .PHONY: all pkg test test-e2e clean lint fuzz help
 
-all: pkg
+all: pkg fuzz
 
 TOOLS_DIR := hack/tools
 TOOLS_BIN_DIR := $(abspath $(TOOLS_DIR)/bin)
