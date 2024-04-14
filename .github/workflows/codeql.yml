@@ -24,6 +24,9 @@ on:
 permissions:
   security-events: write
 
+env:
+  GO_VERSION: '1.21'
+
 jobs:
   analyze:
     name: Analyze
@@ -43,6 +46,12 @@ jobs:
         with:
           languages: ${{ matrix.language }}
           build-mode: manual
+
+      - name: Set up Go
+        uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          check-latest: true
 
       - name: build
         run: make pkg
