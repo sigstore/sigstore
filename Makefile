@@ -28,6 +28,8 @@ GOLANGCI_LINT_BIN = $(GOLANGCI_LINT_DIR)/golangci-lint
 
 LDFLAGS ?=
 
+GO_MOD_DIRS = . ./pkg/signature/kms/aws ./pkg/signature/kms/azure ./pkg/signature/kms/gcp ./pkg/signature/kms/hashivault
+
 golangci-lint:
 	rm -f $(GOLANGCI_LINT_BIN) || :
 	set -e ;\
@@ -37,21 +39,22 @@ lint: golangci-lint ## Run golangci-lint
 	$(GOLANGCI_LINT_BIN) run -v --new-from-rev=HEAD~ ./...
 
 pkg: ## Build pkg
-	CGO_ENABLED=0 go build -trimpath -ldflags "$(LDFLAGS)" ./...
+	set -o xtrace; \
+	for dir in $(GO_MOD_DIRS) ; do \
+	    cd $$dir && CGO_ENABLED=0 go build -trimpath -ldflags "$(LDFLAGS)" ./... && cd - >/dev/null; \
+	done
 
 test: ## Run Tests for all Go modules.
-	go test ./...
-	cd ./pkg/signature/kms/aws && go test ./... && cd -
-	cd ./pkg/signature/kms/azure && go test ./... && cd -
-	cd ./pkg/signature/kms/gcp && go test ./... && cd -
-	cd ./pkg/signature/kms/hashivault && go test ./... && cd -
+	set -o xtrace; \
+	for dir in $(GO_MOD_DIRS) ; do \
+	    cd $$dir && go test ./... && cd - >/dev/null; \
+	done
 
 tidy: ## Run go mod tidy all Go modules.
-	go mod tidy
-	cd ./pkg/signature/kms/aws && go mod tidy && cd -
-	cd ./pkg/signature/kms/azure && go mod tidy && cd -
-	cd ./pkg/signature/kms/gcp && go mod tidy && cd -
-	cd ./pkg/signature/kms/hashivault && go mod tidy && cd -
+	set -o xtrace; \
+	for dir in $(GO_MOD_DIRS) ; do \
+	    cd $$dir && go mod tidy && cd - >/dev/null; \
+	done
 
 test-e2e: ## Run E2E Tests
 	cd $(INTEGRATION_TEST_DIR); ./e2e-test.sh
