@@ -22,6 +22,7 @@ TOOLS_BIN_DIR := $(abspath $(TOOLS_DIR)/bin)
 FUZZ_DIR := ./test/fuzz
 INTEGRATION_TEST_DIR := ./test/e2e
 GO-FUZZ-BUILD := $(TOOLS_BIN_DIR)/go-fuzz-build
+FUZZ_DURATION ?= 10s
 
 GOLANGCI_LINT_DIR = $(shell pwd)/bin
 GOLANGCI_LINT_BIN = $(GOLANGCI_LINT_DIR)/golangci-lint
@@ -59,11 +60,18 @@ tidy: ## Run go mod tidy all Go modules.
 test-e2e: ## Run E2E Tests
 	cd $(INTEGRATION_TEST_DIR); ./e2e-test.sh
 
-fuzz: $(GO-FUZZ-BUILD) ## Run Fuzz tests
-	cd $(FUZZ_DIR);$(GO-FUZZ-BUILD) -o pem-fuzz.zip ./pem
-	cd $(FUZZ_DIR);$(GO-FUZZ-BUILD) -o signature-fuzz.zip ./signature
-	cd $(FUZZ_DIR);$(GO-FUZZ-BUILD) -o fuzz-fuzz.zip .
-	cd $(FUZZ_DIR);$(GO-FUZZ-BUILD) -o dsse-fuzz.zip ./dsse
+fuzz:
+	cd test/fuzz && go test -fuzz FuzzECDSASigner -fuzztime $(FUZZ_DURATION) ./signature
+	cd test/fuzz && go test -fuzz FuzzComputeDigest -fuzztime $(FUZZ_DURATION) ./signature
+	cd test/fuzz && go test -fuzz FuzzComputeVerifying -fuzztime $(FUZZ_DURATION) ./signature
+	cd test/fuzz && go test -fuzz FuzzED25529SignerVerfier -fuzztime $(FUZZ_DURATION) ./signature
+	cd test/fuzz && go test -fuzz FuzzRSAPKCS1v15SignerVerfier -fuzztime $(FUZZ_DURATION) ./signature
+	cd test/fuzz && go test -fuzz FuzzRSAPSSSignerVerfier -fuzztime $(FUZZ_DURATION) ./signature
+	cd test/fuzz && go test -fuzz FuzzDSSE -fuzztime $(FUZZ_DURATION) ./dsse
+	cd test/fuzz && go test -fuzz FuzzGetPassword -fuzztime $(FUZZ_DURATION) .
+	cd test/fuzz && go test -fuzz FuzzLoadCertificates -fuzztime $(FUZZ_DURATION) ./pem
+	cd test/fuzz && go test -fuzz FuzzUnmarshalCertificatesFromPEM -fuzztime $(FUZZ_DURATION) ./pem
+	cd test/fuzz && go test -fuzz FuzzUnmarshalPEMToPublicKey -fuzztime $(FUZZ_DURATION) ./pem
 
 clean: ## Clean workspace
 	rm -rf sigstore
