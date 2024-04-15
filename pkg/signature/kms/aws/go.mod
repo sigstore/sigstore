@@ -5,10 +5,10 @@ replace github.com/sigstore/sigstore => ../../../../
 go 1.21
 
 require (
-	github.com/aws/aws-sdk-go v1.51.17
+	github.com/aws/aws-sdk-go v1.51.21
 	github.com/aws/aws-sdk-go-v2 v1.26.1
 	github.com/aws/aws-sdk-go-v2/config v1.27.11
-	github.com/aws/aws-sdk-go-v2/service/kms v1.30.1
+	github.com/aws/aws-sdk-go-v2/service/kms v1.31.0
 	github.com/jellydator/ttlcache/v3 v3.2.0
 	github.com/sigstore/sigstore v1.6.4
 	github.com/stretchr/testify v1.9.0
