@@ -52,7 +52,7 @@ func TestFakeSigner(t *testing.T) {
 	}
 
 	// Test crypto.Signer implementation
-	cryptoSigner, _, err := signer.CryptoSigner(context.Background(), func(err error) {})
+	cryptoSigner, _, err := signer.CryptoSigner(context.Background(), func(_ error) {})
 	if err != nil {
 		t.Fatalf("unexpected error fetching crypto.Signer: %v", err)
 	}
@@ -107,7 +107,7 @@ func TestFakeSignerWithPrivateKey(t *testing.T) {
 	}
 
 	// Test crypto.Signer implementation
-	cryptoSigner, _, err := signer.CryptoSigner(context.Background(), func(err error) {})
+	cryptoSigner, _, err := signer.CryptoSigner(context.Background(), func(_ error) {})
 	if err != nil {
 		t.Fatalf("unexpected error fetching crypto.Signer: %v", err)
 	}
