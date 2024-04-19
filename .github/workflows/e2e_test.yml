@@ -24,6 +24,9 @@ on:
 env:
   GO_VERSION: '1.21'
 
+permissions:
+  contents: read
+
 jobs:
   e2e_test:
     name: e2e integration tests
