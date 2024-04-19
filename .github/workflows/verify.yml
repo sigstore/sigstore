@@ -24,6 +24,9 @@ on:
 env:
   GO_VERSION: '1.21'
 
+permissions:
+  contents: read
+
 jobs:
   license-check:
     name: license boilerplate check
@@ -43,6 +46,9 @@ jobs:
           git diff --exit-code
 
   golangci:
+    permissions:
+      contents: read  # for actions/checkout to fetch code
+      pull-requests: read  # for golangci/golangci-lint-action to fetch pull requests
     name: lint checks
     runs-on: ubuntu-latest
     steps:
