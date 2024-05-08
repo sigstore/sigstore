@@ -22,8 +22,11 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math/big"
 
 	"github.com/sigstore/sigstore/pkg/signature/options"
+	"golang.org/x/crypto/cryptobyte"
+	"golang.org/x/crypto/cryptobyte/asn1"
 )
 
 // RSAPKCS1v15Signer is a signature.Signer that uses the RSA PKCS1v15 algorithm
@@ -129,7 +132,8 @@ func LoadRSAPKCS1v15Verifier(pub *rsa.PublicKey, hashFunc crypto.Hash) (*RSAPKCS
 
 	return &RSAPKCS1v15Verifier{
 		publicKey: pub,
-		hashFunc:  hashFunc,
+		// XYZ THIS IS WHERE THE FIX NEEDS TO GET TO
+		hashFunc: hashFunc,
 	}, nil
 }
 
@@ -156,7 +160,7 @@ func (r RSAPKCS1v15Verifier) PublicKey(_ ...PublicKeyOption) (crypto.PublicKey, 
 func (r RSAPKCS1v15Verifier) VerifySignature(signature, message io.Reader, opts ...VerifyOption) error {
 	digest, hf, err := ComputeDigestForVerifying(message, r.hashFunc, rsaSupportedVerifyHashFuncs, opts...)
 	if err != nil {
-		return err
+		return fmt.Errorf("RSAPKCS1v15Verifier.ComputeDigestForVerifying: %w", err)
 	}
 
 	if signature == nil {
@@ -168,7 +172,35 @@ func (r RSAPKCS1v15Verifier) VerifySignature(signature, message io.Reader, opts 
 		return fmt.Errorf("reading signature: %w", err)
 	}
 
-	return rsa.VerifyPKCS1v15(r.publicKey, hf, digest, sigBytes)
+	// // need to convert the ASN.1 signature to raw bytes
+	var (
+		rr, s = &big.Int{}, &big.Int{}
+		inner cryptobyte.String
+	)
+	input := cryptobyte.String(sigBytes)
+	if !input.ReadASN1(&inner, asn1.SEQUENCE) ||
+		!input.Empty() ||
+		!inner.ReadASN1Integer(rr) ||
+		!inner.ReadASN1Integer(s) ||
+		!inner.Empty() {
+		return errors.New("parsing signature")
+	}
+
+	rawSigBytes := []byte{}
+	rawSigBytes = append(rawSigBytes, rr.Bytes()...)
+	rawSigBytes = append(rawSigBytes, s.Bytes()...)
+
+	err = rsa.VerifyPKCS1v15(r.publicKey, hf, digest, rawSigBytes)
+	if err != nil {
+		return fmt.Errorf("HashFunc: %v, pubKey: %v, digest: %v, sigBytes: %v, VerifyPKCS1v15: %w", hf, r.publicKey, digest, sigBytes, err)
+	}
+	return nil
+
+	// err = rsa.VerifyPKCS1v15(r.publicKey, hf, digest, sigBytes)
+	// if err != nil {
+	// 	return fmt.Errorf("HashFunc: %v, pubKey: %v, digest: %v, sigBytes: %v, VerifyPKCS1v15: %w", hf, r.publicKey, digest, sigBytes, err)
+	// }
+	// return nil
 }
 
 // RSAPKCS1v15SignerVerifier is a signature.SignerVerifier that uses the RSA PKCS1v15 algorithm
