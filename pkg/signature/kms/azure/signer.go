@@ -110,10 +110,6 @@ func (a *SignerVerifier) SignMessage(message io.Reader, opts ...signature.SignOp
 		return nil, err
 	}
 
-	// if len(rawSig) != 512 {
-	// 	return nil, fmt.Errorf("SignMessage: expected signature length of 512 bytes, got %d", len(rawSig))
-	// }
-
 	// check if the public key is RSA or ECDSA
 	publicKey, err := a.client.public(a.defaultCtx)
 	if err != nil {
@@ -182,10 +178,6 @@ func (a *SignerVerifier) VerifySignature(sig, message io.Reader, opts ...signatu
 	if err != nil {
 		return fmt.Errorf("reading signature: %w", err)
 	}
-
-	// if len(sigBytes) != 512 {
-	// 	return fmt.Errorf("VerifySignature: expected signature length of 512 bytes, got %d", len(sigBytes))
-	// }
 
 	// check if the public key is RSA or ECDSA
 	publicKey, err := a.client.public(a.defaultCtx)
