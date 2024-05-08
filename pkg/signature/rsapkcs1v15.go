@@ -168,11 +168,7 @@ func (r RSAPKCS1v15Verifier) VerifySignature(signature, message io.Reader, opts 
 		return fmt.Errorf("reading signature: %w", err)
 	}
 
-	err = rsa.VerifyPKCS1v15(r.publicKey, hf, digest, sigBytes)
-	if err != nil {
-		return fmt.Errorf("HashFunc: %v, pubKey: %v, digest: %v, sigBytes: %v, VerifyPKCS1v15: %w", hf, r.publicKey, digest, sigBytes, err)
-	}
-	return nil
+	return rsa.VerifyPKCS1v15(r.publicKey, hf, digest, sigBytes)
 }
 
 // RSAPKCS1v15SignerVerifier is a signature.SignerVerifier that uses the RSA PKCS1v15 algorithm
