@@ -119,15 +119,16 @@ func (a *SignerVerifier) SignMessage(message io.Reader, opts ...signature.SignOp
 	case *ecdsa.PublicKey:
 		return convertECDSAToASN1(rawSig)
 	case *rsa.PublicKey:
-		return convertRSAToBigInt(rawSig), nil
+		return rawSig, nil
+		// return convertRSAToBigInt(rawSig), nil
 	}
 	return nil, fmt.Errorf("failed to recognize key type")
 }
 
-func convertRSAToBigInt(rawSig []byte) []byte {
-	sigInt := new(big.Int).SetBytes(rawSig)
-	return sigInt.Bytes()
-}
+// func convertRSAToBigInt(rawSig []byte) []byte {
+// 	sigInt := new(big.Int).SetBytes(rawSig)
+// 	return sigInt.Bytes()
+// }
 
 func convertECDSAToASN1(rawSig []byte) ([]byte, error) {
 	l := len(rawSig)
