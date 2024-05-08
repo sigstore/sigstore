@@ -129,8 +129,7 @@ func LoadRSAPKCS1v15Verifier(pub *rsa.PublicKey, hashFunc crypto.Hash) (*RSAPKCS
 
 	return &RSAPKCS1v15Verifier{
 		publicKey: pub,
-		// XYZ THIS IS WHERE THE FIX NEEDS TO GET TO
-		hashFunc: hashFunc,
+		hashFunc:  hashFunc,
 	}, nil
 }
 
@@ -157,7 +156,7 @@ func (r RSAPKCS1v15Verifier) PublicKey(_ ...PublicKeyOption) (crypto.PublicKey, 
 func (r RSAPKCS1v15Verifier) VerifySignature(signature, message io.Reader, opts ...VerifyOption) error {
 	digest, hf, err := ComputeDigestForVerifying(message, r.hashFunc, rsaSupportedVerifyHashFuncs, opts...)
 	if err != nil {
-		return fmt.Errorf("RSAPKCS1v15Verifier.ComputeDigestForVerifying: %w", err)
+		return err
 	}
 
 	if signature == nil {
@@ -168,31 +167,6 @@ func (r RSAPKCS1v15Verifier) VerifySignature(signature, message io.Reader, opts 
 	if err != nil {
 		return fmt.Errorf("reading signature: %w", err)
 	}
-
-	// this works
-	// // need to convert the ASN.1 signature to raw bytes
-	// var (
-	// 	rr, s = &big.Int{}, &big.Int{}
-	// 	inner cryptobyte.String
-	// )
-	// input := cryptobyte.String(sigBytes)
-	// if !input.ReadASN1(&inner, asn1.SEQUENCE) ||
-	// 	!input.Empty() ||
-	// 	!inner.ReadASN1Integer(rr) ||
-	// 	!inner.ReadASN1Integer(s) ||
-	// 	!inner.Empty() {
-	// 	return errors.New("parsing signature")
-	// }
-
-	// rawSigBytes := []byte{}
-	// rawSigBytes = append(rawSigBytes, rr.Bytes()...)
-	// rawSigBytes = append(rawSigBytes, s.Bytes()...)
-
-	// err = rsa.VerifyPKCS1v15(r.publicKey, hf, digest, rawSigBytes)
-	// if err != nil {
-	// 	return fmt.Errorf("HashFunc: %v, pubKey: %v, digest: %v, sigBytes: %v, VerifyPKCS1v15: %w", hf, r.publicKey, digest, sigBytes, err)
-	// }
-	// return nil
 
 	err = rsa.VerifyPKCS1v15(r.publicKey, hf, digest, sigBytes)
 	if err != nil {
