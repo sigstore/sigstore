@@ -111,26 +111,22 @@ func (a *SignerVerifier) SignMessage(message io.Reader, opts ...signature.SignOp
 	}
 
 	// check if the public key is RSA or ECDSA
+	// if it is ECDSA, encode the raw signature to ASN.1 format
+	// before returning it
 	publicKey, err := a.client.public(a.defaultCtx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get public key: %w", err)
 	}
 	switch publicKey.(type) {
 	case *ecdsa.PublicKey:
-		return convertECDSAToASN1(rawSig)
+		return encodeToASN1(rawSig)
 	case *rsa.PublicKey:
 		return rawSig, nil
-		// return convertRSAToBigInt(rawSig), nil
 	}
 	return nil, fmt.Errorf("failed to recognize key type")
 }
 
-// func convertRSAToBigInt(rawSig []byte) []byte {
-// 	sigInt := new(big.Int).SetBytes(rawSig)
-// 	return sigInt.Bytes()
-// }
-
-func convertECDSAToASN1(rawSig []byte) ([]byte, error) {
+func encodeToASN1(rawSig []byte) ([]byte, error) {
 	l := len(rawSig)
 	r, s := &big.Int{}, &big.Int{}
 	r.SetBytes(rawSig[0 : l/2])
@@ -181,13 +177,14 @@ func (a *SignerVerifier) VerifySignature(sig, message io.Reader, opts ...signatu
 	}
 
 	// check if the public key is RSA or ECDSA
+	// if it is ECDSA, decode the ASN.1 signature first
 	publicKey, err := a.client.public(a.defaultCtx)
 	if err != nil {
 		return fmt.Errorf("failed to get public key: %w", err)
 	}
 	switch publicKey.(type) {
 	case *ecdsa.PublicKey:
-		rawSigBytes, err := convertASN1SignatureToECDSA(sigBytes)
+		rawSigBytes, err := decodeASN1Signature(sigBytes)
 		if err != nil {
 			return fmt.Errorf("converting signature: %w", err)
 		}
@@ -198,7 +195,7 @@ func (a *SignerVerifier) VerifySignature(sig, message io.Reader, opts ...signatu
 	return fmt.Errorf("failed to recognize key type")
 }
 
-func convertASN1SignatureToECDSA(sigBytes []byte) ([]byte, error) {
+func decodeASN1Signature(sigBytes []byte) ([]byte, error) {
 	// Convert the ASN.1 Sequence to a concatenated r||s byte string
 	// This logic is borrowed from https://cs.opensource.google/go/go/+/refs/tags/go1.17.3:src/crypto/ecdsa/ecdsa.go;l=339
 	var (
