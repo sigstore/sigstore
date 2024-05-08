@@ -183,9 +183,9 @@ func (a *SignerVerifier) VerifySignature(sig, message io.Reader, opts ...signatu
 		return fmt.Errorf("reading signature: %w", err)
 	}
 
-	if len(sigBytes) != 512 {
-		return fmt.Errorf("VerifySignature: expected signature length of 512 bytes, got %d", len(sigBytes))
-	}
+	// if len(sigBytes) != 512 {
+	// 	return fmt.Errorf("VerifySignature: expected signature length of 512 bytes, got %d", len(sigBytes))
+	// }
 
 	// check if the public key is RSA or ECDSA
 	publicKey, err := a.client.public(a.defaultCtx)
