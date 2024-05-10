@@ -55,7 +55,7 @@ var azureSupportedAlgorithms = []string{
 type SignerVerifier struct {
 	defaultCtx context.Context
 	hashFunc   crypto.Hash
-	client     *azureVaultClient
+	client     azureVaultClient
 }
 
 // LoadSignerVerifier generates signatures using the specified key in Azure Key Vault and hash algorithm.
@@ -180,19 +180,19 @@ func (a *SignerVerifier) VerifySignature(sig, message io.Reader, opts ...signatu
 	// if it is ECDSA, decode the ASN.1 signature first
 	publicKey, err := a.client.public(a.defaultCtx)
 	if err != nil {
-		return fmt.Errorf("failed to get public key: %w", err)
+		return fmt.Errorf("fetching public key: %w", err)
 	}
 	switch publicKey.(type) {
 	case *ecdsa.PublicKey:
 		rawSigBytes, err := decodeASN1Signature(sigBytes)
 		if err != nil {
-			return fmt.Errorf("converting signature: %w", err)
+			return fmt.Errorf("decoding ASN.1 signature: %w", err)
 		}
 		return a.client.verify(a.defaultCtx, rawSigBytes, digest)
 	case *rsa.PublicKey:
 		return a.client.verify(a.defaultCtx, sigBytes, digest)
 	}
-	return fmt.Errorf("failed to recognize key type")
+	return fmt.Errorf("recognizing key type")
 }
 
 func decodeASN1Signature(sigBytes []byte) ([]byte, error) {
