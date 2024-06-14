@@ -23,10 +23,12 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
+	"errors"
 	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/letsencrypt/boulder/goodkey"
 )
 
 func verifyPublicKeyPEMRoundtrip(t *testing.T, pub crypto.PublicKey) {
@@ -219,6 +221,14 @@ func TestValidatePubKeyRsa(t *testing.T) {
 	}
 }
 
+type testCurve struct {
+	elliptic.Curve
+}
+
+func (t testCurve) Params() *elliptic.CurveParams {
+	return &elliptic.CurveParams{}
+}
+
 func TestValidatePubKeyEcdsa(t *testing.T) {
 	for _, curve := range []elliptic.Curve{elliptic.P256(), elliptic.P384(), elliptic.P521()} {
 		priv, err := ecdsa.GenerateKey(curve, rand.Reader)
@@ -228,18 +238,25 @@ func TestValidatePubKeyEcdsa(t *testing.T) {
 		if err := ValidatePubKey(priv.Public()); err != nil {
 			t.Errorf("unexpected error validating public key: %v", err)
 		}
+		// Should fail with negative coordinates
+		priv.X.Neg(priv.X)
+		if err := ValidatePubKey(priv.Public()); err == nil {
+			t.Errorf("expected error when validating public key")
+		}
 	}
 	// Fails with smalller curve
 	priv, err := ecdsa.GenerateKey(elliptic.P224(), rand.Reader)
 	if err != nil {
 		t.Fatalf("ecdsa.GenerateKey failed: %v", err)
 	}
-	if err := ValidatePubKey(priv.Public()); err == nil || err.Error() != "unsupported ec curve, expected NIST P-256, P-384, or P-521" {
+	if err := ValidatePubKey(priv.Public()); err == nil || !errors.Is(err, goodkey.ErrBadKey) {
 		t.Errorf("expected unsupported curve, got %v", err)
 	}
 	// Fails with unknown curve
-	err = ValidatePubKey(&ecdsa.PublicKey{})
-	if err == nil || err.Error() != "unexpected ec curve" {
+	err = ValidatePubKey(&ecdsa.PublicKey{
+		Curve: testCurve{},
+	})
+	if err == nil || !errors.Is(err, goodkey.ErrBadKey) {
 		t.Errorf("expected unexpected curve, got %v", err)
 	}
 }
