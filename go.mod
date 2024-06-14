@@ -2,8 +2,6 @@ module github.com/sigstore/sigstore
 
 go 1.22.0
 
-toolchain go1.22.4
-
 require (
 	github.com/coreos/go-oidc/v3 v3.10.0
 	github.com/go-jose/go-jose/v3 v3.0.3
