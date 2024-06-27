@@ -148,8 +148,19 @@ func ValidatePubKey(pub crypto.PublicKey) error {
 	//   * Public key Q's x and y are within [0, p-1]
 	//   * Public key Q is on the curve
 	//   * Public key Q's order matches the subgroups (nQ = Ø)
-	p, err := goodkey.NewKeyPolicy(&goodkey.Config{FermatRounds: 100}, nil)
-	p.AllowECDSANISTP521 = true
+	allowedKeys := &goodkey.AllowedKeys{
+		RSA2048:   true,
+		RSA3072:   true,
+		RSA4096:   true,
+		ECDSAP256: true,
+		ECDSAP384: true,
+		ECDSAP521: true,
+	}
+	cfg := &goodkey.Config{
+		FermatRounds: 100,
+		AllowedKeys:  allowedKeys,
+	}
+	p, err := goodkey.NewPolicy(cfg, nil)
 	if err != nil {
 		// Should not occur, only chances to return errors are if fermat rounds
 		// are <0 or when loading blocked/weak keys from disk (not used here)
