@@ -5,7 +5,7 @@ go 1.22.0
 require (
 	github.com/coreos/go-oidc/v3 v3.11.0
 	github.com/go-jose/go-jose/v3 v3.0.3
-	github.com/go-rod/rod v0.116.1
+	github.com/go-rod/rod v0.116.2
 	github.com/go-test/deep v1.1.1
 	github.com/google/go-cmp v0.6.0
 	github.com/google/go-containerregistry v0.20.0
@@ -33,7 +33,7 @@ require (
 	github.com/ysmood/goob v0.4.0 // indirect
 	github.com/ysmood/got v0.40.0 // indirect
 	github.com/ysmood/gson v0.7.3 // indirect
-	github.com/ysmood/leakless v0.8.0 // indirect
+	github.com/ysmood/leakless v0.9.0 // indirect
 	golang.org/x/sys v0.22.0 // indirect
 	google.golang.org/protobuf v1.34.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
