@@ -2,7 +2,7 @@ module github.com/sigstore/sigstore/pkg/signature/kms/azure
 
 replace github.com/sigstore/sigstore => ../../../../
 
-go 1.22.0
+go 1.22.5
 
 require (
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.12.0
