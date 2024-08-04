@@ -53,7 +53,7 @@ jobs:
 
       - name: Docker Build
         working-directory: ./test/e2e
-        run: docker-compose build
+        run: docker compose build
 
       - name: Integration test
         run: make test-e2e
