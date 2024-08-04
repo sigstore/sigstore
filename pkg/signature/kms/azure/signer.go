@@ -18,6 +18,8 @@ package azure
 import (
 	"context"
 	"crypto"
+	"crypto/ecdsa"
+	"crypto/rsa"
 	"errors"
 	"fmt"
 	"io"
@@ -53,7 +55,7 @@ var azureSupportedAlgorithms = []string{
 type SignerVerifier struct {
 	defaultCtx context.Context
 	hashFunc   crypto.Hash
-	client     *azureVaultClient
+	client     azureVaultClient
 }
 
 // LoadSignerVerifier generates signatures using the specified key in Azure Key Vault and hash algorithm.
@@ -108,6 +110,23 @@ func (a *SignerVerifier) SignMessage(message io.Reader, opts ...signature.SignOp
 		return nil, err
 	}
 
+	// check if the public key is RSA or ECDSA
+	// if it is ECDSA, encode the raw signature to ASN.1 format
+	// before returning it
+	publicKey, err := a.client.public(a.defaultCtx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get public key: %w", err)
+	}
+	switch publicKey.(type) {
+	case *ecdsa.PublicKey:
+		return encodeToASN1(rawSig)
+	case *rsa.PublicKey:
+		return rawSig, nil
+	}
+	return nil, fmt.Errorf("failed to recognize key type")
+}
+
+func encodeToASN1(rawSig []byte) ([]byte, error) {
 	l := len(rawSig)
 	r, s := &big.Int{}, &big.Int{}
 	r.SetBytes(rawSig[0 : l/2])
@@ -149,7 +168,7 @@ func (a *SignerVerifier) VerifySignature(sig, message io.Reader, opts ...signatu
 
 	digest, _, err = signature.ComputeDigestForVerifying(message, signerOpts.HashFunc(), azureSupportedHashFuncs, opts...)
 	if err != nil {
-		return err
+		return fmt.Errorf("computing digest: %w", err)
 	}
 
 	sigBytes, err := io.ReadAll(sig)
@@ -157,6 +176,26 @@ func (a *SignerVerifier) VerifySignature(sig, message io.Reader, opts ...signatu
 		return fmt.Errorf("reading signature: %w", err)
 	}
 
+	// check if the public key is RSA or ECDSA
+	// if it is ECDSA, decode the ASN.1 signature first
+	publicKey, err := a.client.public(a.defaultCtx)
+	if err != nil {
+		return fmt.Errorf("fetching public key: %w", err)
+	}
+	switch publicKey.(type) {
+	case *ecdsa.PublicKey:
+		rawSigBytes, err := decodeASN1Signature(sigBytes)
+		if err != nil {
+			return fmt.Errorf("decoding ASN.1 signature: %w", err)
+		}
+		return a.client.verify(a.defaultCtx, rawSigBytes, digest)
+	case *rsa.PublicKey:
+		return a.client.verify(a.defaultCtx, sigBytes, digest)
+	}
+	return fmt.Errorf("recognizing key type")
+}
+
+func decodeASN1Signature(sigBytes []byte) ([]byte, error) {
 	// Convert the ASN.1 Sequence to a concatenated r||s byte string
 	// This logic is borrowed from https://cs.opensource.google/go/go/+/refs/tags/go1.17.3:src/crypto/ecdsa/ecdsa.go;l=339
 	var (
@@ -169,13 +208,14 @@ func (a *SignerVerifier) VerifySignature(sig, message io.Reader, opts ...signatu
 		!inner.ReadASN1Integer(r) ||
 		!inner.ReadASN1Integer(s) ||
 		!inner.Empty() {
-		return errors.New("parsing signature")
+		return nil, errors.New("parsing signature")
 	}
 
 	rawSigBytes := []byte{}
 	rawSigBytes = append(rawSigBytes, r.Bytes()...)
 	rawSigBytes = append(rawSigBytes, s.Bytes()...)
-	return a.client.verify(a.defaultCtx, rawSigBytes, digest)
+
+	return rawSigBytes, nil
 }
 
 // PublicKey returns the public key that can be used to verify signatures created by
