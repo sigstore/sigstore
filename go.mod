@@ -17,7 +17,7 @@ require (
 	github.com/stretchr/testify v1.9.0
 	github.com/theupdateframework/go-tuf v0.7.0
 	golang.org/x/crypto v0.25.0
-	golang.org/x/oauth2 v0.21.0
+	golang.org/x/oauth2 v0.22.0
 	golang.org/x/term v0.22.0
 )
 
