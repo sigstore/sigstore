@@ -13,4 +13,4 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-FROM ghcr.io/dexidp/dex:v2.40.0@sha256:3e35d5d0f7dbd33fbadc36a71ff58cf4097ab98d73d22f6cb9a6471a32e028af
+FROM ghcr.io/dexidp/dex:v2.41.0@sha256:db32d2a158490e39761eb4b77fbced7a404d6c4350bc4597eecfa83b30172661
