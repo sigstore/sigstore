@@ -17,6 +17,8 @@ package pem
 
 import (
 	"bytes"
+	"crypto/x509"
+	"crypto/x509/pkix"
 	"encoding/pem"
 	"testing"
 
@@ -82,5 +84,90 @@ func FuzzUnmarshalPEMToPublicKey(f *testing.F) {
 		if result == nil {
 			t.Errorf("result %v should not be nil", result)
 		}
+	})
+}
+
+func FuzzCertificate(f *testing.F) {
+	f.Fuzz(func(t *testing.T, withLimited bool, pemBytes []byte, iterations int) {
+		var certs []*x509.Certificate
+		var err error
+		if withLimited {
+			certs, err = cryptoutils.UnmarshalCertificatesFromPEMLimited(pemBytes, iterations)
+			if err != nil {
+				return
+			}
+			cryptoutils.MarshalCertificatesToPEM(certs)
+		} else {
+			certs, err = cryptoutils.UnmarshalCertificatesFromPEM(pemBytes)
+			if err != nil {
+				return
+			}
+			cryptoutils.MarshalCertificatesToPEM(certs)
+		}
+		for _, cert := range certs {
+			cryptoutils.GetSubjectAlternateNames(cert)
+		}
+	})
+}
+
+func FuzzPrivateKey(f *testing.F) {
+	f.Fuzz(func(t *testing.T, pemBytes, password []byte) {
+		passFunc := cryptoutils.StaticPasswordFunc(password)
+		privateKey, err := cryptoutils.UnmarshalPEMToPrivateKey(pemBytes, passFunc)
+		if err != nil {
+			return
+		}
+
+		cryptoutils.MarshalPrivateKeyToPEM(privateKey)
+		cryptoutils.MarshalPrivateKeyToEncryptedDER(privateKey, passFunc)
+	})
+}
+
+func FuzzPublicKey(f *testing.F) {
+	f.Fuzz(func(t *testing.T, firstKeyBytes, secondKeyBytes []byte) {
+		first, err := cryptoutils.UnmarshalPEMToPublicKey(firstKeyBytes)
+		if err != nil {
+			return
+		}
+		err = cryptoutils.ValidatePubKey(first)
+		if err != nil {
+			return
+		}
+		second, err := cryptoutils.UnmarshalPEMToPublicKey(secondKeyBytes)
+		if err != nil {
+			return
+		}
+		err = cryptoutils.ValidatePubKey(first)
+		if err != nil {
+			return
+		}
+		cryptoutils.EqualKeys(first, second)
+		cryptoutils.MarshalPublicKeyToPEM(first)
+		cryptoutils.MarshalPublicKeyToPEM(second)
+		cryptoutils.SKID(first)
+		cryptoutils.SKID(second)
+	})
+}
+
+func FuzzUnmarshalOtherNameSAN(f *testing.F) {
+	f.Fuzz(func(t *testing.T, value []byte) {
+		exts := []pkix.Extension{
+			pkix.Extension{
+				Id:    cryptoutils.SANOID,
+				Value: value,
+			},
+		}
+		cryptoutils.UnmarshalOtherNameSAN(exts)
+	})
+}
+
+func FuzzMarshalUnmarshalOtherNameSAN(f *testing.F) {
+	f.Fuzz(func(t *testing.T, name string, critical bool) {
+		ext, err := cryptoutils.MarshalOtherNameSAN(name, critical)
+		if err != nil {
+			return
+		}
+		exts := []pkix.Extension{*ext}
+		cryptoutils.UnmarshalOtherNameSAN(exts)
 	})
 }
