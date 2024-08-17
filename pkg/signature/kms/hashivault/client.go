@@ -231,13 +231,15 @@ func (h *hashivaultClient) fetchPublicKey(_ context.Context) (crypto.PublicKey, 
 		return nil, fmt.Errorf("could not parse public key pem as string")
 	}
 	// vault returns the key type in the "name" field
-	keyType := keyMap["name"]
-	if keyType == "ed25519" {
+	if keyType := keyMap["name"]; keyType == "ed25519" {
 		// vault returns ed25519 public keys as base64 encoding of
 		// the raw bytes of the key
 		decodedPublicKey, err := base64.StdEncoding.DecodeString(strPublicKey)
 		if err != nil {
 			return nil, fmt.Errorf("failed to base64 decode ed25519 public key: %s", err)
+		}
+		if keyLen := len(decodedPublicKey); keyLen != ed25519.PublicKeySize {
+			return nil, fmt.Errorf("decoded ed25519 public key length is %d, should be %d", keyLen, ed25519.PublicKeySize)
 		}
 		return ed25519.PublicKey(decodedPublicKey), nil
 	}
