@@ -424,6 +424,22 @@ func (suite *VaultSuite) TestVerify() {
 	assert.Nil(suite.T(), err)
 }
 
+func (suite *VaultSuite) TestED25519() {
+	provider := suite.GetProvider("testverify")
+
+	key, err := provider.CreateKey(context.Background(), AlgorithmED25519)
+	assert.Nil(suite.T(), err)
+	assert.NotNil(suite.T(), key)
+
+	data := []byte("mydata")
+	sig, err := provider.SignMessage(bytes.NewReader(data))
+	assert.Nil(suite.T(), err)
+	assert.NotNil(suite.T(), sig)
+
+	err = provider.VerifySignature(bytes.NewReader(sig), bytes.NewReader(data))
+	assert.Nil(suite.T(), err)
+}
+
 func (suite *VaultSuite) TestVerifyBadData() {
 	provider := suite.GetProvider("testverify")
 
