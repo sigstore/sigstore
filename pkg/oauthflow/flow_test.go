@@ -267,3 +267,73 @@ func TestSubjectFromToken(t *testing.T) {
 		})
 	}
 }
+
+func TestSubjectFromUnverifiedToken(t *testing.T) {
+	tests := map[string]struct {
+		Subject         string
+		Email           string
+		EmailVerified   interface{}
+		ExpectedSubject string
+		WantErr         bool
+	}{
+		`Email as subject`: {
+			Email:           "kilgore@kilgore.trout",
+			EmailVerified:   true,
+			Subject:         "foobar",
+			ExpectedSubject: "kilgore@kilgore.trout",
+			WantErr:         false,
+		},
+		`Subject as subject`: {
+			Subject:         "foobar",
+			ExpectedSubject: "foobar",
+			WantErr:         false,
+		},
+		`no email or subject`: {
+			WantErr: true,
+		},
+		`String email_verified value`: {
+			Email:           "kilgore@kilgore.trout",
+			EmailVerified:   "true",
+			ExpectedSubject: "kilgore@kilgore.trout",
+			WantErr:         false,
+		},
+		`Email not verified`: {
+			Email:         "kilgore@kilgore.trout",
+			EmailVerified: false,
+			WantErr:       true,
+		},
+		`invalid email_verified property`: {
+			Email:         "kilgore@kilgore.trout",
+			EmailVerified: "foo",
+			WantErr:       true,
+		},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			inputClaims := map[string]interface{}{
+				"email": test.Email,
+				"sub":   test.Subject,
+			}
+
+			if test.EmailVerified != nil {
+				inputClaims["email_verified"] = test.EmailVerified
+			}
+
+			token, err := json.Marshal(inputClaims)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			subject, err := SubjectFromUnverifiedToken(token)
+			if err != nil {
+				if !test.WantErr {
+					t.Fatal("didn't expect error", err)
+				}
+			}
+
+			if subject != test.ExpectedSubject {
+				t.Errorf("got %v subject and expected %v", subject, test.Subject)
+			}
+		})
+	}
+}
