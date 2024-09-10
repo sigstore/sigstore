@@ -6,14 +6,14 @@ require (
 	github.com/AdaLogics/go-fuzz-headers v0.0.0-20211102141018-f7be0cbad29c
 	github.com/dvyukov/go-fuzz v0.0.0-20210914135545-4980593459a1
 	github.com/secure-systems-lab/go-securesystemslib v0.8.0
-	github.com/sigstore/sigstore v1.8.8
+	github.com/sigstore/sigstore v1.8.9
 )
 
 require (
 	github.com/cyphar/filepath-securejoin v0.2.4 // indirect
 	github.com/elazarl/go-bindata-assetfs v1.0.1 // indirect
 	github.com/go-jose/go-jose/v4 v4.0.2 // indirect
-	github.com/google/go-containerregistry v0.20.1 // indirect
+	github.com/google/go-containerregistry v0.20.2 // indirect
 	github.com/kr/pretty v0.2.1 // indirect
 	github.com/letsencrypt/boulder v0.0.0-20240620165639-de9c06129bec // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
