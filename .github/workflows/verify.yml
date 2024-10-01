@@ -22,7 +22,7 @@ on:
     branches: [ main ]
 
 env:
-  GO_VERSION: '1.21'
+  GO_VERSION: '1.22'
 
 permissions:
   contents: read
@@ -59,6 +59,5 @@ jobs:
           check-latest: true
       - name: golangci-lint
         uses: golangci/golangci-lint-action@aaa42aa0628b4ae2578232a66b541047968fac86 # v6.1.0
-        timeout-minutes: 5
         with:
-          version: v1.57
+          version: v1.61
