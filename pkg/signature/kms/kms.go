@@ -62,7 +62,11 @@ var providersMap = map[string]ProviderInit{}
 func Get(ctx context.Context, keyResourceID string, hashFunc crypto.Hash, opts ...signature.RPCOption) (SignerVerifier, error) {
 	for ref, pi := range providersMap {
 		if strings.HasPrefix(keyResourceID, ref) {
-			return pi(ctx, keyResourceID, hashFunc, opts...)
+			sv, err := pi(ctx, keyResourceID, hashFunc, opts...)
+			if err != nil {
+				return nil, err
+			}
+			return sv, nil
 		}
 	}
 	if pi, ok := providersMap[CLIPluginProviderKey]; ok {
