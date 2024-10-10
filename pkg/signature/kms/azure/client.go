@@ -58,7 +58,17 @@ type kvClient interface {
 	Verify(ctx context.Context, name, version string, parameters azkeys.VerifyParameters, options *azkeys.VerifyOptions) (azkeys.VerifyResponse, error)
 }
 
-type azureVaultClient struct {
+type azureVaultClient interface {
+	createKey(ctx context.Context) (crypto.PublicKey, error)
+	fetchPublicKey(ctx context.Context) (crypto.PublicKey, error)
+	getKey(ctx context.Context) (azkeys.KeyBundle, error)
+	getKeyVaultHashFunc(ctx context.Context) (crypto.Hash, azkeys.SignatureAlgorithm, error)
+	public(ctx context.Context) (crypto.PublicKey, error)
+	sign(ctx context.Context, hash []byte) ([]byte, error)
+	verify(ctx context.Context, signature, hash []byte) error
+}
+
+type liveAzureVaultClient struct {
 	client     kvClient
 	keyCache   *ttlcache.Cache[string, crypto.PublicKey]
 	vaultURL   string
@@ -108,7 +118,7 @@ func parseReference(resourceID string) (vaultURL, keyName, keyVersion string, er
 	return
 }
 
-func newAzureKMS(keyResourceID string) (*azureVaultClient, error) {
+func newAzureKMS(keyResourceID string) (*liveAzureVaultClient, error) {
 	if err := ValidReference(keyResourceID); err != nil {
 		return nil, err
 	}
@@ -122,7 +132,7 @@ func newAzureKMS(keyResourceID string) (*azureVaultClient, error) {
 		return nil, fmt.Errorf("new azure kms client: %w", err)
 	}
 
-	azClient := &azureVaultClient{
+	azClient := &liveAzureVaultClient{
 		client:     client,
 		vaultURL:   vaultURL,
 		keyName:    keyName,
@@ -255,7 +265,7 @@ func getKeysClient(vaultURL string) (*azkeys.Client, error) {
 	return client, nil
 }
 
-func (a *azureVaultClient) fetchPublicKey(ctx context.Context) (crypto.PublicKey, error) {
+func (a *liveAzureVaultClient) fetchPublicKey(ctx context.Context) (crypto.PublicKey, error) {
 	keyBundle, err := a.getKey(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("public key: %w", err)
@@ -290,7 +300,7 @@ func (a *azureVaultClient) fetchPublicKey(ctx context.Context) (crypto.PublicKey
 	return jwk.Key, nil
 }
 
-func (a *azureVaultClient) getKey(ctx context.Context) (azkeys.KeyBundle, error) {
+func (a *liveAzureVaultClient) getKey(ctx context.Context) (azkeys.KeyBundle, error) {
 	resp, err := a.client.GetKey(ctx, a.keyName, a.keyVersion, nil)
 	if err != nil {
 		return azkeys.KeyBundle{}, fmt.Errorf("public key: %w", err)
@@ -299,7 +309,7 @@ func (a *azureVaultClient) getKey(ctx context.Context) (azkeys.KeyBundle, error)
 	return resp.KeyBundle, err
 }
 
-func (a *azureVaultClient) public(ctx context.Context) (crypto.PublicKey, error) {
+func (a *liveAzureVaultClient) public(ctx context.Context) (crypto.PublicKey, error) {
 	var lerr error
 	loader := ttlcache.LoaderFunc[string, crypto.PublicKey](
 		func(c *ttlcache.Cache[string, crypto.PublicKey], key string) *ttlcache.Item[string, crypto.PublicKey] {
@@ -319,7 +329,7 @@ func (a *azureVaultClient) public(ctx context.Context) (crypto.PublicKey, error)
 	return item.Value(), nil
 }
 
-func (a *azureVaultClient) createKey(ctx context.Context) (crypto.PublicKey, error) {
+func (a *liveAzureVaultClient) createKey(ctx context.Context) (crypto.PublicKey, error) {
 	// check if the key already exists by attempting to fetch it
 	_, err := a.getKey(ctx)
 	// if the error is nil, this means the key already exists
@@ -370,7 +380,7 @@ func (a *azureVaultClient) createKey(ctx context.Context) (crypto.PublicKey, err
 	return a.public(ctx)
 }
 
-func (a *azureVaultClient) getKeyVaultHashFunc(ctx context.Context) (crypto.Hash, azkeys.SignatureAlgorithm, error) {
+func (a *liveAzureVaultClient) getKeyVaultHashFunc(ctx context.Context) (crypto.Hash, azkeys.SignatureAlgorithm, error) {
 	publicKey, err := a.public(ctx)
 	if err != nil {
 		return 0, "", fmt.Errorf("failed to get public key: %w", err)
@@ -403,7 +413,7 @@ func (a *azureVaultClient) getKeyVaultHashFunc(ctx context.Context) (crypto.Hash
 	}
 }
 
-func (a *azureVaultClient) sign(ctx context.Context, hash []byte) ([]byte, error) {
+func (a *liveAzureVaultClient) sign(ctx context.Context, hash []byte) ([]byte, error) {
 	_, keyVaultAlgo, err := a.getKeyVaultHashFunc(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get KeyVaultSignatureAlgorithm: %w", err)
@@ -422,7 +432,7 @@ func (a *azureVaultClient) sign(ctx context.Context, hash []byte) ([]byte, error
 	return result.Result, nil
 }
 
-func (a *azureVaultClient) verify(ctx context.Context, signature, hash []byte) error {
+func (a *liveAzureVaultClient) verify(ctx context.Context, signature, hash []byte) error {
 	_, keyVaultAlgo, err := a.getKeyVaultHashFunc(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get KeyVaultSignatureAlgorithm: %w", err)
