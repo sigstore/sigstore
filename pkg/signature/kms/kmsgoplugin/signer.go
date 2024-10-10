@@ -47,7 +47,7 @@ func LoadSignerVerifier(ctx context.Context, referenceStr string, opts ...signat
 	logger := hclog.New(&hclog.LoggerOptions{
 		Name:   kmsPluginName,
 		Output: os.Stdout,
-		Level:  hclog.Trace,
+		Level:  hclog.Info,
 	})
 	var pluginMap = map[string]plugin.Plugin{
 		kmsPluginName: &common.SignerVerifierPlugin{},
