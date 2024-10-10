@@ -19,9 +19,11 @@ package common
 
 import (
 	"bytes"
+	"crypto"
 	"encoding/gob"
 	"io"
 
+	"github.com/sigstore/sigstore/pkg/cryptoutils"
 	"github.com/sigstore/sigstore/pkg/signature/options"
 )
 
@@ -37,7 +39,9 @@ func init() {
 // The privaete ctx of options.RequestContext will not be faithfully encoded/decoded.
 // See https://github.com/golang/go/issues/22290.
 func GobRegister() {
-	gob.Register(IOReaderGobWrapper{})
+	// gob.Register(IOReaderGobWrapper{})
+	// TODO: why dont i need to register this?
+	// gob.Register(PublicKeyGobWrapper{})
 	gob.Register(options.RequestContext{})
 }
 
@@ -45,19 +49,25 @@ type IOReaderGobWrapper struct {
 	io.Reader
 }
 
-func (w IOReaderGobWrapper) GobEncode() ([]byte, error) {
-	return io.ReadAll(w.Reader)
+func (r IOReaderGobWrapper) GobEncode() ([]byte, error) {
+	return io.ReadAll(r.Reader)
 }
 
-func (w *IOReaderGobWrapper) GobDecode(content []byte) error {
-	w.Reader = bytes.NewReader(content)
+func (r *IOReaderGobWrapper) GobDecode(content []byte) error {
+	r.Reader = bytes.NewReader(content)
 	return nil
 }
 
-// func (w IOReaderGobWrapper) Read(p []byte) (int, error) {
-// 	return w.Reader.Read(p)
-// }
+type PublicKeyGobWrapper struct {
+	crypto.PublicKey
+}
 
-// type PublicKeyGobWrapper struct {
-// 	*crypto.PublicKey
-// }
+func (p PublicKeyGobWrapper) GobEncode() ([]byte, error) {
+	return cryptoutils.MarshalPublicKeyToPEM(p.PublicKey)
+}
+
+func (p *PublicKeyGobWrapper) GobDecode(content []byte) error {
+	var err error
+	p.PublicKey, err = cryptoutils.UnmarshalPEMToPublicKey(content)
+	return err
+}

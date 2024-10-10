@@ -23,7 +23,6 @@ import (
 	"io"
 	"net/rpc"
 
-	"github.com/sigstore/sigstore/pkg/cryptoutils"
 	"github.com/sigstore/sigstore/pkg/signature"
 	"github.com/sigstore/sigstore/pkg/signature/kms"
 )
@@ -103,20 +102,15 @@ type CreateKeyArgs struct {
 
 // CreateKeyResp contains the return values for CreateKey().
 type CreateKeyResp struct {
-	// PublicKeyPEM is our marhsalled crypto.PublicKey, becuase that type is not serializable for use with go-plugin.
-	PublicKeyPEM []byte
-	Error        error
+	PublicKey PublicKeyGobWrapper
+	Error     error
 }
 
 // CreateKey returns a crypto.PublicKey.
 func (s *SignerVerifierRPCServer) CreateKey(args CreateKeyArgs, resp *CreateKeyResp) error {
 	pubKey, err := s.Impl.CreateKey(context.TODO(), args.Algorithm)
+	resp.PublicKey = PublicKeyGobWrapper{PublicKey: pubKey}
 	resp.Error = err
-	pubKeyPEM, err := cryptoutils.MarshalPublicKeyToPEM(pubKey)
-	if err != nil {
-		panic(err)
-	}
-	resp.PublicKeyPEM = pubKeyPEM
 	return nil
 }
 
@@ -130,16 +124,12 @@ func (c *SignerVerifierRPC) CreateKey(ctx context.Context, algorithm string) (cr
 	if err := c.client.Call("Plugin.CreateKey", args, &resp); err != nil {
 		panic(err)
 	}
-	pubKey, err := cryptoutils.UnmarshalPEMToPublicKey(resp.PublicKeyPEM)
-	if err != nil {
-		panic(err)
-	}
-	return pubKey, resp.Error
+	return resp.PublicKey.PublicKey, resp.Error
 }
 
 // SignMessageArgs cotnains the args for SignMessage().
 type SignMessageArgs struct {
-	Message io.Reader
+	Message IOReaderGobWrapper
 	Opts    []signature.SignOption
 }
 
@@ -159,7 +149,7 @@ func (s *SignerVerifierRPCServer) SignMessage(args SignMessageArgs, resp *SignMe
 func (c *SignerVerifierRPC) SignMessage(message io.Reader, opts ...signature.SignOption) ([]byte, error) {
 	// the internal cosign type cosign.HashReader is not accessable to be serialized,
 	// so we instead use our IOReaderGobWrapper
-	wrappedMessage := IOReaderGobWrapper{message}
+	wrappedMessage := IOReaderGobWrapper{Reader: message}
 	args := SignMessageArgs{
 		Message: wrappedMessage,
 		Opts:    opts,
@@ -208,20 +198,16 @@ type PublicKeyArgs struct {
 
 // PublicKeyResp contains the return values for PublicKey().
 type PublicKeyResp struct {
-	// PublicKeyPEM is our marhsalled crypto.PublicKey, becuase that type is not serializable for use with go-plugin.
-	PublicKeyPEM []byte
-	Error        error
+	PublicKey PublicKeyGobWrapper
+	Error     error
 }
 
 // SignMessage signs the provided message.
 func (s *SignerVerifierRPCServer) PublicKey(args PublicKeyArgs, resp *PublicKeyResp) error {
 	pubKey, err := s.Impl.PublicKey(args.Opts...)
+	// crypto.PublicKey is not gob encodeable, so we wrap it in our PublicKeyGobWrapper.
+	resp.PublicKey = PublicKeyGobWrapper{PublicKey: pubKey}
 	resp.Error = err
-	pubKeyPEM, err := cryptoutils.MarshalPublicKeyToPEM(pubKey)
-	if err != nil {
-		panic(err)
-	}
-	resp.PublicKeyPEM = pubKeyPEM
 	return nil
 }
 
@@ -234,11 +220,7 @@ func (c *SignerVerifierRPC) PublicKey(opts ...signature.PublicKeyOption) (crypto
 	if err := c.client.Call("Plugin.PublicKey", args, &resp); err != nil {
 		panic(err)
 	}
-	pubKey, err := cryptoutils.UnmarshalPEMToPublicKey(resp.PublicKeyPEM)
-	if err != nil {
-		panic(err)
-	}
-	return pubKey, resp.Error
+	return resp.PublicKey.PublicKey, resp.Error
 }
 
 // CryptoSignerArgs contains the args for CryptoSigner().
