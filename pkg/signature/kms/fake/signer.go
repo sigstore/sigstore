@@ -109,6 +109,10 @@ type cryptoSignerWrapper struct {
 	errFunc  func(error)
 }
 
+func (c cryptoSignerWrapper) HashFunc() crypto.Hash {
+	return c.hashFunc
+}
+
 func (c cryptoSignerWrapper) Public() crypto.PublicKey {
 	pk, err := c.sv.PublicKey(options.WithContext(c.ctx))
 	if err != nil && c.errFunc != nil {
@@ -152,4 +156,9 @@ func (g *SignerVerifier) SupportedAlgorithms() (result []string) {
 // DefaultAlgorithm returns the default algorithm for the signer
 func (g *SignerVerifier) DefaultAlgorithm() string {
 	return "ecdsa-p256-sha256"
+}
+
+// HashFunc returns the hash function for this object
+func (g *SignerVerifier) HashFunc() crypto.Hash {
+	return crypto.SHA256
 }

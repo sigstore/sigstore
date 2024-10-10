@@ -63,9 +63,13 @@ type SignerVerifier struct {
 	client   *hashivaultClient
 }
 
+func (sv SignerVerifier) HashFunc() crypto.Hash {
+	return sv.hashFunc
+}
+
 // LoadSignerVerifier generates signatures using the specified key object in Vault and hash algorithm.
 //
-// It also can verify signatures (via a remote vall to the Vault instance). hashFunc should be
+// It also can verify signatures (via a remote call to the Vault instance). hashFunc should be
 // set to crypto.Hash(0) if the key referred to by referenceStr is an ED25519 signing key.
 func LoadSignerVerifier(referenceStr string, hashFunc crypto.Hash, opts ...signature.RPCOption) (*SignerVerifier, error) {
 	h := &SignerVerifier{}
@@ -185,6 +189,10 @@ type cryptoSignerWrapper struct {
 	hashFunc crypto.Hash
 	sv       *SignerVerifier
 	errFunc  func(error)
+}
+
+func (c cryptoSignerWrapper) HashFunc() crypto.Hash {
+	return c.hashFunc
 }
 
 func (c cryptoSignerWrapper) Public() crypto.PublicKey {
