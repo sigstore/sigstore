@@ -42,7 +42,7 @@ func GobRegister() {
 }
 
 type IOReaderGobWrapper struct {
-	Reader io.Reader
+	io.Reader
 }
 
 func (w IOReaderGobWrapper) GobEncode() ([]byte, error) {
@@ -54,6 +54,10 @@ func (w *IOReaderGobWrapper) GobDecode(content []byte) error {
 	return nil
 }
 
-func (w IOReaderGobWrapper) Read(p []byte) (int, error) {
-	return w.Reader.Read(p)
-}
+// func (w IOReaderGobWrapper) Read(p []byte) (int, error) {
+// 	return w.Reader.Read(p)
+// }
+
+// type PublicKeyGobWrapper struct {
+// 	*crypto.PublicKey
+// }

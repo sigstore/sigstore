@@ -159,7 +159,7 @@ func (s *SignerVerifierRPCServer) SignMessage(args SignMessageArgs, resp *SignMe
 func (c *SignerVerifierRPC) SignMessage(message io.Reader, opts ...signature.SignOption) ([]byte, error) {
 	// the internal cosign type cosign.HashReader is not accessable to be serialized,
 	// so we instead use our IOReaderGobWrapper
-	wrappedMessage := IOReaderGobWrapper{Reader: message}
+	wrappedMessage := IOReaderGobWrapper{message}
 	args := SignMessageArgs{
 		Message: wrappedMessage,
 		Opts:    opts,
