@@ -23,14 +23,6 @@ import (
 	"github.com/hashicorp/go-plugin"
 )
 
-// Some of our interface functions don't return an error, but our communication to the plugin may still error,
-// so we panic instead of returning the error.
-
-func init() {
-	// gob.Register(ecdsa.PublicKey{})
-	// gob.Register(elliptic.P256())
-}
-
 const (
 	DefaultPluginBinaryRelativePath = "./sigstore-kms-go-plugin"
 	PluginPathEnvKey                = "SIGSTORE_GO_PLUGIN_PATH"
@@ -45,9 +37,6 @@ var (
 		MagicCookieKey:   "SIGSTORE_KMS_PLUGIN",
 		MagicCookieValue: "sigstore",
 	}
-
-	_ SignerVerifier = &SignerVerifierRPC{}
-	// _ kms.SignerVerifier = (*SignerVerifierRPC)(nil)
 )
 
 type SignerVerifierPlugin struct {
