@@ -21,13 +21,16 @@ import (
 	"context"
 	"crypto"
 	"io"
-	"log/slog"
 	"net/rpc"
 
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
 	"github.com/sigstore/sigstore/pkg/signature"
 	"github.com/sigstore/sigstore/pkg/signature/kms"
 )
+
+// Some of our interface functions don't return an error (e.g., SupportedAlgorithms),
+// but our communication to the plugin may still error,
+// so in the RPC functions we panic instead of returning the error.
 
 // SignerVerifier wraps around kms.SignerVerifier
 type SignerVerifier interface {
@@ -111,10 +114,10 @@ func (s *SignerVerifierRPCServer) CreateKey(args CreateKeyArgs, resp *CreateKeyR
 	resp.Error = err
 	pubKeyPEM, err := cryptoutils.MarshalPublicKeyToPEM(pubKey)
 	if err != nil {
-		return err
+		panic(err)
 	}
 	resp.PublicKeyPEM = pubKeyPEM
-	return resp.Error
+	return nil
 }
 
 // CreateKey returns a crypto.PublicKey.
@@ -125,12 +128,11 @@ func (c *SignerVerifierRPC) CreateKey(ctx context.Context, algorithm string) (cr
 	}
 	var resp CreateKeyResp
 	if err := c.client.Call("Plugin.CreateKey", args, &resp); err != nil {
-		slog.Error("create", "res", resp.PublicKeyPEM)
 		panic(err)
 	}
 	pubKey, err := cryptoutils.UnmarshalPEMToPublicKey(resp.PublicKeyPEM)
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
 	return pubKey, resp.Error
 }
@@ -150,13 +152,16 @@ type SignMessageResp struct {
 // SignMessage signs the provided message.
 func (s *SignerVerifierRPCServer) SignMessage(args SignMessageArgs, resp *SignMessageResp) error {
 	resp.Signature, resp.Error = s.Impl.SignMessage(args.Message, args.Opts...)
-	return resp.Error
+	return nil
 }
 
 // SignMessage signs the provided message.
 func (c *SignerVerifierRPC) SignMessage(message io.Reader, opts ...signature.SignOption) ([]byte, error) {
+	// the internal cosign type cosign.HashReader is not accessable to be serialized,
+	// so we instead use our IOReaderGobWrapper
+	wrappedMessage := IOReaderGobWrapper{Reader: message}
 	args := SignMessageArgs{
-		Message: message,
+		Message: wrappedMessage,
 		Opts:    opts,
 	}
 	var resp SignMessageResp
@@ -181,7 +186,7 @@ type VerifySignatureResp struct {
 // SignMessage signs the provided message.
 func (s *SignerVerifierRPCServer) VerifySignature(args VerifySignatureArgs, resp *VerifySignatureResp) error {
 	resp.Error = s.Impl.VerifySignature(args.Message, args.Signature, args.Opts...)
-	return resp.Error
+	return nil
 }
 
 // VerifySignature verifies the signature for the given message.
@@ -193,7 +198,7 @@ func (c *SignerVerifierRPC) VerifySignature(signature, message io.Reader, opts .
 	if err := c.client.Call("Plugin.VerifySignature", args, &resp); err != nil {
 		panic(err)
 	}
-	return resp.Error
+	return nil
 }
 
 // PublicKeyArgs cotnains the args for PublicKey().
@@ -214,10 +219,10 @@ func (s *SignerVerifierRPCServer) PublicKey(args PublicKeyArgs, resp *PublicKeyR
 	resp.Error = err
 	pubKeyPEM, err := cryptoutils.MarshalPublicKeyToPEM(pubKey)
 	if err != nil {
-		return err
+		panic(err)
 	}
 	resp.PublicKeyPEM = pubKeyPEM
-	return resp.Error
+	return nil
 }
 
 // SignMessage signs the provided message.
@@ -231,7 +236,7 @@ func (c *SignerVerifierRPC) PublicKey(opts ...signature.PublicKeyOption) (crypto
 	}
 	pubKey, err := cryptoutils.UnmarshalPEMToPublicKey(resp.PublicKeyPEM)
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
 	return pubKey, resp.Error
 }
@@ -251,7 +256,7 @@ type CryptoSignerResp struct {
 
 func (s *SignerVerifierRPCServer) CryptoSigner(args CryptoSignerArgs, resp *CryptoSignerResp) error {
 	resp.Signer, resp.SignerOpts, resp.Error = s.Impl.CryptoSigner(context.TODO(), args.ErrFunc)
-	return resp.Error
+	return nil
 }
 
 func (c *SignerVerifierRPC) CryptoSigner(ctx context.Context, errFunc func(error)) (crypto.Signer, crypto.SignerOpts, error) {
