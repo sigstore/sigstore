@@ -1,0 +1,71 @@
+syntax = "proto3";
+package kms;
+
+import "google/protobuf/any.proto";
+option go_package = "github.com/sigstore/sigstore/pkg/signature/kms/kmsgoplugin/proto";
+
+
+
+service KMSService {
+    rpc SupportedAlgorithms(SupportedAlgorithmsRequest) returns (SupportedAlgorithmsResponse);
+    rpc DefaultAlgorithm(DefaultAlgorithmRequest) returns (DefaultAlgorithmResponse);
+    rpc CreateKey(CreateKeyRequest) returns (CreateKeyResponse);
+    rpc SignMessage(SignMessageRequest) returns (SignMessageResponse);
+    rpc VerifySignature(VerifySignatureRequest) returns (VerifySignatureResponse);
+    rpc PublicKey(PublicKeyRequest) returns (PublicKeyResponse);
+    rpc CryptoSigner(CryptoSignerRequest) returns (CryptoSignerResponse);
+}
+
+message SupportedAlgorithmsRequest {}
+
+message SupportedAlgorithmsResponse {
+    repeated string supported_algorithms = 1;
+}
+
+message DefaultAlgorithmRequest {}
+
+message DefaultAlgorithmResponse {
+    string default_agorithm = 1;
+}
+
+message CreateKeyRequest {
+    string algorithm = 1;
+}
+
+message CreateKeyResponse {
+    google.protobuf.Any public_key = 1;
+}
+
+message SignMessageRequest {
+    bytes message = 1;
+    repeated google.protobuf.Any opts = 2;
+}
+
+message SignMessageResponse {
+    bytes signature = 1; 
+}
+
+message VerifySignatureRequest {
+    bytes signature = 1;
+    bytes message = 2;
+    repeated google.protobuf.Any opts = 3;
+}
+
+message VerifySignatureResponse {}
+
+message PublicKeyRequest {
+   repeated google.protobuf.Any opts = 1; 
+}
+
+message PublicKeyResponse {
+   google.protobuf.Any public_key = 1;
+}
+
+message CryptoSignerRequest {
+    google.protobuf.Any err_func = 1;
+}
+
+message CryptoSignerResponse {
+    google.protobuf.Any signer = 1;
+    google.protobuf.Any opts = 2;
+}

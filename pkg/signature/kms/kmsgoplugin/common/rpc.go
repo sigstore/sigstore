@@ -24,17 +24,11 @@ import (
 	"net/rpc"
 
 	"github.com/sigstore/sigstore/pkg/signature"
-	"github.com/sigstore/sigstore/pkg/signature/kms"
 )
 
 // Some of our interface functions don't return an error (e.g., SupportedAlgorithms),
 // but our communication to the plugin may still error,
 // so in the RPC functions we panic instead of returning the error.
-
-// SignerVerifier wraps around kms.SignerVerifier
-type SignerVerifier interface {
-	kms.SignerVerifier
-}
 
 type SignerVerifierRPC struct {
 	client *rpc.Client
@@ -103,14 +97,15 @@ type CreateKeyArgs struct {
 // CreateKeyResp contains the return values for CreateKey().
 type CreateKeyResp struct {
 	PublicKey PublicKeyGobWrapper
-	Error     error
 }
 
 // CreateKey returns a crypto.PublicKey.
 func (s *SignerVerifierRPCServer) CreateKey(args CreateKeyArgs, resp *CreateKeyResp) error {
 	pubKey, err := s.Impl.CreateKey(context.TODO(), args.Algorithm)
+	if err != nil {
+		return err
+	}
 	resp.PublicKey = PublicKeyGobWrapper{PublicKey: pubKey}
-	resp.Error = err
 	return nil
 }
 
@@ -122,9 +117,9 @@ func (c *SignerVerifierRPC) CreateKey(ctx context.Context, algorithm string) (cr
 	}
 	var resp CreateKeyResp
 	if err := c.client.Call("Plugin.CreateKey", args, &resp); err != nil {
-		panic(err)
+		return nil, err
 	}
-	return resp.PublicKey.PublicKey, resp.Error
+	return resp.PublicKey.PublicKey, nil
 }
 
 // SignMessageArgs cotnains the args for SignMessage().
@@ -136,12 +131,15 @@ type SignMessageArgs struct {
 // SignMessageResp contains the return values for SignMessage().
 type SignMessageResp struct {
 	Signature []byte
-	Error     error
 }
 
 // SignMessage signs the provided message.
 func (s *SignerVerifierRPCServer) SignMessage(args SignMessageArgs, resp *SignMessageResp) error {
-	resp.Signature, resp.Error = s.Impl.SignMessage(args.Message, args.Opts...)
+	signature, err := s.Impl.SignMessage(args.Message, args.Opts...)
+	if err != nil {
+		return err
+	}
+	resp.Signature = signature
 	return nil
 }
 
@@ -156,9 +154,9 @@ func (c *SignerVerifierRPC) SignMessage(message io.Reader, opts ...signature.Sig
 	}
 	var resp SignMessageResp
 	if err := c.client.Call("Plugin.SignMessage", args, &resp); err != nil {
-		panic(err)
+		return nil, err
 	}
-	return resp.Signature, resp.Error
+	return resp.Signature, nil
 }
 
 // VerifySignatureyArgs contains the args for VerifySignature().
@@ -170,12 +168,13 @@ type VerifySignatureArgs struct {
 
 // VerifySignatureyResp contains the return values for VerifySignature().
 type VerifySignatureResp struct {
-	Error error
 }
 
 // SignMessage signs the provided message.
 func (s *SignerVerifierRPCServer) VerifySignature(args VerifySignatureArgs, resp *VerifySignatureResp) error {
-	resp.Error = s.Impl.VerifySignature(args.Message, args.Signature, args.Opts...)
+	if err := s.Impl.VerifySignature(args.Message, args.Signature, args.Opts...); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -186,7 +185,7 @@ func (c *SignerVerifierRPC) VerifySignature(signature, message io.Reader, opts .
 	}
 	var resp VerifySignatureResp
 	if err := c.client.Call("Plugin.VerifySignature", args, &resp); err != nil {
-		panic(err)
+		return err
 	}
 	return nil
 }
@@ -199,15 +198,16 @@ type PublicKeyArgs struct {
 // PublicKeyResp contains the return values for PublicKey().
 type PublicKeyResp struct {
 	PublicKey PublicKeyGobWrapper
-	Error     error
 }
 
 // SignMessage signs the provided message.
 func (s *SignerVerifierRPCServer) PublicKey(args PublicKeyArgs, resp *PublicKeyResp) error {
 	pubKey, err := s.Impl.PublicKey(args.Opts...)
+	if err != nil {
+		return err
+	}
 	// crypto.PublicKey is not gob encodeable, so we wrap it in our PublicKeyGobWrapper.
 	resp.PublicKey = PublicKeyGobWrapper{PublicKey: pubKey}
-	resp.Error = err
 	return nil
 }
 
@@ -218,9 +218,9 @@ func (c *SignerVerifierRPC) PublicKey(opts ...signature.PublicKeyOption) (crypto
 	}
 	var resp PublicKeyResp
 	if err := c.client.Call("Plugin.PublicKey", args, &resp); err != nil {
-		panic(err)
+		return nil, err
 	}
-	return resp.PublicKey.PublicKey, resp.Error
+	return resp.PublicKey.PublicKey, nil
 }
 
 // CryptoSignerArgs contains the args for CryptoSigner().
@@ -233,11 +233,14 @@ type CryptoSignerArgs struct {
 type CryptoSignerResp struct {
 	Signer     crypto.Signer
 	SignerOpts crypto.SignerOpts
-	Error      error
 }
 
 func (s *SignerVerifierRPCServer) CryptoSigner(args CryptoSignerArgs, resp *CryptoSignerResp) error {
-	resp.Signer, resp.SignerOpts, resp.Error = s.Impl.CryptoSigner(context.TODO(), args.ErrFunc)
+	signer, signerOpts, err := s.Impl.CryptoSigner(context.TODO(), args.ErrFunc)
+	if err != nil {
+		return err
+	}
+	resp.Signer, resp.SignerOpts = signer, signerOpts
 	return nil
 }
 
@@ -248,7 +251,7 @@ func (c *SignerVerifierRPC) CryptoSigner(ctx context.Context, errFunc func(error
 	}
 	var resp CryptoSignerResp
 	if err := c.client.Call("Plugin.CryptoSigner", args, &resp); err != nil {
-		panic(err)
+		return nil, nil, err
 	}
-	return resp.Signer, resp.SignerOpts, resp.Error
+	return resp.Signer, resp.SignerOpts, nil
 }

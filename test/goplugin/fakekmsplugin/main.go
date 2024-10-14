@@ -9,16 +9,9 @@ import (
 	"os"
 
 	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-plugin"
 	"github.com/sigstore/sigstore/pkg/signature/kms/fake"
 	"github.com/sigstore/sigstore/pkg/signature/kms/kmsgoplugin/common"
 )
-
-// Here is a real implementation of Greeter
-type SignerVerifier struct {
-	*fake.SignerVerifier
-	logger hclog.Logger
-}
 
 func main() {
 	logger := hclog.New(&hclog.LoggerOptions{
@@ -31,19 +24,12 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	signerVerifier := &SignerVerifier{
-		fakeSV,
-		logger,
-	}
 
-	// pluginMap is the map of plugins we can dispense.
-	var pluginMap = map[string]plugin.Plugin{
-		common.KMSPluginName: &common.SignerVerifierPlugin{Impl: signerVerifier},
-	}
+	// You can use the KeyResourceID
+	logger.Info(
+		"env",
+		common.KeyResourceIDEnvKey, common.GetKeyResourceID(),
+	)
 
-	plugin.Serve(&plugin.ServeConfig{
-		HandshakeConfig: common.HandshakeConfig,
-		Plugins:         pluginMap,
-		Logger:          logger,
-	})
+	common.ServePlugin(fakeSV, logger)
 }

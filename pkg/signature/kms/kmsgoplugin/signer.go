@@ -35,8 +35,11 @@ const (
 	ReferenceScheme = "plugin://"
 )
 
+var ()
+
 func init() {
 	sigkms.AddProvider(ReferenceScheme, func(ctx context.Context, keyResourceID string, _ crypto.Hash, opts ...signature.RPCOption) (sigkms.SignerVerifier, error) {
+		os.Setenv(common.KeyResourceIDEnvKey, keyResourceID)
 		return LoadSignerVerifier(ctx, keyResourceID, opts...)
 	})
 }
@@ -50,7 +53,7 @@ func LoadSignerVerifier(ctx context.Context, referenceStr string, opts ...signat
 		Level:  hclog.Info,
 	})
 	var pluginMap = map[string]plugin.Plugin{
-		kmsPluginName: &common.SignerVerifierPlugin{},
+		kmsPluginName: &common.SignerVerifierRPCPlugin{},
 	}
 	pluginPath := getPluginPath()
 	client := plugin.NewClient(&plugin.ClientConfig{
@@ -58,6 +61,8 @@ func LoadSignerVerifier(ctx context.Context, referenceStr string, opts ...signat
 		Plugins:         pluginMap,
 		Cmd:             exec.Command(pluginPath),
 		Logger:          logger,
+		// SyncStdout:      os.Stdout,
+		// SyncStderr:      os.Stderr,
 	})
 
 	rpcClient, err := client.Client()
