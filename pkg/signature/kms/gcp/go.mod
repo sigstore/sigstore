@@ -2,7 +2,7 @@ module github.com/sigstore/sigstore/pkg/signature/kms/gcp
 
 replace github.com/sigstore/sigstore => ../../../../
 
-go 1.22.7
+go 1.22.8
 
 require (
 	cloud.google.com/go/kms v1.20.0
