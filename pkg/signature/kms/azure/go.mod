@@ -6,7 +6,7 @@ go 1.22.7
 
 require (
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.15.0
-	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.7.0
+	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.8.0
 	github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azkeys v1.1.0
 	github.com/go-jose/go-jose/v3 v3.0.3
 	github.com/google/go-cmp v0.6.0
