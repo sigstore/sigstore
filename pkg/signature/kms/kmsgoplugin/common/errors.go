@@ -20,5 +20,6 @@ package common
 import "errors"
 
 var (
-	ErrorUnreturnableKMSGRPC = errors.New("unreturnable error from KMS GRPC")
+	ErrorUnreturnableKMSGRPC = errors.New("unreturnable error from KMS Plugin RPC/GRPC")
+	ErrorNotImplemented      = errors.New("this function is not implemented")
 )

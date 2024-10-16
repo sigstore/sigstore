@@ -18,6 +18,8 @@
 package common
 
 import (
+	"context"
+	"crypto"
 	"net/rpc"
 	"os"
 
@@ -25,13 +27,15 @@ import (
 	"github.com/hashicorp/go-plugin"
 	"github.com/sigstore/sigstore/pkg/signature/kms"
 	kmsproto "github.com/sigstore/sigstore/pkg/signature/kms/kmsgoplugin/common/proto"
+	"google.golang.org/grpc"
 )
 
 const (
 	DefaultPluginBinaryRelativePath = "./sigstore-kms-go-plugin"
-	PluginPathEnvKey                = "SIGSTORE_GO_PLUGIN_PATH"
+	PluginPathEnvKey                = "SIGSTORE_KMS_GO_PLUGIN_PATH"
 	KMSPluginName                   = "sigstore-kms-plugin"
-	KeyResourceIDEnvKey             = "KMS_PLUGIN_KEY_RESOURCE_ID"
+	KeyResourceIDEnvKey             = "SIGSTORE_KMS_GO_PLUGIN_KEY_RESOURCE_ID"
+	HashFuncEnvKey                  = "SIGSTORE_KMS_GO_PLUGIN_HASH_FUNC"
 )
 
 var (
@@ -62,26 +66,38 @@ func (SignerVerifierRPCPlugin) Client(b *plugin.MuxBroker, c *rpc.Client) (inter
 	return &SignerVerifierRPC{client: c}, nil
 }
 
-// GRPCClient is an implementation of Greeter that talks over RPC.
-type GRPCClient struct {
-	SignerVerifier
-	client kmsproto.KMSServiceClient
+// GetKeyResourceIDFromEnv gets the key resource id (plugin://my-key-resource) set by the host process' into an env variable.
+func GetKeyResourceIDFromEnv() string {
+	return os.Getenv(KeyResourceIDEnvKey)
 }
 
-// GetKeyResourceID gets the key reosurce id (plugin://my-key-resource) set by the host process' into an env variable.
-func GetKeyResourceID() string {
-	return os.Getenv(KeyResourceIDEnvKey)
+// GetHashFuncFromEnvgets a crypto.Hash from the vale in HashFuncEnvKey.
+func GetHashFuncFromEnv() crypto.Hash {
+	hashName := os.Getenv(HashFuncEnvKey)
+	switch hashName {
+	case "SHA256", "sha256":
+		return crypto.SHA256
+	case "SHA384", "sha384":
+		return crypto.SHA384
+	case "SHA512", "sha512":
+		return crypto.SHA512
+	// Add more cases as needed for other hash functions
+	default:
+		return crypto.SHA256
+	}
 }
 
 // ServePlugin is a helper function to begins serving your concrete imlementation of the interface.
 // You may optionally provide a hclog.Logger to be used by the server.
 func ServePlugin(impl SignerVerifier, logger hclog.Logger) {
 	var pluginMap = map[string]plugin.Plugin{
-		KMSPluginName: &SignerVerifierRPCPlugin{Impl: impl},
+		// KMSPluginName: &SignerVerifierRPCPlugin{Impl: impl},
+		KMSPluginName: &SignerVerifierGRPCPlugin{Impl: impl},
 	}
 	plugin.Serve(&plugin.ServeConfig{
 		HandshakeConfig: HandshakeConfig,
 		Plugins:         pluginMap,
+		GRPCServer:      plugin.DefaultGRPCServer,
 		Logger:          logger,
 	})
 }
@@ -96,30 +112,31 @@ func ServePlugin(impl SignerVerifier, logger hclog.Logger) {
 // 	CryptoSigner(ctx context.Context, req *CryptoSignerArgs) (*CryptoSignerResp, error)
 // }
 
-// // Here is the gRPC server that GRPCClient talks to.
-// type GRPCServer struct {
-// 	// KMSService
-// 	// This is the real implementation
-// 	Impl SignerVerifier
-// }
+// Here is the gRPC server that GRPCClient talks to.
+type GRPCServer struct {
+	// KMSService
+	kmsproto.KMSServiceServer
+	// This is the real implementation
+	Impl SignerVerifier
+}
 
-// // This is the implementation of plugin.GRPCPlugin so we can serve/consume this.
-// type SignerVerifierGRPCPlugin struct {
-// 	// GRPCPlugin must still implement the Plugin interface
-// 	plugin.Plugin
-// 	// Concrete implementation, written in Go. This is only used for plugins
-// 	// that are written in Go.
-// 	Impl SignerVerifier
-// }
+// This is the implementation of plugin.GRPCPlugin so we can serve/consume this.
+type SignerVerifierGRPCPlugin struct {
+	// GRPCPlugin must still implement the Plugin interface
+	plugin.Plugin
+	// Concrete implementation, written in Go. This is only used for plugins
+	// that are written in Go.
+	Impl SignerVerifier
+}
 
-// func (p *SignerVerifierGRPCPlugin) GRPCServer(broker *plugin.GRPCBroker, s *grpc.Server) error {
-// 	kmsproto.RegisterKMSServiceServer(s, &GRPCServer{Impl: p.Impl})
-// 	return nil
-// }
+func (p *SignerVerifierGRPCPlugin) GRPCServer(broker *plugin.GRPCBroker, s *grpc.Server) error {
+	kmsproto.RegisterKMSServiceServer(s, &GRPCServer{Impl: p.Impl})
+	return nil
+}
 
-// func (p *SignerVerifierGRPCPlugin) GRPCClient(ctx context.Context, broker *plugin.GRPCBroker, c *grpc.ClientConn) (interface{}, error) {
-// 	return &GRPCClient{client: kmsproto.NewKMSServiceClient(c)}, nil
-// }
+func (p *SignerVerifierGRPCPlugin) GRPCClient(ctx context.Context, broker *plugin.GRPCBroker, c *grpc.ClientConn) (interface{}, error) {
+	return &GRPCClient{client: kmsproto.NewKMSServiceClient(c)}, nil
+}
 
 // func (p *SignerVerifierGRPCPlugin) GRPCServer(broker *plugin.GRPCBroker, s *grpc.Server) error {
 // 	kmsproto.RegisterKMSServiceServer(s, &GRPCServer{Impl: p.Impl})

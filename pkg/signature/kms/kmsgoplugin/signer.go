@@ -38,29 +38,32 @@ const (
 var ()
 
 func init() {
-	sigkms.AddProvider(ReferenceScheme, func(ctx context.Context, keyResourceID string, _ crypto.Hash, opts ...signature.RPCOption) (sigkms.SignerVerifier, error) {
+	sigkms.AddProvider(ReferenceScheme, func(ctx context.Context, keyResourceID string, hashFunc crypto.Hash, opts ...signature.RPCOption) (sigkms.SignerVerifier, error) {
 		os.Setenv(common.KeyResourceIDEnvKey, keyResourceID)
+		os.Setenv(common.HashFuncEnvKey, hashFunc.String())
 		return LoadSignerVerifier(ctx, keyResourceID, opts...)
 	})
 }
 
 // LoadSignerVerifier loads a SignerVerifier that uses the plugin.
-func LoadSignerVerifier(ctx context.Context, referenceStr string, opts ...signature.RPCOption) (*common.SignerVerifierRPC, error) {
+func LoadSignerVerifier(ctx context.Context, referenceStr string, opts ...signature.RPCOption) (*common.GRPCClient, error) {
 	kmsPluginName := common.KMSPluginName
 	logger := hclog.New(&hclog.LoggerOptions{
 		Name:   kmsPluginName,
 		Output: os.Stdout,
-		Level:  hclog.Info,
+		Level:  hclog.Trace,
 	})
 	var pluginMap = map[string]plugin.Plugin{
-		kmsPluginName: &common.SignerVerifierRPCPlugin{},
+		// kmsPluginName: &common.SignerVerifierRPCPlugin{},
+		kmsPluginName: &common.SignerVerifierGRPCPlugin{},
 	}
 	pluginPath := getPluginPath()
 	client := plugin.NewClient(&plugin.ClientConfig{
-		HandshakeConfig: common.HandshakeConfig,
-		Plugins:         pluginMap,
-		Cmd:             exec.Command(pluginPath),
-		Logger:          logger,
+		HandshakeConfig:  common.HandshakeConfig,
+		Plugins:          pluginMap,
+		Cmd:              exec.Command(pluginPath),
+		AllowedProtocols: []plugin.Protocol{plugin.ProtocolGRPC},
+		Logger:           logger,
 		// SyncStdout:      os.Stdout,
 		// SyncStderr:      os.Stderr,
 	})
@@ -74,7 +77,17 @@ func LoadSignerVerifier(ctx context.Context, referenceStr string, opts ...signat
 	if err != nil {
 		return nil, err
 	}
-	signerVerifier := raw.(*common.SignerVerifierRPC)
+	signerVerifier := raw.(*common.GRPCClient)
+	// signerVerifier.SignerOpts = crypto.SHA256
+
+	// signer, _, err := signerVerifier.CryptoSigner(ctx, func(err error) {
+	// 	slog.Error(err.Error())
+	// })
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// slog.Info(fmt.Sprintf("%v", signer.Public()))
+
 	return signerVerifier, nil
 }
 

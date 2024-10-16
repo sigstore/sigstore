@@ -1,7 +1,6 @@
 syntax = "proto3";
 package kms;
 
-import "google/protobuf/any.proto";
 option go_package = "github.com/sigstore/sigstore/pkg/signature/kms/kmsgoplugin/proto";
 
 
@@ -33,12 +32,12 @@ message CreateKeyRequest {
 }
 
 message CreateKeyResponse {
-    google.protobuf.Any public_key = 1;
+    bytes public_key_data = 1;
 }
 
 message SignMessageRequest {
     bytes message = 1;
-    repeated google.protobuf.Any opts = 2;
+    SignOptions sign_options = 2;
 }
 
 message SignMessageResponse {
@@ -48,24 +47,39 @@ message SignMessageResponse {
 message VerifySignatureRequest {
     bytes signature = 1;
     bytes message = 2;
-    repeated google.protobuf.Any opts = 3;
+    repeated bytes opts_data = 3;
 }
 
 message VerifySignatureResponse {}
 
 message PublicKeyRequest {
-   repeated google.protobuf.Any opts = 1; 
+   repeated bytes opts_data = 1; 
 }
 
 message PublicKeyResponse {
-   google.protobuf.Any public_key = 1;
+   bytes public_key = 1;
 }
 
 message CryptoSignerRequest {
-    google.protobuf.Any err_func = 1;
 }
 
 message CryptoSignerResponse {
-    google.protobuf.Any signer = 1;
-    google.protobuf.Any opts = 2;
+}
+
+message SignOptions {
+    MessageOption message_option = 1;
+}
+
+
+message VerifyOption {
+    MessageOption message_option = 1;
+}
+
+message MessageOption {
+    bytes digest_data = 1;
+    SignerOpts signer_opts = 2;
+}
+
+message SignerOpts {
+    bytes hash_func_data = 1;
 }

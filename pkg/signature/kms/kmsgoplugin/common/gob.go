@@ -21,9 +21,11 @@ import (
 	"bytes"
 	"crypto"
 	"encoding/gob"
+	"encoding/json"
 	"io"
 
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
+	"github.com/sigstore/sigstore/pkg/signature"
 	"github.com/sigstore/sigstore/pkg/signature/options"
 )
 
@@ -39,10 +41,19 @@ func init() {
 // The privaete ctx of options.RequestContext will not be faithfully encoded/decoded.
 // See https://github.com/golang/go/issues/22290.
 func GobRegister() {
-	// gob.Register(IOReaderGobWrapper{})
+	gob.Register(IOReaderGobWrapper{})
 	// TODO: why dont i need to register this?
-	// gob.Register(PublicKeyGobWrapper{})
+	gob.Register(PublicKeyGobWrapper{})
+	// gob.Register(CryptoSignerGobWrapper{})
 	gob.Register(options.RequestContext{})
+	gob.Register(options.RequestDigest{})
+	gob.Register(options.RequestHash{})
+}
+
+// GobEncoderDecoder is a helper container for both of the gob encoding and decoding methods.
+type GobEncoderDecoder interface {
+	gob.GobEncoder
+	gob.GobDecoder
 }
 
 type IOReaderGobWrapper struct {
@@ -59,6 +70,7 @@ func (r *IOReaderGobWrapper) GobDecode(content []byte) error {
 }
 
 type PublicKeyGobWrapper struct {
+	GobEncoderDecoder
 	crypto.PublicKey
 }
 
@@ -71,3 +83,28 @@ func (p *PublicKeyGobWrapper) GobDecode(content []byte) error {
 	p.PublicKey, err = cryptoutils.UnmarshalPEMToPublicKey(content)
 	return err
 }
+
+type SignOptionsSlice []signature.SignOption
+
+type SignOptionGobWrapper struct {
+	SignOptionsSlice
+}
+
+func (s SignOptionGobWrapper) GobEncode() ([]byte, error) {
+	var digestBytes []byte
+	var signerOpts crypto.SignerOpts
+	for _, opt := range s.SignOptionsSlice {
+		opt.ApplyDigest(&digestBytes)
+		opt.ApplyCryptoSignerOpts(&signerOpts)
+	}
+	if signerOpts != nil {
+		s.SignOptionsSlice = append(s.SignOptionsSlice, options.WithHash(signerOpts.HashFunc()))
+	}
+	return json.Marshal(s.SignOptionsSlice)
+}
+
+func (s *SignOptionGobWrapper) GobDecode(content []byte) error {
+	return json.Unmarshal(content, &s.SignOptionsSlice)
+}
+
+// type

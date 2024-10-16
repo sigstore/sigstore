@@ -20,10 +20,13 @@ package common
 import (
 	"context"
 	"crypto"
+	"fmt"
 	"io"
+	"log/slog"
 	"net/rpc"
 
 	"github.com/sigstore/sigstore/pkg/signature"
+	"github.com/sigstore/sigstore/pkg/signature/options"
 )
 
 // Some of our interface functions don't return an error (e.g., SupportedAlgorithms),
@@ -125,7 +128,8 @@ func (c *SignerVerifierRPC) CreateKey(ctx context.Context, algorithm string) (cr
 // SignMessageArgs cotnains the args for SignMessage().
 type SignMessageArgs struct {
 	Message IOReaderGobWrapper
-	Opts    []signature.SignOption
+
+	Opts []signature.SignOption
 }
 
 // SignMessageResp contains the return values for SignMessage().
@@ -135,6 +139,18 @@ type SignMessageResp struct {
 
 // SignMessage signs the provided message.
 func (s *SignerVerifierRPCServer) SignMessage(args SignMessageArgs, resp *SignMessageResp) error {
+	var digest []byte
+	var signerOpts crypto.SignerOpts
+	for _, opt := range args.Opts {
+		slog.Info("OPTS!")
+		opt.ApplyDigest(&digest)
+		opt.ApplyCryptoSignerOpts(&signerOpts)
+		slog.Info("opts", "digest", digest)
+	}
+	if signerOpts != nil {
+		slog.Info("opts", "hf", signerOpts.HashFunc().String())
+	}
+
 	signature, err := s.Impl.SignMessage(args.Message, args.Opts...)
 	if err != nil {
 		return err
@@ -145,9 +161,20 @@ func (s *SignerVerifierRPCServer) SignMessage(args SignMessageArgs, resp *SignMe
 
 // SignMessage signs the provided message.
 func (c *SignerVerifierRPC) SignMessage(message io.Reader, opts ...signature.SignOption) ([]byte, error) {
+	// first compute the sum locally before transmitting,
+	// then send that digest to be signed.
+	// hashFunc := sha256.New()
+	// if opts !
+	// if _, err := io.Copy(hashFunc, message); err != nil {
+	// 	return nil, err
+	// }
+	// digest := hashFunc.Sum(nil)
+
 	// the internal cosign type cosign.HashReader is not accessable to be serialized,
 	// so we instead use our IOReaderGobWrapper
 	wrappedMessage := IOReaderGobWrapper{Reader: message}
+	opts = append(opts, options.WithDigest([]byte("abc123")))
+	opts = append(opts, options.WithHash(crypto.SHA224))
 	args := SignMessageArgs{
 		Message: wrappedMessage,
 		Opts:    opts,
@@ -226,32 +253,36 @@ func (c *SignerVerifierRPC) PublicKey(opts ...signature.PublicKeyOption) (crypto
 // CryptoSignerArgs contains the args for CryptoSigner().
 type CryptoSignerArgs struct {
 	// Ctx     context.Context
-	ErrFunc func(error)
+	// ErrFunc func(error)
 }
 
 // CryptoSignerResp contains the return values for CryptoSigner().
 type CryptoSignerResp struct {
-	Signer     crypto.Signer
-	SignerOpts crypto.SignerOpts
+	// Signer     CryptoSignerGobWrapper
+	// SignerOpts crypto.SignerOpts
 }
 
+// CryptoSigner is not implemented becuase it is not needed by cosign CLI.
 func (s *SignerVerifierRPCServer) CryptoSigner(args CryptoSignerArgs, resp *CryptoSignerResp) error {
-	signer, signerOpts, err := s.Impl.CryptoSigner(context.TODO(), args.ErrFunc)
-	if err != nil {
-		return err
-	}
-	resp.Signer, resp.SignerOpts = signer, signerOpts
+	return fmt.Errorf("%w: CryptoSigner is not implemented for the plugin", ErrorNotImplemented)
+	// signer, signerOpts, err := s.Impl.CryptoSigner(context.Background(), func(err error) { slog.Error((err.Error())) })
+	// if err != nil {
+	// 	return err
+	// }
+	// resp.Signer = CryptoSignerGobWrapper{Signer: signer}
+	// resp.SignerOpts = signerOpts
 	return nil
 }
 
+// CryptoSigner is not implemented becuase it is not needed by cosign CLI.
 func (c *SignerVerifierRPC) CryptoSigner(ctx context.Context, errFunc func(error)) (crypto.Signer, crypto.SignerOpts, error) {
-	args := CryptoSignerArgs{
-		// Ctx:     ctx,
-		ErrFunc: errFunc,
-	}
-	var resp CryptoSignerResp
-	if err := c.client.Call("Plugin.CryptoSigner", args, &resp); err != nil {
-		return nil, nil, err
-	}
-	return resp.Signer, resp.SignerOpts, nil
+	return nil, nil, fmt.Errorf("%w: CryptoSigner is not implemented for the plugin", ErrorNotImplemented)
+	// args := CryptoSignerArgs{}
+	// var resp CryptoSignerResp
+	//
+	//	if err := c.client.Call("Plugin.CryptoSigner", args, &resp); err != nil {
+	//		return nil, nil, err
+	//	}
+	//
+	// return resp.Signer, resp.SignerOpts, nil
 }
