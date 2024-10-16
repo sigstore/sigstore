@@ -4,6 +4,7 @@ updates:
   - package-ecosystem: gomod
     directories:
       - "/"
+      - "./pkg/signature/kms/alibaba"
       - "./pkg/signature/kms/aws"
       - "./pkg/signature/kms/azure"
       - "./pkg/signature/kms/gcp"
