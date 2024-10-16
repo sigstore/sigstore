@@ -196,7 +196,7 @@ func TestAzureVaultClientFetchPublicKey(t *testing.T) {
 		}
 
 		kvClient := testKVClient{key: key}
-		client := azureVaultClient{
+		client := liveAzureVaultClient{
 			client: &kvClient,
 		}
 
@@ -252,7 +252,7 @@ func TestAzureVaultClientCreateKey(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		client := azureVaultClient{
+		client := liveAzureVaultClient{
 			client: tc.client,
 			keyCache: ttlcache.New[string, crypto.PublicKey](
 				ttlcache.WithDisableTouchOnHit[string, crypto.PublicKey](),
