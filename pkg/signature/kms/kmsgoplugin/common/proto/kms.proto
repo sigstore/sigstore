@@ -6,6 +6,7 @@ option go_package = "github.com/sigstore/sigstore/pkg/signature/kms/kmsgoplugin/
 
 
 service KMSService {
+    rpc SetState(SetStateRequest) returns (SetStateResponse);
     rpc SupportedAlgorithms(SupportedAlgorithmsRequest) returns (SupportedAlgorithmsResponse);
     rpc DefaultAlgorithm(DefaultAlgorithmRequest) returns (DefaultAlgorithmResponse);
     rpc CreateKey(CreateKeyRequest) returns (CreateKeyResponse);
@@ -13,6 +14,15 @@ service KMSService {
     rpc VerifySignature(VerifySignatureRequest) returns (VerifySignatureResponse);
     rpc PublicKey(PublicKeyRequest) returns (PublicKeyResponse);
     rpc CryptoSigner(CryptoSignerRequest) returns (CryptoSignerResponse);
+}
+
+message SetStateRequest {
+    string key_resource_id = 1;
+    bytes hash_func_data = 2;
+}
+
+message SetStateResponse {
+
 }
 
 message SupportedAlgorithmsRequest {}
@@ -47,17 +57,16 @@ message SignMessageResponse {
 message VerifySignatureRequest {
     bytes signature = 1;
     bytes message = 2;
-    repeated bytes opts_data = 3;
+    VerifyOption verify_options = 3;
 }
 
 message VerifySignatureResponse {}
 
 message PublicKeyRequest {
-   repeated bytes opts_data = 1; 
 }
 
 message PublicKeyResponse {
-   bytes public_key = 1;
+   bytes public_key_data = 1;
 }
 
 message CryptoSignerRequest {

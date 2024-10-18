@@ -19,6 +19,7 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
+	KMSService_SetState_FullMethodName            = "/kms.KMSService/SetState"
 	KMSService_SupportedAlgorithms_FullMethodName = "/kms.KMSService/SupportedAlgorithms"
 	KMSService_DefaultAlgorithm_FullMethodName    = "/kms.KMSService/DefaultAlgorithm"
 	KMSService_CreateKey_FullMethodName           = "/kms.KMSService/CreateKey"
@@ -32,6 +33,7 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type KMSServiceClient interface {
+	SetState(ctx context.Context, in *SetStateRequest, opts ...grpc.CallOption) (*SetStateResponse, error)
 	SupportedAlgorithms(ctx context.Context, in *SupportedAlgorithmsRequest, opts ...grpc.CallOption) (*SupportedAlgorithmsResponse, error)
 	DefaultAlgorithm(ctx context.Context, in *DefaultAlgorithmRequest, opts ...grpc.CallOption) (*DefaultAlgorithmResponse, error)
 	CreateKey(ctx context.Context, in *CreateKeyRequest, opts ...grpc.CallOption) (*CreateKeyResponse, error)
@@ -47,6 +49,16 @@ type kMSServiceClient struct {
 
 func NewKMSServiceClient(cc grpc.ClientConnInterface) KMSServiceClient {
 	return &kMSServiceClient{cc}
+}
+
+func (c *kMSServiceClient) SetState(ctx context.Context, in *SetStateRequest, opts ...grpc.CallOption) (*SetStateResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SetStateResponse)
+	err := c.cc.Invoke(ctx, KMSService_SetState_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *kMSServiceClient) SupportedAlgorithms(ctx context.Context, in *SupportedAlgorithmsRequest, opts ...grpc.CallOption) (*SupportedAlgorithmsResponse, error) {
@@ -123,6 +135,7 @@ func (c *kMSServiceClient) CryptoSigner(ctx context.Context, in *CryptoSignerReq
 // All implementations must embed UnimplementedKMSServiceServer
 // for forward compatibility.
 type KMSServiceServer interface {
+	SetState(context.Context, *SetStateRequest) (*SetStateResponse, error)
 	SupportedAlgorithms(context.Context, *SupportedAlgorithmsRequest) (*SupportedAlgorithmsResponse, error)
 	DefaultAlgorithm(context.Context, *DefaultAlgorithmRequest) (*DefaultAlgorithmResponse, error)
 	CreateKey(context.Context, *CreateKeyRequest) (*CreateKeyResponse, error)
@@ -140,6 +153,9 @@ type KMSServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedKMSServiceServer struct{}
 
+func (UnimplementedKMSServiceServer) SetState(context.Context, *SetStateRequest) (*SetStateResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SetState not implemented")
+}
 func (UnimplementedKMSServiceServer) SupportedAlgorithms(context.Context, *SupportedAlgorithmsRequest) (*SupportedAlgorithmsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SupportedAlgorithms not implemented")
 }
@@ -180,6 +196,24 @@ func RegisterKMSServiceServer(s grpc.ServiceRegistrar, srv KMSServiceServer) {
 		t.testEmbeddedByValue()
 	}
 	s.RegisterService(&KMSService_ServiceDesc, srv)
+}
+
+func _KMSService_SetState_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetStateRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(KMSServiceServer).SetState(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: KMSService_SetState_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(KMSServiceServer).SetState(ctx, req.(*SetStateRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _KMSService_SupportedAlgorithms_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -315,6 +349,10 @@ var KMSService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "kms.KMSService",
 	HandlerType: (*KMSServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "SetState",
+			Handler:    _KMSService_SetState_Handler,
+		},
 		{
 			MethodName: "SupportedAlgorithms",
 			Handler:    _KMSService_SupportedAlgorithms_Handler,

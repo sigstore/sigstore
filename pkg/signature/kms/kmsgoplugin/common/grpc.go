@@ -25,24 +25,51 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/sigstore/sigstore/pkg/signature"
 	kmsproto "github.com/sigstore/sigstore/pkg/signature/kms/kmsgoplugin/common/proto"
 	"github.com/sigstore/sigstore/pkg/signature/options"
-	"google.golang.org/protobuf/types/known/anypb"
 
 	"context"
 )
 
 // GRPCClient is an implementation of Greeter that talks over RPC.
 type GRPCClient struct {
-	SignerVerifier
+	KMSGoPluginSignerVerifier
 	client     kmsproto.KMSServiceClient
 	SignerOpts crypto.SignerOpts
 }
 
+func (c *GRPCClient) SetState(state *KMSGoPluginState) {
+	hashFuncData, err := GobEncode(state.HashFunc)
+	if err != nil {
+		panic(fmt.Errorf("%w: %w", ErrorUnreturnableKMSGRPC, err))
+	}
+	if _, err := c.client.SetState(context.TODO(), &kmsproto.SetStateRequest{
+		KeyResourceId: state.KeyResourceID,
+		HashFuncData:  hashFuncData,
+	}); err != nil {
+		panic(fmt.Errorf("%w: %w", ErrorUnreturnableKMSGRPC, err))
+	}
+
+}
+
+func (s *GRPCServer) SetState(ctx context.Context, req *kmsproto.SetStateRequest) (*kmsproto.SetStateResponse, error) {
+	var hashFunc crypto.Hash
+	err := GobDecode(req.HashFuncData, &hashFunc)
+	if err != nil {
+		return nil, err
+	}
+	s.Impl.SetState(
+		&KMSGoPluginState{
+			KeyResourceID: req.KeyResourceId,
+			HashFunc:      hashFunc,
+		},
+	)
+	return &kmsproto.SetStateResponse{}, nil
+}
+
 func (c *GRPCClient) SupportedAlgorithms() []string {
-	resp, err := c.client.SupportedAlgorithms(context.Background(), &kmsproto.SupportedAlgorithmsRequest{})
+	resp, err := c.client.SupportedAlgorithms(context.TODO(), &kmsproto.SupportedAlgorithmsRequest{})
 	if err != nil {
 		panic(fmt.Errorf("%w: %w", ErrorUnreturnableKMSGRPC, err))
 	}
@@ -55,7 +82,7 @@ func (s *GRPCServer) SupportedAlgorithms(ctx context.Context, req *kmsproto.Supp
 }
 
 func (c *GRPCClient) DefaultAlgorithm() string {
-	resp, err := c.client.DefaultAlgorithm(context.Background(), &kmsproto.DefaultAlgorithmRequest{})
+	resp, err := c.client.DefaultAlgorithm(context.TODO(), &kmsproto.DefaultAlgorithmRequest{})
 	if err != nil {
 		panic(fmt.Errorf("%w: %w", ErrorUnreturnableKMSGRPC, err))
 	}
@@ -74,8 +101,9 @@ func (c *GRPCClient) CreateKey(ctx context.Context, algorithm string) (crypto.Pu
 	if err != nil {
 		return nil, err
 	}
-	var publicKeyWrapper PublicKeyGobWrapper
-	if err := publicKeyWrapper.GobDecode(resp.PublicKeyData); err != nil {
+
+	publicKeyWrapper := &PublicKeyGobWrapper{}
+	if err := GobDecode(resp.PublicKeyData, publicKeyWrapper); err != nil {
 		return nil, err
 	}
 	return publicKeyWrapper.PublicKey, nil
@@ -91,55 +119,113 @@ func (s *GRPCServer) CreateKey(ctx context.Context, req *kmsproto.CreateKeyReque
 	if err != nil {
 		return nil, err
 	}
+
 	return &kmsproto.CreateKeyResponse{PublicKeyData: publicKeyData}, nil
 }
 
+// func extractMessageOptions[O *signature.SignOption | *signature.VerifyOption](defaultSignerOpts *crypto.SignerOpts, opts ...O) (*context.Context, *kmsproto.MessageOption, error) {
+
+type SignVerifyOption interface {
+	signature.SignOption
+	signature.VerifyOption
+}
+
+func (c GRPCClient) extractMessageFromOpts(opts interface{}) (*context.Context, *kmsproto.MessageOption, error) {
+	var context = context.TODO()
+	var digestData []byte
+	var signerOpts crypto.SignerOpts = c.SignerOpts
+
+	switch opts := opts.(type) {
+	case []signature.SignOption:
+		for _, opt := range opts {
+			opt.ApplyContext(&context)
+			opt.ApplyDigest(&digestData)
+			opt.ApplyCryptoSignerOpts(&signerOpts)
+		}
+	case []signature.VerifyOption:
+		for _, opt := range opts {
+			opt.ApplyContext(&context)
+			opt.ApplyDigest(&digestData)
+			opt.ApplyCryptoSignerOpts(&signerOpts)
+		}
+	default:
+		return nil, nil, fmt.Errorf("unsupported type: %v", opts)
+	}
+
+	var messageOption *kmsproto.MessageOption
+
+	if len(digestData) != 0 || signerOpts != nil {
+		messageOption = &kmsproto.MessageOption{}
+
+		if len(digestData) != 0 {
+			messageOption.DigestData = digestData
+		}
+
+		if signerOpts != nil {
+			hashFuncData, err := json.Marshal(signerOpts.HashFunc())
+			if err != nil {
+				return nil, nil, err
+			}
+			messageOption.SignerOpts = &kmsproto.SignerOpts{
+				HashFuncData: hashFuncData,
+			}
+		}
+	}
+	return &context, messageOption, nil
+}
+
+// SignMessage
 func (c *GRPCClient) SignMessage(message io.Reader, opts ...signature.SignOption) ([]byte, error) {
 	messageBytes, err := io.ReadAll(message)
 	if err != nil {
 		return nil, err
 	}
 
-	var digestData []byte
-	var signerOpts crypto.SignerOpts = c.SignerOpts
-	for _, opt := range opts {
-		opt.ApplyDigest(&digestData)
-		opt.ApplyCryptoSignerOpts(&signerOpts)
-	}
-
-	var signOptions *kmsproto.SignOptions
-	if len(digestData) != 0 || signerOpts != nil {
-		signOptions = &kmsproto.SignOptions{
-			MessageOption: &kmsproto.MessageOption{},
-		}
-	}
-
-	if len(digestData) != 0 {
-		signOptions.MessageOption.DigestData = digestData
-	}
-
-	if signerOpts != nil {
-		hashFuncData, err := json.Marshal(signerOpts.HashFunc())
-		if err != nil {
-			return nil, err
-		}
-		signOptions.MessageOption.SignerOpts = &kmsproto.SignerOpts{
-			HashFuncData: hashFuncData,
-		}
+	context, messageOption, err := c.extractMessageFromOpts(opts)
+	if err != nil {
+		return nil, err
 	}
 
 	signMessageRequest := &kmsproto.SignMessageRequest{
 		Message: messageBytes,
 	}
-	if signOptions != nil {
-		signMessageRequest.SignOptions = signOptions
+	if messageOption != nil {
+		signMessageRequest.SignOptions = &kmsproto.SignOptions{
+			MessageOption: messageOption,
+		}
 	}
 
-	resp, err := c.client.SignMessage(context.Background(), signMessageRequest)
+	resp, err := c.client.SignMessage(*context, signMessageRequest)
 	if err != nil {
 		return nil, err
 	}
 	return resp.Signature, nil
+}
+
+// extractOptsFromMessage extracts the signature.[Sign|Verify]Option from the proto.Message.
+// the caller will have to do a type assertion on the return value: exOpts, ok := exOptsInt.([]signature.SignOption).
+func (s *GRPCServer) extractOptsFromMessage(messageOption *kmsproto.MessageOption) (interface{}, error) {
+	if messageOption == nil {
+		return nil, nil
+	}
+	opts := []interface{}{}
+	digestData := messageOption.DigestData
+	if len(digestData) != 0 {
+		digest := digestData
+		opts = append(opts, options.WithDigest(digest))
+	}
+	signerOpts := messageOption.SignerOpts
+	if signerOpts != nil {
+		hashFuncData := signerOpts.HashFuncData
+		if len(hashFuncData) != 0 {
+			var hashFunc crypto.Hash
+			if err := json.Unmarshal(hashFuncData, &hashFunc); err != nil {
+				return nil, err
+			}
+			opts = append(opts, options.WithHash(hashFunc))
+		}
+	}
+	return opts, nil
 }
 
 func (s *GRPCServer) SignMessage(ctx context.Context, req *kmsproto.SignMessageRequest) (*kmsproto.SignMessageResponse, error) {
@@ -148,29 +234,17 @@ func (s *GRPCServer) SignMessage(ctx context.Context, req *kmsproto.SignMessageR
 	opts := []signature.SignOption{}
 	if req.SignOptions != nil {
 		signOptions := req.SignOptions
-
 		messageOption := signOptions.MessageOption
-		if messageOption != nil {
-			digestData := messageOption.DigestData
-			if len(digestData) != 0 {
-				digest := digestData
-				opts = append(opts, options.WithDigest(digest))
-			}
-
-			signerOpts := messageOption.SignerOpts
-			if signerOpts != nil {
-				hashFuncData := signerOpts.HashFuncData
-				if len(hashFuncData) != 0 {
-					var hashFunc crypto.Hash
-					if err := json.Unmarshal(hashFuncData, &hashFunc); err != nil {
-						return nil, err
-					}
-					opts = append(opts, options.WithHash(hashFunc))
-				}
-			}
+		exOptsInt, err := s.extractOptsFromMessage(messageOption)
+		if err != nil {
+			return nil, err
 		}
+		exOpts, ok := exOptsInt.([]signature.SignOption)
+		if !ok {
+			return nil, err
+		}
+		opts = exOpts
 	}
-	spew.Dump(opts)
 
 	signature, err := s.Impl.SignMessage(messageReader, opts...)
 	if err != nil {
@@ -180,204 +254,141 @@ func (s *GRPCServer) SignMessage(ctx context.Context, req *kmsproto.SignMessageR
 }
 
 func (c *GRPCClient) VerifySignature(signature, message io.Reader, opts ...signature.VerifyOption) error {
-	// signatureBytes, err := io.ReadAll(signature)
-	// if err != nil {
-	// 	return err
-	// }
-	// messageBytes, err := io.ReadAll(message)
-	// if err != nil {
-	// 	return err
-	// }
-	// optsAnies := []*anypb.Any{}
-	// for _, opt := range opts {
-	// 	any, err := JSONMarshallToAnyPB(&opt)
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// 	optsAnies = append(optsAnies, any)
-	// }
-	// if _, err = c.client.VerifySignature(context.Background(), &kmsproto.VerifySignatureRequest{
-	// 	Signature: signatureBytes,
-	// 	Message:   messageBytes,
-	// 	Opts:      optsAnies,
-	// }); err != nil {
-	// 	return err
-	// }
-	return nil
-}
-
-func (s *GRPCServer) VerifySignature(ctx context.Context, req *kmsproto.VerifySignatureRequest) (*kmsproto.VerifySignatureResponse, error) {
-	// signatureReader := bytes.NewReader(req.Signature)
-	// messageReader := bytes.NewReader(req.Message)
-	// opts := []signature.VerifyOption{}
-	// for _, any := range req.Opts {
-	// 	var opt signature.VerifyOption
-	// 	err := JSONUnmarshallFromAnyPB(&opt, any)
-	// 	if err != nil {
-	// 		return nil, err
-	// 	}
-	// 	opts = append(opts, opt)
-	// }
-	// err := s.Impl.VerifySignature(signatureReader, messageReader, opts...)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	return &kmsproto.VerifySignatureResponse{}, nil
-}
-
-func (c *GRPCClient) PublicKey(opts ...signature.PublicKeyOption) (crypto.PublicKey, error) {
-	// optsAnies := []*anypb.Any{}
-	// for _, opt := range opts {
-	// 	any, err := JSONMarshallToAnyPB(&opt)
-	// 	if err != nil {
-	// 		return nil, err
-	// 	}
-	// 	optsAnies = append(optsAnies, any)
-	// }
-	// resp, err := c.client.PublicKey(context.Background(), &kmsproto.PublicKeyRequest{
-	// 	Opts: optsAnies,
-	// })
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// publicKey, err := cryptoutils.UnmarshalPEMToPublicKey(resp.PublicKey.Value)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// return publicKey, nil
-	return nil, nil
-}
-
-func (s *GRPCServer) PublicKey(ctx context.Context, req *kmsproto.PublicKeyRequest) (*kmsproto.PublicKeyResponse, error) {
-	// opts := []signature.PublicKeyOption{}
-	// for _, any := range req.Opts {
-	// 	var opt signature.PublicKeyOption
-	// 	err := JSONUnmarshallFromAnyPB(&opt, any)
-	// 	if err != nil {
-	// 		return nil, err
-	// 	}
-	// 	opts = append(opts, opt)
-	// }
-	// val, err := s.Impl.PublicKey(opts...)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// any := &anypb.Any{}
-	// any.TypeUrl = "type.googleapis.com/google.protobuf.Any"
-	// any.Value, err = cryptoutils.MarshalPrivateKeyToPEM(val)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// return &kmsproto.PublicKeyResponse{PublicKey: any}, nil
-	return nil, nil
-}
-
-// func (c *GRPCClient) CryptoSigner(ctx context.Context, errFunc func(error)) (crypto.Signer, crypto.SignerOpts, error) {
-// 	anyErrFunc, err := JSONMarshallToAnyPB(&errFunc)
-// 	if err != nil {
-// 		return nil, nil, err
-// 	}
-// 	resp, err := c.client.CryptoSigner(context.Background(), &kmsproto.CryptoSignerRequest{
-// 		ErrFunc: anyErrFunc,
-// 	})
-// 	if err != nil {
-// 		return nil, nil, err
-// 	}
-// 	signer := crypto.Signer{}
-// 	signerOpts := crypto.SignerOpts{}
-// 	JSONUnmarshallFromAnyPB(resp.Signer, signer)
-// 	return
-// }
-
-func encode[T any](t T) ([]byte, error) {
-	return json.Marshal(t)
-}
-
-func decode[T any](data []byte, t *T) error {
-	return json.Unmarshal(data, t)
-}
-
-func GobEncode(v any) ([]byte, error) {
-	var buf bytes.Buffer
-	enc := gob.NewEncoder(&buf)
-	err := enc.Encode(v)
+	signatureBytes, err := io.ReadAll(signature)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	return buf.Bytes(), nil
-}
 
-func GobDecode[S any](data []byte, s *S) error {
-	dec := gob.NewDecoder(bytes.NewBuffer(data))
-	return dec.Decode(s)
-}
-
-func JSONMarshallToAnyPB[V any](v *V) (*anypb.Any, error) {
-	bytes, err := json.Marshal(v)
+	messageBytes, err := io.ReadAll(message)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	anyPB := &anypb.Any{
-		TypeUrl: "type.googleapis.com/google.protobuf.Any",
-		Value:   bytes,
-	}
-	return anyPB, nil
-}
 
-// func JSONMarshallSlicetoAnyPBs[V any](vSlice []V) ([]anypb.Any, error) {
-// 	anySlice := []anypb.Any{}
-// 	for _, v := range vSlice {
-// 		anyValue, err := JSONMarshallToAnyPB(&v)
-// 		if err != nil {
-// 			return nil, err
-// 		}
-// 		anySlice = append(anySlice, *anyValue)
-// 	}
-// 	return anySlice, nil
-// }
-
-func JSONUnmarshallFromAnyPB[S any](s *S, anyPB *anypb.Any) error {
-	err := json.Unmarshal(anyPB.Value, s)
+	context, messageOption, err := c.extractMessageFromOpts(opts)
 	if err != nil {
+		return err
+	}
+
+	verfySignatureRequest := &kmsproto.VerifySignatureRequest{
+		Signature: signatureBytes,
+		Message:   messageBytes,
+	}
+	if messageOption != nil {
+		verfySignatureRequest.VerifyOptions = &kmsproto.VerifyOption{
+			MessageOption: messageOption,
+		}
+	}
+
+	if _, err := c.client.VerifySignature(*context, verfySignatureRequest); err != nil {
 		return err
 	}
 	return nil
 }
 
-// func JSONUNMarshallSliceFromAnyPBs[S any](s )
+func (s *GRPCServer) VerifySignature(ctx context.Context, req *kmsproto.VerifySignatureRequest) (*kmsproto.VerifySignatureResponse, error) {
+	signatureReader := bytes.NewReader(req.Signature)
+	messageReader := bytes.NewReader(req.Message)
 
-// func ConvertInterfaceToAnyPB(v interface{}) (*anypb.Any, error) {
-// 	anyValue := &anypb.Any{}
-// 	bytes, _ := json.Marshal(v)
-// 	bytesValue := &wrapperspb.BytesValue{
-// 		Value: bytes,
-// 	}
-// 	err := anypb.MarshalFrom(anyValue, bytesValue, proto.MarshalOptions{})
-// 	return anyValue, err
-// }
+	opts := []signature.VerifyOption{}
+	if req.VerifyOptions != nil {
+		veifyOptions := req.VerifyOptions
+		messageOption := veifyOptions.MessageOption
+		exOptsInt, err := s.extractOptsFromMessage(messageOption)
+		if err != nil {
+			return nil, err
+		}
+		exOpts, ok := exOptsInt.([]signature.VerifyOption)
+		if !ok {
+			return nil, err
+		}
+		opts = exOpts
+	}
 
-// func ConvertAnyToInterface(any *anypb.Any) (interface{}, error) {
-// 	var value interface{}
-// 	bytesValue := &wrapperspb.BytesValue{}
-// 	err := anypb.UnmarshalTo(any, bytesValue, proto.UnmarshalOptions{})
-// 	if err != nil {
-// 		return value, err
-// 	}
-// 	uErr := json.Unmarshal(bytesValue.Value, &value)
-// 	if uErr != nil {
-// 		return value, uErr
-// 	}
-// 	return value, nil
-// }
+	if err := s.Impl.VerifySignature(signatureReader, messageReader, opts...); err != nil {
+		return nil, err
+	}
+	return &kmsproto.VerifySignatureResponse{}, nil
+}
 
-// func ConvertInterfaceSliceToAnySlice(vSlice ...interface{}) ([]*any.Any, error) {
-// 	anySlice := []*any.Any{}
-// 	for _, v := range vSlice {
-// 		anyValue, err := ConvertInterfaceToAny(v)
-// 		if err != nil {
-// 			return nil, err
-// 		}
-// 		anySlice = append(anySlice, anyValue)
-// 	}
-// 	return anySlice, nil
-// }
+func (c *GRPCClient) PublicKey(opts ...signature.PublicKeyOption) (crypto.PublicKey, error) {
+	ctx := context.TODO()
+
+	for _, opt := range opts {
+		opt.ApplyContext(&ctx)
+	}
+
+	resp, err := c.client.PublicKey(ctx, &kmsproto.PublicKeyRequest{})
+	if err != nil {
+		return nil, err
+	}
+
+	publicKeyWrapper := &PublicKeyGobWrapper{}
+	if err := GobDecode(resp.PublicKeyData, publicKeyWrapper); err != nil {
+		return nil, err
+	}
+	return publicKeyWrapper.PublicKey, nil
+}
+
+func (s *GRPCServer) PublicKey(ctx context.Context, req *kmsproto.PublicKeyRequest) (*kmsproto.PublicKeyResponse, error) {
+	opts := []signature.PublicKeyOption{
+		options.WithContext(ctx),
+	}
+	publicKey, err := s.Impl.PublicKey(opts...)
+	if err != nil {
+		return nil, err
+	}
+	wrappedPublicKey := PublicKeyGobWrapper{PublicKey: publicKey}
+	publicKeyData, err := GobEncode(wrappedPublicKey)
+	if err != nil {
+		return nil, err
+	}
+	return &kmsproto.PublicKeyResponse{PublicKeyData: publicKeyData}, nil
+}
+
+type CryptoSignerWrapper struct {
+	crypto.Signer
+	*GRPCClient
+	errFunc func(error)
+}
+
+func (s CryptoSignerWrapper) Public() crypto.PublicKey {
+	publicKey, err := s.GRPCClient.PublicKey()
+	if err != nil {
+		s.errFunc(err)
+		panic(fmt.Errorf("%w:, %s", ErrorUnreturnableKMSGRPC, "CryptoSignerWrapper.Public()"))
+	}
+	return publicKey
+}
+
+func (s CryptoSignerWrapper) Sign(rand io.Reader, digest []byte, signerOpts crypto.SignerOpts) ([]byte, error) {
+	emptyMessage := bytes.NewReader([]byte{})
+	signOpts := []signature.SignOption{
+		options.WithHash(signerOpts.HashFunc()),
+	}
+	signature, err := s.SignMessage(emptyMessage, signOpts...)
+	if err != nil {
+		s.errFunc(err)
+		return nil, err
+	}
+	return signature, nil
+}
+
+func (c *GRPCClient) CryptoSigner(ctx context.Context, errFunc func(error)) (crypto.Signer, crypto.SignerOpts, error) {
+	cryptoSigner := &CryptoSignerWrapper{GRPCClient: c, errFunc: errFunc}
+	signerOpts := c.SignerOpts
+	return cryptoSigner, signerOpts, nil
+}
+
+// GobEncode runs gob encoding. Example: GobEncode(WrappedPublickKey{pubkey}).
+func GobEncode(source interface{}) ([]byte, error) {
+	var buf bytes.Buffer
+	enc := gob.NewEncoder(&buf)
+	if err := enc.Encode(source); err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}
+
+func GobDecode(data []byte, target interface{}) error {
+	return gob.NewDecoder(bytes.NewBuffer(data)).Decode(target)
+}

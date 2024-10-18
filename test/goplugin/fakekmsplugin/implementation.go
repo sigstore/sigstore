@@ -39,7 +39,16 @@ const (
 
 // LocalSignerVerifier creates and verifies digital signatures with a key saved at KeyResourceID.
 type LocalSignerVerifier struct {
-	signature.SignerVerifier
+	// common.KMSGoPluginSignerVerifier
+	state *common.KMSGoPluginState
+}
+
+func (i LocalSignerVerifier) getKeyPath() string {
+	return strings.TrimPrefix(i.state.KeyResourceID, common.ReferenceScheme)
+}
+
+func (i *LocalSignerVerifier) SetState(state *common.KMSGoPluginState) {
+	i.state = state
 }
 
 // DefaultAlgorithm returns the default algorithm for the signer
@@ -48,7 +57,7 @@ func (i LocalSignerVerifier) DefaultAlgorithm() string {
 }
 
 // SupportedAlgorithms returns a list with the default algorithm
-func (i LocalSignerVerifier) SupportedAlgorithms() (result []string) {
+func (i *LocalSignerVerifier) SupportedAlgorithms() (result []string) {
 	return []string{defaultAlgorithm}
 }
 
@@ -60,7 +69,7 @@ func (i LocalSignerVerifier) CreateKey(ctx context.Context, algorithm string) (c
 
 	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
-		return nil, fmt.Errorf("Error generating private key:", err)
+		return nil, fmt.Errorf("error generating private key: %w", err)
 	}
 
 	privateKeyPEM := &pem.Block{
@@ -68,18 +77,20 @@ func (i LocalSignerVerifier) CreateKey(ctx context.Context, algorithm string) (c
 		Bytes: x509.MarshalPKCS1PrivateKey(privateKey),
 	}
 
-	path := common.GetKeyResourceIDFromEnv()
+	path := i.getKeyPath()
 	privateKeyFile, err := os.Create(path)
 	if err != nil {
-		return nil, fmt.Errorf("Error creating private key file:", err)
+		return nil, fmt.Errorf("error creating private key file: %w", err)
 	}
 	defer privateKeyFile.Close()
 
+	// os.WriteFile(path, privateKeyBytes, 0600)
+
 	if err := pem.Encode(privateKeyFile, privateKeyPEM); err != nil {
-		fmt.Errorf("Error encoding private key:", err)
+		return nil, fmt.Errorf("error encoding private key: %w", err)
 	}
 
-	publicKey := privateKey.PublicKey
+	publicKey := &privateKey.PublicKey
 	return publicKey, nil
 }
 
@@ -89,7 +100,6 @@ func loadRSAPrivateKey(path string) (*rsa.PrivateKey, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	privateKeyBlock, _ := pem.Decode(privateKeyBytes)
 	if privateKeyBlock == nil || privateKeyBlock.Type != "RSA PRIVATE KEY" {
 		return nil, fmt.Errorf("invalid private key PEM block")
@@ -105,21 +115,21 @@ func loadRSAPrivateKey(path string) (*rsa.PrivateKey, error) {
 
 // loadRSAPrivateKey returns the public key from the path.
 func loadPublicKey(path string) (*rsa.PublicKey, error) {
-	privateKEy, err := loadRSAPrivateKey(path)
+	privateKey, err := loadRSAPrivateKey(path)
 	if err != nil {
 		return nil, err
 	}
-	publicKey := privateKEy.PublicKey
+	publicKey := privateKey.PublicKey
 	return &publicKey, nil
 }
 
-// Public reads the private key from the KeyResourceID and returns the public key.
-func (i LocalSignerVerifier) Public() crypto.PublicKey {
-	publickKey, err := loadPublicKey(common.GetKeyResourceIDFromEnv())
+// PublicKey reads the private key from the KeyResourceID and returns the public key.
+func (i LocalSignerVerifier) PublicKey(_ ...signature.PublicKeyOption) (crypto.PublicKey, error) {
+	publickKey, err := loadPublicKey(i.getKeyPath())
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
-	return publickKey
+	return publickKey, nil
 }
 
 func computeDigest(message *io.Reader, hashFunc crypto.Hash) ([]byte, error) {
@@ -158,7 +168,7 @@ func signMessageWithPrivateKey(privateKey *rsa.PrivateKey, message io.Reader, op
 
 // SignMessage signs the message with the KeyResourceID.
 func (g LocalSignerVerifier) SignMessage(message io.Reader, opts ...signature.SignOption) ([]byte, error) {
-	privateKey, err := loadRSAPrivateKey(common.GetKeyResourceIDFromEnv())
+	privateKey, err := loadRSAPrivateKey(g.getKeyPath())
 	if err != nil {
 		return nil, err
 	}
@@ -176,8 +186,8 @@ func (g LocalSignerVerifier) SignMessage(message io.Reader, opts ...signature.Si
 // - WithDigest()
 //
 // All other options are ignored if specified.
-func (g LocalSignerVerifier) VerifySignature(signature, message io.Reader, opts ...signature.VerifyOption) error {
-	publicKey, err := loadPublicKey(common.GetKeyResourceIDFromEnv())
+func (i *LocalSignerVerifier) VerifySignature(signature, message io.Reader, opts ...signature.VerifyOption) error {
+	publicKey, err := loadPublicKey(i.getKeyPath())
 	if err != nil {
 		return err
 	}
@@ -203,6 +213,7 @@ func (g LocalSignerVerifier) VerifySignature(signature, message io.Reader, opts 
 	if err != nil {
 		return nil
 	}
+
 	if err := rsa.VerifyPKCS1v15(publicKey, hashFunc, digest, signatureBytes); err != nil {
 		return fmt.Errorf("signature verification failed: %w", err)
 	}
@@ -220,13 +231,13 @@ type CryptoSignerWrapper struct {
 
 // CryptoSigner returns a crypto.Signer object that uses the underlying LocalSignerVerifier, along with a crypto.SignerOpts object
 // that allows the KMS to be used in APIs that only accept the standard golang objects
-func (g LocalSignerVerifier) CryptoSigner(ctx context.Context, errFunc func(error)) (crypto.Signer, crypto.SignerOpts, error) {
+func (i LocalSignerVerifier) CryptoSigner(ctx context.Context, errFunc func(error)) (crypto.Signer, crypto.SignerOpts, error) {
 	signer := &CryptoSignerWrapper{
 		// Ctx:            ctx,
 		HashFunc:       common.GetHashFuncFromEnv(),
-		SignerVerifier: &g,
+		SignerVerifier: &i,
 		ErrFunc:        errFunc,
-		KeyResourceID:  common.GetKeyResourceIDFromEnv(),
+		KeyResourceID:  i.state.KeyResourceID,
 	}
 	opts := common.GetHashFuncFromEnv()
 	return signer, opts, nil

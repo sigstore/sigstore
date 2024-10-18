@@ -32,7 +32,7 @@ import (
 
 const (
 	// ReferenceScheme is a scheme for fake KMS keys. Do not use in production.
-	ReferenceScheme = "plugin://"
+	ReferenceScheme = common.ReferenceScheme
 )
 
 var ()
@@ -41,17 +41,16 @@ func init() {
 	sigkms.AddProvider(ReferenceScheme, func(ctx context.Context, keyResourceID string, hashFunc crypto.Hash, opts ...signature.RPCOption) (sigkms.SignerVerifier, error) {
 		os.Setenv(common.KeyResourceIDEnvKey, keyResourceID)
 		os.Setenv(common.HashFuncEnvKey, hashFunc.String())
-		return LoadSignerVerifier(ctx, keyResourceID, opts...)
+		return LoadSignerVerifier(ctx, keyResourceID)
 	})
 }
 
 // LoadSignerVerifier loads a SignerVerifier that uses the plugin.
-func LoadSignerVerifier(ctx context.Context, referenceStr string, opts ...signature.RPCOption) (*common.GRPCClient, error) {
+func LoadSignerVerifier(ctx context.Context, referenceStr string) (*common.GRPCClient, error) {
 	kmsPluginName := common.KMSPluginName
 	logger := hclog.New(&hclog.LoggerOptions{
-		Name:   kmsPluginName,
-		Output: os.Stdout,
-		Level:  hclog.Trace,
+		Name:  kmsPluginName,
+		Level: hclog.Debug,
 	})
 	var pluginMap = map[string]plugin.Plugin{
 		// kmsPluginName: &common.SignerVerifierRPCPlugin{},
@@ -64,8 +63,6 @@ func LoadSignerVerifier(ctx context.Context, referenceStr string, opts ...signat
 		Cmd:              exec.Command(pluginPath),
 		AllowedProtocols: []plugin.Protocol{plugin.ProtocolGRPC},
 		Logger:           logger,
-		// SyncStdout:      os.Stdout,
-		// SyncStderr:      os.Stderr,
 	})
 
 	rpcClient, err := client.Client()
@@ -78,6 +75,10 @@ func LoadSignerVerifier(ctx context.Context, referenceStr string, opts ...signat
 		return nil, err
 	}
 	signerVerifier := raw.(*common.GRPCClient)
+	signerVerifier.SetState(&common.KMSGoPluginState{
+		KeyResourceID: referenceStr,
+		HashFunc:      crypto.SHA256,
+	})
 	// signerVerifier.SignerOpts = crypto.SHA256
 
 	// signer, _, err := signerVerifier.CryptoSigner(ctx, func(err error) {

@@ -72,6 +72,7 @@ func (r *IOReaderGobWrapper) GobDecode(content []byte) error {
 type PublicKeyGobWrapper struct {
 	GobEncoderDecoder
 	crypto.PublicKey
+	PublicKeyData []byte
 }
 
 func (p PublicKeyGobWrapper) GobEncode() ([]byte, error) {

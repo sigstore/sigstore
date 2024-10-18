@@ -22,7 +22,6 @@ import (
 	"crypto"
 	"fmt"
 	"io"
-	"log/slog"
 	"net/rpc"
 
 	"github.com/sigstore/sigstore/pkg/signature"
@@ -38,7 +37,7 @@ type SignerVerifierRPC struct {
 }
 
 type SignerVerifierRPCServer struct {
-	Impl SignerVerifier
+	Impl KMSGoPluginSignerVerifier
 }
 
 // SupportedAlgorithmsArgs contains the args for SupportedAlgorithms().
@@ -142,13 +141,8 @@ func (s *SignerVerifierRPCServer) SignMessage(args SignMessageArgs, resp *SignMe
 	var digest []byte
 	var signerOpts crypto.SignerOpts
 	for _, opt := range args.Opts {
-		slog.Info("OPTS!")
 		opt.ApplyDigest(&digest)
 		opt.ApplyCryptoSignerOpts(&signerOpts)
-		slog.Info("opts", "digest", digest)
-	}
-	if signerOpts != nil {
-		slog.Info("opts", "hf", signerOpts.HashFunc().String())
 	}
 
 	signature, err := s.Impl.SignMessage(args.Message, args.Opts...)

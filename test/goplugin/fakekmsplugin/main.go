@@ -8,7 +8,6 @@ import (
 	"crypto"
 	"encoding/gob"
 	"io"
-	"os"
 	"strings"
 
 	"github.com/hashicorp/go-hclog"
@@ -64,23 +63,21 @@ func (c CryptoSigner) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpts
 
 func main() {
 	logger := hclog.New(&hclog.LoggerOptions{
-		Level:      hclog.Info,
-		Output:     os.Stderr,
-		JSONFormat: true,
+		Level: hclog.Debug,
 	})
 
-	fakeSV, err := fake.LoadSignerVerifier(context.TODO(), crypto.SHA256)
-	if err != nil {
-		panic(err)
-	}
+	// fakeSV, err := fake.LoadSignerVerifier(context.TODO(), crypto.SHA256)
+	// if err != nil {
+	// 	panic(err)
+	// }
 
-	wrappedSignerVerifier := SignerVerifier{
-		SignerVerifier: fakeSV,
-	}
+	// wrappedSignerVerifier := SignerVerifier{
+	// 	SignerVerifier: fakeSV,
+	// }
 
-	// wrappedSignerVerifier := LocalSignerVerifier{}
+	wrappedSignerVerifier := &LocalSignerVerifier{}
 
-	// You can use the KeyResourceID
+	// You can use the KeyResourcesID
 	logger.Info(
 		"env",
 		common.KeyResourceIDEnvKey, common.GetKeyResourceIDFromEnv(),

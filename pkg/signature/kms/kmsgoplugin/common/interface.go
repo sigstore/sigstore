@@ -31,6 +31,7 @@ import (
 )
 
 const (
+	ReferenceScheme                 = "plugin://"
 	DefaultPluginBinaryRelativePath = "./sigstore-kms-go-plugin"
 	PluginPathEnvKey                = "SIGSTORE_KMS_GO_PLUGIN_PATH"
 	KMSPluginName                   = "sigstore-kms-plugin"
@@ -48,14 +49,20 @@ var (
 	}
 )
 
-// SignerVerifier wraps around kms.SignerVerifier
-type SignerVerifier interface {
+// KMSGoPluginSignerVerifier wraps around kms.KMSGoPluginSignerVerifier
+type KMSGoPluginSignerVerifier interface {
 	kms.SignerVerifier
+	SetState(state *KMSGoPluginState)
+}
+
+type KMSGoPluginState struct {
+	KeyResourceID string
+	HashFunc      crypto.Hash
 }
 
 type SignerVerifierRPCPlugin struct {
 	plugin.Plugin
-	Impl SignerVerifier
+	Impl KMSGoPluginSignerVerifier
 }
 
 func (p *SignerVerifierRPCPlugin) Server(*plugin.MuxBroker) (interface{}, error) {
@@ -89,7 +96,7 @@ func GetHashFuncFromEnv() crypto.Hash {
 
 // ServePlugin is a helper function to begins serving your concrete imlementation of the interface.
 // You may optionally provide a hclog.Logger to be used by the server.
-func ServePlugin(impl SignerVerifier, logger hclog.Logger) {
+func ServePlugin(impl KMSGoPluginSignerVerifier, logger hclog.Logger) {
 	var pluginMap = map[string]plugin.Plugin{
 		// KMSPluginName: &SignerVerifierRPCPlugin{Impl: impl},
 		KMSPluginName: &SignerVerifierGRPCPlugin{Impl: impl},
@@ -117,7 +124,7 @@ type GRPCServer struct {
 	// KMSService
 	kmsproto.KMSServiceServer
 	// This is the real implementation
-	Impl SignerVerifier
+	Impl KMSGoPluginSignerVerifier
 }
 
 // This is the implementation of plugin.GRPCPlugin so we can serve/consume this.
@@ -126,7 +133,7 @@ type SignerVerifierGRPCPlugin struct {
 	plugin.Plugin
 	// Concrete implementation, written in Go. This is only used for plugins
 	// that are written in Go.
-	Impl SignerVerifier
+	Impl KMSGoPluginSignerVerifier
 }
 
 func (p *SignerVerifierGRPCPlugin) GRPCServer(broker *plugin.GRPCBroker, s *grpc.Server) error {
