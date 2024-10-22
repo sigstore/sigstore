@@ -39,7 +39,7 @@ const (
 
 // LocalSignerVerifier creates and verifies digital signatures with a key saved at KeyResourceID.
 type LocalSignerVerifier struct {
-	// common.KMSGoPluginSignerVerifier
+	common.KMSGoPluginSignerVerifier
 	state *common.KMSGoPluginState
 }
 

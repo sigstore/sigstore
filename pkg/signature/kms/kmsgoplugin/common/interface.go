@@ -98,14 +98,14 @@ func GetHashFuncFromEnv() crypto.Hash {
 // You may optionally provide a hclog.Logger to be used by the server.
 func ServePlugin(impl KMSGoPluginSignerVerifier, logger hclog.Logger) {
 	var pluginMap = map[string]plugin.Plugin{
-		// KMSPluginName: &SignerVerifierRPCPlugin{Impl: impl},
-		KMSPluginName: &SignerVerifierGRPCPlugin{Impl: impl},
+		KMSPluginName: &SignerVerifierRPCPlugin{Impl: impl},
+		// KMSPluginName: &SignerVerifierGRPCPlugin{Impl: impl},
 	}
 	plugin.Serve(&plugin.ServeConfig{
 		HandshakeConfig: HandshakeConfig,
 		Plugins:         pluginMap,
-		GRPCServer:      plugin.DefaultGRPCServer,
-		Logger:          logger,
+		// GRPCServer:      plugin.DefaultGRPCServer,
+		Logger: logger,
 	})
 }
 

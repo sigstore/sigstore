@@ -22,7 +22,9 @@ import (
 	"crypto"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/rpc"
+	"time"
 
 	"github.com/sigstore/sigstore/pkg/signature"
 	"github.com/sigstore/sigstore/pkg/signature/options"
@@ -33,6 +35,7 @@ import (
 // so in the RPC functions we panic instead of returning the error.
 
 type SignerVerifierRPC struct {
+	KMSGoPluginSignerVerifier
 	client *rpc.Client
 }
 
@@ -90,6 +93,26 @@ func (c *SignerVerifierRPC) DefaultAlgorithm() string {
 	return resp.DefaultAlgorithm
 }
 
+type SetStateArgs struct {
+	State KMSGoPluginState
+}
+
+type SetStateResp struct {
+}
+
+func (s *SignerVerifierRPCServer) SetState(args SetStateArgs, resp *SetStateResp) error {
+	s.Impl.SetState(&args.State)
+	return nil
+}
+
+func (c *SignerVerifierRPC) SetState(state *KMSGoPluginState) {
+	args := SetStateArgs{State: *state}
+	var resp DefaultAlgorithmResp
+	if err := c.client.Call("Plugin.SetState", args, &resp); err != nil {
+		panic(err)
+	}
+}
+
 // CreateKeyArgs contains the args for CreateKey().
 type CreateKeyArgs struct {
 	// Ctx       context.Context
@@ -127,8 +150,8 @@ func (c *SignerVerifierRPC) CreateKey(ctx context.Context, algorithm string) (cr
 // SignMessageArgs cotnains the args for SignMessage().
 type SignMessageArgs struct {
 	Message IOReaderGobWrapper
-
-	Opts []signature.SignOption
+	// Opts       []signature.SignOption
+	Opts MethodOpts
 }
 
 // SignMessageResp contains the return values for SignMessage().
@@ -138,19 +161,63 @@ type SignMessageResp struct {
 
 // SignMessage signs the provided message.
 func (s *SignerVerifierRPCServer) SignMessage(args SignMessageArgs, resp *SignMessageResp) error {
-	var digest []byte
-	var signerOpts crypto.SignerOpts
-	for _, opt := range args.Opts {
-		opt.ApplyDigest(&digest)
-		opt.ApplyCryptoSignerOpts(&signerOpts)
+	// var digest []byte
+	// var signerOpts crypto.SignerOpts
+	// for _, opt := range args.Opts {
+	// 	opt.ApplyDigest(&digest)
+	// 	opt.ApplyCryptoSignerOpts(&signerOpts)
+	// }
+	opts := []signature.SignOption{}
+	// if args.Opts.CtxDeadline != nil {
+	ctx, cancel := context.WithDeadline(context.TODO(), args.Opts.CtxDeadline)
+	defer cancel()
+	opts = append(opts, options.WithContext(ctx))
+	// }
+	// if args.Opts.HashFunc != nil {
+	opts = append(opts, options.WithHash(*args.Opts.Hash.Hash))
+	// }
+	if args.Opts.Digest != nil && len(args.Opts.Digest) != 0 {
+		opts = append(opts, options.WithDigest(args.Opts.Digest))
 	}
+	slog.Info("opts", "deadline", args.Opts.CtxDeadline, "hash", args.Opts.Hash.Hash, "digest", args.Opts.Digest)
 
-	signature, err := s.Impl.SignMessage(args.Message, args.Opts...)
+	// signature, err := s.Impl.SignMessage(args.Message, args.Opts...)
+	signature, err := s.Impl.SignMessage(args.Message, opts...)
 	if err != nil {
 		return err
 	}
 	resp.Signature = signature
 	return nil
+}
+
+type MethodOpts struct {
+	CtxDeadline time.Time
+	Hash        CryptoHashGobWrapper
+	Digest      []byte
+}
+
+func newMethodOpts(opts ...signature.SignOption) *MethodOpts {
+	var digest []byte
+	var signerOpts crypto.SignerOpts
+	var ctx = context.TODO()
+	for _, opt := range opts {
+		opt.ApplyDigest(&digest)
+		opt.ApplyCryptoSignerOpts(&signerOpts)
+		opt.ApplyContext(&ctx)
+	}
+	ctxDeadline, _ := ctx.Deadline()
+	// hashFunc := signerOpts.HashFunc()
+	methodOpts := &MethodOpts{
+		CtxDeadline: ctxDeadline,
+		// HashFunc:    &hashFunc,
+		Digest: digest,
+	}
+
+	if signerOpts != nil {
+		hashFunc := signerOpts.HashFunc()
+		methodOpts.Hash = CryptoHashGobWrapper{Hash: &hashFunc}
+	}
+	return methodOpts
 }
 
 // SignMessage signs the provided message.
@@ -167,11 +234,20 @@ func (c *SignerVerifierRPC) SignMessage(message io.Reader, opts ...signature.Sig
 	// the internal cosign type cosign.HashReader is not accessable to be serialized,
 	// so we instead use our IOReaderGobWrapper
 	wrappedMessage := IOReaderGobWrapper{Reader: message}
-	opts = append(opts, options.WithDigest([]byte("abc123")))
-	opts = append(opts, options.WithHash(crypto.SHA224))
+	// opts = append(opts, options.WithDigest([]byte("abc123")))
+	opts = append(opts, options.WithCryptoSignerOpts(crypto.SHA256))
+	methodOpts := newMethodOpts(opts...)
+	if len(methodOpts.Digest) == 0 {
+		digest, hf, err := signature.ComputeDigestForSigning(message, *methodOpts.Hash.Hash, []crypto.Hash{*methodOpts.Hash.Hash}, opts...)
+		if err != nil {
+			return nil, err
+		}
+		methodOpts.Digest = digest
+		methodOpts.Hash = CryptoHashGobWrapper{Hash: &hf}
+	}
 	args := SignMessageArgs{
 		Message: wrappedMessage,
-		Opts:    opts,
+		Opts:    *methodOpts,
 	}
 	var resp SignMessageResp
 	if err := c.client.Call("Plugin.SignMessage", args, &resp); err != nil {

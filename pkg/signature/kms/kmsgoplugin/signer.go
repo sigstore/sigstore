@@ -46,23 +46,23 @@ func init() {
 }
 
 // LoadSignerVerifier loads a SignerVerifier that uses the plugin.
-func LoadSignerVerifier(ctx context.Context, referenceStr string) (*common.GRPCClient, error) {
+func LoadSignerVerifier(ctx context.Context, referenceStr string) (*common.SignerVerifierRPC, error) {
 	kmsPluginName := common.KMSPluginName
 	logger := hclog.New(&hclog.LoggerOptions{
 		Name:  kmsPluginName,
 		Level: hclog.Debug,
 	})
 	var pluginMap = map[string]plugin.Plugin{
-		// kmsPluginName: &common.SignerVerifierRPCPlugin{},
-		kmsPluginName: &common.SignerVerifierGRPCPlugin{},
+		kmsPluginName: &common.SignerVerifierRPCPlugin{},
+		// kmsPluginName: &common.SignerVerifierGRPCPlugin{},
 	}
 	pluginPath := getPluginPath()
 	client := plugin.NewClient(&plugin.ClientConfig{
-		HandshakeConfig:  common.HandshakeConfig,
-		Plugins:          pluginMap,
-		Cmd:              exec.Command(pluginPath),
-		AllowedProtocols: []plugin.Protocol{plugin.ProtocolGRPC},
-		Logger:           logger,
+		HandshakeConfig: common.HandshakeConfig,
+		Plugins:         pluginMap,
+		Cmd:             exec.Command(pluginPath),
+		// AllowedProtocols: []plugin.Protocol{plugin.ProtocolGRPC},
+		Logger: logger,
 	})
 
 	rpcClient, err := client.Client()
@@ -74,7 +74,8 @@ func LoadSignerVerifier(ctx context.Context, referenceStr string) (*common.GRPCC
 	if err != nil {
 		return nil, err
 	}
-	signerVerifier := raw.(*common.GRPCClient)
+	// signerVerifier := raw.(*common.GRPCClient)
+	signerVerifier := raw.(*common.SignerVerifierRPC)
 	signerVerifier.SetState(&common.KMSGoPluginState{
 		KeyResourceID: referenceStr,
 		HashFunc:      crypto.SHA256,

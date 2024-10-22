@@ -50,12 +50,6 @@ func GobRegister() {
 	gob.Register(options.RequestHash{})
 }
 
-// GobEncoderDecoder is a helper container for both of the gob encoding and decoding methods.
-type GobEncoderDecoder interface {
-	gob.GobEncoder
-	gob.GobDecoder
-}
-
 type IOReaderGobWrapper struct {
 	io.Reader
 }
@@ -69,10 +63,15 @@ func (r *IOReaderGobWrapper) GobDecode(content []byte) error {
 	return nil
 }
 
+// GobEncoderDecoder is a helper container for both of the gob encoding and decoding methods.
+type GobEncoderDecoder interface {
+	gob.GobEncoder
+	gob.GobDecoder
+}
+
 type PublicKeyGobWrapper struct {
 	GobEncoderDecoder
 	crypto.PublicKey
-	PublicKeyData []byte
 }
 
 func (p PublicKeyGobWrapper) GobEncode() ([]byte, error) {
@@ -80,9 +79,23 @@ func (p PublicKeyGobWrapper) GobEncode() ([]byte, error) {
 }
 
 func (p *PublicKeyGobWrapper) GobDecode(content []byte) error {
-	var err error
-	p.PublicKey, err = cryptoutils.UnmarshalPEMToPublicKey(content)
+	publickKey, err := cryptoutils.UnmarshalPEMToPublicKey(content)
+	p.PublicKey = publickKey
 	return err
+}
+
+type CryptoHashGobWrapper struct {
+	GobEncoderDecoder
+	*crypto.Hash
+}
+
+func (w CryptoHashGobWrapper) GobEncode() ([]byte, error) {
+	bytes, err := json.Marshal(w.Hash)
+	return bytes, err
+}
+
+func (p *CryptoHashGobWrapper) GobDecode(content []byte) error {
+	return json.Unmarshal(content, &p.Hash)
 }
 
 type SignOptionsSlice []signature.SignOption

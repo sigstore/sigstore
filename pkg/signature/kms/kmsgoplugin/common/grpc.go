@@ -24,10 +24,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
+	"time"
 
 	"github.com/sigstore/sigstore/pkg/signature"
 	kmsproto "github.com/sigstore/sigstore/pkg/signature/kms/kmsgoplugin/common/proto"
 	"github.com/sigstore/sigstore/pkg/signature/options"
+	"google.golang.org/grpc/metadata"
 
 	"context"
 )
@@ -131,20 +134,20 @@ type SignVerifyOption interface {
 }
 
 func (c GRPCClient) extractMessageFromOpts(opts interface{}) (*context.Context, *kmsproto.MessageOption, error) {
-	var context = context.TODO()
+	var ctx = context.TODO()
 	var digestData []byte
 	var signerOpts crypto.SignerOpts = c.SignerOpts
 
 	switch opts := opts.(type) {
 	case []signature.SignOption:
 		for _, opt := range opts {
-			opt.ApplyContext(&context)
+			opt.ApplyContext(&ctx)
 			opt.ApplyDigest(&digestData)
 			opt.ApplyCryptoSignerOpts(&signerOpts)
 		}
 	case []signature.VerifyOption:
 		for _, opt := range opts {
-			opt.ApplyContext(&context)
+			opt.ApplyContext(&ctx)
 			opt.ApplyDigest(&digestData)
 			opt.ApplyCryptoSignerOpts(&signerOpts)
 		}
@@ -171,8 +174,16 @@ func (c GRPCClient) extractMessageFromOpts(opts interface{}) (*context.Context, 
 			}
 		}
 	}
-	return &context, messageOption, nil
+	return &ctx, messageOption, nil
 }
+
+type CtxStruct struct {
+	val string
+}
+
+type CtxKey string
+
+var ctxKey = CtxKey("trace")
 
 // SignMessage
 func (c *GRPCClient) SignMessage(message io.Reader, opts ...signature.SignOption) ([]byte, error) {
@@ -181,7 +192,7 @@ func (c *GRPCClient) SignMessage(message io.Reader, opts ...signature.SignOption
 		return nil, err
 	}
 
-	context, messageOption, err := c.extractMessageFromOpts(opts)
+	ctx, messageOption, err := c.extractMessageFromOpts(opts)
 	if err != nil {
 		return nil, err
 	}
@@ -195,7 +206,14 @@ func (c *GRPCClient) SignMessage(message io.Reader, opts ...signature.SignOption
 		}
 	}
 
-	resp, err := c.client.SignMessage(*context, signMessageRequest)
+	*ctx, _ = context.WithDeadline(*ctx, time.Now().Add(1*time.Minute))
+	*ctx = context.WithValue(*ctx, ctxKey, "abc123")
+	*ctx = metadata.NewOutgoingContext(
+		*ctx,
+		metadata.Pairs("key1", "val1", "key2", "val2"),
+	)
+
+	resp, err := c.client.SignMessage(*ctx, signMessageRequest)
 	if err != nil {
 		return nil, err
 	}
@@ -230,6 +248,17 @@ func (s *GRPCServer) extractOptsFromMessage(messageOption *kmsproto.MessageOptio
 
 func (s *GRPCServer) SignMessage(ctx context.Context, req *kmsproto.SignMessageRequest) (*kmsproto.SignMessageResponse, error) {
 	messageReader := bytes.NewReader(req.Message)
+
+	deadline, ok := ctx.Deadline()
+	if ok {
+		slog.Info("context", "now", time.Now(), "deadline", deadline, "diff", time.Until(deadline))
+	}
+	md, ok := metadata.FromIncomingContext(ctx)
+	if ok {
+		slog.Info("context", "md", md.Get("trace"))
+	}
+	ctxVal := ctx.Value(ctxKey)
+	slog.Info("context", "val", ctxVal, "other", metadata.ValueFromIncomingContext(ctx, "key1"))
 
 	opts := []signature.SignOption{}
 	if req.SignOptions != nil {
