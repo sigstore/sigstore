@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-plugin"
 	"github.com/sigstore/sigstore/pkg/signature"
 	"github.com/sigstore/sigstore/pkg/signature/kms/fake"
 	"github.com/sigstore/sigstore/pkg/signature/kms/kmsgoplugin/common"
@@ -83,5 +84,13 @@ func main() {
 		common.KeyResourceIDEnvKey, common.GetKeyResourceIDFromEnv(),
 	)
 
-	common.ServePlugin(wrappedSignerVerifier, logger)
+	// common.ServePlugin(5, wrappedSignerVerifier, logger)
+	common.ServeVersionedPlugins(map[int]plugin.PluginSet{
+		common.PluginProtocolVersion: map[string]plugin.Plugin{
+			common.KMSPluginName: &common.SignerVerifierRPCPlugin{Impl: wrappedSignerVerifier},
+		},
+		3: map[string]plugin.Plugin{
+			common.KMSPluginName: &common.SignerVerifierRPCPlugin{Impl: wrappedSignerVerifier},
+		},
+	}, logger)
 }

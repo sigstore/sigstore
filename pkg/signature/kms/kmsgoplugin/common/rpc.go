@@ -116,7 +116,8 @@ func (c *SignerVerifierRPC) SetState(state *KMSGoPluginState) {
 // CreateKeyArgs contains the args for CreateKey().
 type CreateKeyArgs struct {
 	// Ctx       context.Context
-	Algorithm string
+	CtxDeadline *time.Time
+	Algorithm   string
 }
 
 // CreateKeyResp contains the return values for CreateKey().
@@ -125,8 +126,15 @@ type CreateKeyResp struct {
 }
 
 // CreateKey returns a crypto.PublicKey.
-func (s *SignerVerifierRPCServer) CreateKey(args CreateKeyArgs, resp *CreateKeyResp) error {
-	pubKey, err := s.Impl.CreateKey(context.TODO(), args.Algorithm)
+func (s *SignerVerifierRPCServer) CreateKey(args *CreateKeyArgs, resp *CreateKeyResp) error {
+	slog.Info("createley", "ctxdeadline", args.CtxDeadline, "glorithm", args.Algorithm)
+	ctx := context.Background()
+	if args.CtxDeadline != nil {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithDeadline(ctx, *args.CtxDeadline)
+		defer cancel()
+	}
+	pubKey, err := s.Impl.CreateKey(ctx, args.Algorithm)
 	if err != nil {
 		return err
 	}
@@ -137,8 +145,10 @@ func (s *SignerVerifierRPCServer) CreateKey(args CreateKeyArgs, resp *CreateKeyR
 // CreateKey returns a crypto.PublicKey.
 func (c *SignerVerifierRPC) CreateKey(ctx context.Context, algorithm string) (crypto.PublicKey, error) {
 	args := CreateKeyArgs{
-		// Ctx:       ctx,
 		Algorithm: algorithm,
+	}
+	if ctxDeadline, ok := ctx.Deadline(); ok {
+		args.CtxDeadline = &ctxDeadline
 	}
 	var resp CreateKeyResp
 	if err := c.client.Call("Plugin.CreateKey", args, &resp); err != nil {

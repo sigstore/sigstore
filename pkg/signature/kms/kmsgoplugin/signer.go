@@ -59,10 +59,14 @@ func LoadSignerVerifier(ctx context.Context, referenceStr string) (*common.Signe
 	pluginPath := getPluginPath()
 	client := plugin.NewClient(&plugin.ClientConfig{
 		HandshakeConfig: common.HandshakeConfig,
-		Plugins:         pluginMap,
-		Cmd:             exec.Command(pluginPath),
+		// Plugins:         pluginMap,
+		VersionedPlugins: map[int]plugin.PluginSet{
+			common.PluginProtocolVersion: pluginMap,
+		},
+		Cmd: exec.Command(pluginPath),
 		// AllowedProtocols: []plugin.Protocol{plugin.ProtocolGRPC},
-		Logger: logger,
+		Logger:   logger,
+		AutoMTLS: true,
 	})
 
 	rpcClient, err := client.Client()

@@ -37,13 +37,14 @@ const (
 	KMSPluginName                   = "sigstore-kms-plugin"
 	KeyResourceIDEnvKey             = "SIGSTORE_KMS_GO_PLUGIN_KEY_RESOURCE_ID"
 	HashFuncEnvKey                  = "SIGSTORE_KMS_GO_PLUGIN_HASH_FUNC"
+	PluginProtocolVersion           = 1
 )
 
 var (
 	// HandshakeConfig is the configuration for a proper handshake between client and server of the plugin.
 	// This is not authentication, but identification.
 	HandshakeConfig = plugin.HandshakeConfig{
-		ProtocolVersion:  1,
+		// ProtocolVersion:  2,
 		MagicCookieKey:   "SIGSTORE_KMS_PLUGIN",
 		MagicCookieValue: "sigstore",
 	}
@@ -95,15 +96,28 @@ func GetHashFuncFromEnv() crypto.Hash {
 }
 
 // ServePlugin is a helper function to begins serving your concrete imlementation of the interface.
+// This is meant to be imported and called from the plugin program.
 // You may optionally provide a hclog.Logger to be used by the server.
-func ServePlugin(impl KMSGoPluginSignerVerifier, logger hclog.Logger) {
+func ServePlugin(version int, impl KMSGoPluginSignerVerifier, logger hclog.Logger) {
 	var pluginMap = map[string]plugin.Plugin{
 		KMSPluginName: &SignerVerifierRPCPlugin{Impl: impl},
 		// KMSPluginName: &SignerVerifierGRPCPlugin{Impl: impl},
 	}
 	plugin.Serve(&plugin.ServeConfig{
 		HandshakeConfig: HandshakeConfig,
-		Plugins:         pluginMap,
+		// Plugins:         pluginMap,
+		VersionedPlugins: map[int]plugin.PluginSet{
+			version: pluginMap,
+		},
+		// GRPCServer:      plugin.DefaultGRPCServer,
+		Logger: logger,
+	})
+}
+
+func ServeVersionedPlugins(versionedPlugins map[int]plugin.PluginSet, logger hclog.Logger) {
+	plugin.Serve(&plugin.ServeConfig{
+		HandshakeConfig:  HandshakeConfig,
+		VersionedPlugins: versionedPlugins,
 		// GRPCServer:      plugin.DefaultGRPCServer,
 		Logger: logger,
 	})
