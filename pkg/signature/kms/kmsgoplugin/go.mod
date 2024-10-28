@@ -5,6 +5,7 @@ go 1.23.0
 replace github.com/sigstore/sigstore => ../../../../
 
 require (
+	github.com/google/go-cmp v0.6.0
 	github.com/hashicorp/go-hclog v0.14.1
 	github.com/hashicorp/go-plugin v1.6.1
 	github.com/sigstore/sigstore v0.0.0-00010101000000-000000000000

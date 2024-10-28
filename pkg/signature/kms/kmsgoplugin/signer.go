@@ -52,16 +52,12 @@ func LoadSignerVerifier(ctx context.Context, referenceStr string) (*common.Signe
 		Name:  kmsPluginName,
 		Level: hclog.Debug,
 	})
-	var pluginMap = map[string]plugin.Plugin{
-		kmsPluginName: &common.SignerVerifierRPCPlugin{},
-		// kmsPluginName: &common.SignerVerifierGRPCPlugin{},
-	}
 	pluginPath := getPluginPath()
 	client := plugin.NewClient(&plugin.ClientConfig{
 		HandshakeConfig: common.HandshakeConfig,
 		// Plugins:         pluginMap,
 		VersionedPlugins: map[int]plugin.PluginSet{
-			common.PluginProtocolVersion: pluginMap,
+			common.PluginProtocolVersion: common.PluginMap,
 		},
 		Cmd: exec.Command(pluginPath),
 		// AllowedProtocols: []plugin.Protocol{plugin.ProtocolGRPC},

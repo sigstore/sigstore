@@ -48,6 +48,9 @@ var (
 		MagicCookieKey:   "SIGSTORE_KMS_PLUGIN",
 		MagicCookieValue: "sigstore",
 	}
+	PluginMap = map[string]plugin.Plugin{
+		KMSPluginName: &SignerVerifierRPCPlugin{},
+	}
 )
 
 // KMSGoPluginSignerVerifier wraps around kms.KMSGoPluginSignerVerifier

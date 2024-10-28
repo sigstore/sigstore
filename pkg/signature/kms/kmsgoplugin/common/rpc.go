@@ -22,6 +22,7 @@ import (
 	"crypto"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/rpc"
 	"time"
 
@@ -133,10 +134,12 @@ func (s *SignerVerifierRPCServer) CreateKey(args *CreateKeyArgs, resp *CreateKey
 		ctx, cancel = context.WithDeadline(ctx, *args.CtxDeadline)
 		defer cancel()
 	}
+	slog.Info("servercreatekey", "ctx", ctx, "algorithm", args.Algorithm, "impl", s.Impl)
 	pubKey, err := s.Impl.CreateKey(ctx, args.Algorithm)
 	if err != nil {
 		return err
 	}
+	slog.Info("servercreatekey", "pubkey", pubKey)
 	resp.PublicKey = PublicKeyGobWrapper{PublicKey: pubKey}
 	return nil
 }

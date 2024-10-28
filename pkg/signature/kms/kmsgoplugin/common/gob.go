@@ -23,6 +23,7 @@ import (
 	"encoding/gob"
 	"encoding/json"
 	"io"
+	"log/slog"
 
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
 	"github.com/sigstore/sigstore/pkg/signature"
@@ -75,10 +76,12 @@ type PublicKeyGobWrapper struct {
 }
 
 func (p PublicKeyGobWrapper) GobEncode() ([]byte, error) {
+	slog.Info("GobEncode", "publicKey", p.PublicKey)
 	return cryptoutils.MarshalPublicKeyToPEM(p.PublicKey)
 }
 
 func (p *PublicKeyGobWrapper) GobDecode(content []byte) error {
+	slog.Info("GobDecode", "content", content)
 	publickKey, err := cryptoutils.UnmarshalPEMToPublicKey(content)
 	p.PublicKey = publickKey
 	return err
