@@ -22,7 +22,6 @@ import (
 	"crypto"
 	"fmt"
 	"io"
-	"log/slog"
 	"net/rpc"
 	"time"
 
@@ -127,7 +126,7 @@ type CreateKeyResp struct {
 
 // CreateKey returns a crypto.PublicKey.
 func (s *SignerVerifierRPCServer) CreateKey(args *CreateKeyArgs, resp *CreateKeyResp) error {
-	slog.Info("createley", "ctxdeadline", args.CtxDeadline, "glorithm", args.Algorithm)
+	// slog.Info("createley", "ctxdeadline", args.CtxDeadline, "glorithm", args.Algorithm)
 	ctx := context.Background()
 	if args.CtxDeadline != nil {
 		var cancel context.CancelFunc
@@ -189,7 +188,7 @@ func (s *SignerVerifierRPCServer) SignMessage(args SignMessageArgs, resp *SignMe
 	if args.Opts.Digest != nil && len(args.Opts.Digest) != 0 {
 		opts = append(opts, options.WithDigest(args.Opts.Digest))
 	}
-	slog.Info("opts", "deadline", args.Opts.CtxDeadline, "hash", args.Opts.Hash.Hash, "digest", args.Opts.Digest)
+	// slog.Info("opts", "deadline", args.Opts.CtxDeadline, "hash", args.Opts.Hash.Hash, "digest", args.Opts.Digest)
 
 	// signature, err := s.Impl.SignMessage(args.Message, args.Opts...)
 	signature, err := s.Impl.SignMessage(args.Message, opts...)
@@ -279,7 +278,8 @@ type VerifySignatureResp struct {
 
 // SignMessage signs the provided message.
 func (s *SignerVerifierRPCServer) VerifySignature(args VerifySignatureArgs, resp *VerifySignatureResp) error {
-	if err := s.Impl.VerifySignature(args.Message, args.Signature, args.Opts...); err != nil {
+	// slog.Info("verifySig", "message", args.Message)
+	if err := s.Impl.VerifySignature(args.Signature, args.Message, args.Opts...); err != nil {
 		return err
 	}
 	return nil
@@ -288,7 +288,9 @@ func (s *SignerVerifierRPCServer) VerifySignature(args VerifySignatureArgs, resp
 // VerifySignature verifies the signature for the given message.
 func (c *SignerVerifierRPC) VerifySignature(signature, message io.Reader, opts ...signature.VerifyOption) error {
 	args := VerifySignatureArgs{
-		Opts: opts,
+		Signature: IOReaderGobWrapper{Reader: signature},
+		Message:   IOReaderGobWrapper{Reader: message},
+		Opts:      opts,
 	}
 	var resp VerifySignatureResp
 	if err := c.client.Call("Plugin.VerifySignature", args, &resp); err != nil {

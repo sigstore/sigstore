@@ -1,6 +1,6 @@
 (cd sigstore/test/goplugin/fakekmsplugin &&  go build -o ../../../../sigstore-kms-go-plugin) && (cd cosign && SIGSTORE_KMS_GO_PLUGIN_PATH=../sigstore-kms-go-plugin COSIGN_PASSWORD=123 go run ./cmd/cosign generate-key-pair --kms plugin://key.pem)
 
-(cd sigstore/test/goplugin/fakekmsplugin &&  go build -o ../../../../sigstore-kms-go-plugin) && (cd cosign && SIGSTORE_KMS_GO_PLUGIN_PATH=../sigstore-kms-go-plugin go run ./cmd/cosign sign-blob --tlog-upload=false --key plugin://key.pem ./ALUMNI.md 2>&1 | tee sig.txt)
+(cd sigstore/test/goplugin/fakekmsplugin &&  go build -o ../../../../sigstore-kms-go-plugin) && (cd cosign && SIGSTORE_KMS_GO_PLUGIN_PATH=../sigstore-kms-go-plugin go run ./cmd/cosign sign-blob --tlog-upload=false --key plugin://key.pem ./ALUMNI.md | tee sig.txt)
 
 (cd sigstore/test/goplugin/fakekmsplugin &&  go build -o ../../../../sigstore-kms-go-plugin) && (cd cosign && SIGSTORE_KMS_GO_PLUGIN_PATH=../sigstore-kms-go-plugin go run ./cmd/cosign verify-blob --insecure-ignore-tlog --key plugin://key.pem --signature ./sig.txt ./ALUMNI.md)
 
