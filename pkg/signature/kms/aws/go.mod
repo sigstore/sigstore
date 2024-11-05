@@ -2,7 +2,7 @@ module github.com/sigstore/sigstore/pkg/signature/kms/aws
 
 replace github.com/sigstore/sigstore => ../../../../
 
-go 1.22.8
+go 1.22.0
 
 require (
 	github.com/aws/aws-sdk-go v1.55.5
