@@ -17,16 +17,29 @@ name: test
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 permissions:
   contents: read
 
 jobs:
+  go_version:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-go@41dfa10bad2bb2ae585af6ee5bb4d7d973ad74ed # v5.1.0
+      - name: Get Go version directive from go.mod as major.minor
+        id: list
+        run: |
+          go list -m -f 'version={{.GoVersion}}' | cut -d. -f-2 >>"${GITHUB_OUTPUT}"
+    outputs:
+      version: ${{ steps.list.outputs.version }}
   e2e_test:
     name: e2e integration tests
+    needs:
+      - go_version
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -34,7 +47,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@41dfa10bad2bb2ae585af6ee5bb4d7d973ad74ed # v5.1.0
         with:
-          go-version-file: go.mod
+          go-version: "${{ needs.go_version.outputs.version }}.x"
           check-latest: true
 
       - name: Cache Modules
