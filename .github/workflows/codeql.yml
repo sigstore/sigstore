@@ -26,35 +26,25 @@ permissions:
   security-events: write
 
 jobs:
-  go_version:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-      - uses: actions/setup-go@41dfa10bad2bb2ae585af6ee5bb4d7d973ad74ed # v5.1.0
-      - name: Get Go version directive from go.mod as major.minor
-        id: list
-        run: |
-          go list -m -f 'version={{.GoVersion}}' | cut -d. -f-2 >>"${GITHUB_OUTPUT}"
-    outputs:
-      version: ${{ steps.list.outputs.version }}
   analyze:
     name: Analyze
-    needs:
-      - go_version
     runs-on: ubuntu-latest
-
     strategy:
       fail-fast: false
       matrix:
         language: ["go"]
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Get Go version directive from go.mod as major.minor
+        id: go_version
+        run: |
+          awk -F'[ .]' '/^go /{print "version=" $2 "." $3; exit}' go.mod >>"${GITHUB_OUTPUT}"
 
       - name: Set up Go
         uses: actions/setup-go@41dfa10bad2bb2ae585af6ee5bb4d7d973ad74ed # v5.1.0
         with:
-          go-version: "${{ needs.go_version.outputs.version }}.x"
+          go-version: "${{ steps.go_version.outputs.version }}"
           check-latest: true
 
       # Initializes the CodeQL tools for scanning.
