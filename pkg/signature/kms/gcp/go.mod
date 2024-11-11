@@ -9,13 +9,13 @@ require (
 	github.com/jellydator/ttlcache/v3 v3.3.0
 	github.com/sigstore/sigstore v1.6.4
 	golang.org/x/oauth2 v0.23.0
-	google.golang.org/api v0.204.0
+	google.golang.org/api v0.205.0
 	google.golang.org/protobuf v1.35.1
 )
 
 require (
 	cloud.google.com/go v0.116.0 // indirect
-	cloud.google.com/go/auth v0.10.0 // indirect
+	cloud.google.com/go/auth v0.10.1 // indirect
 	cloud.google.com/go/auth/oauth2adapt v0.2.5 // indirect
 	cloud.google.com/go/compute/metadata v0.5.2 // indirect
 	cloud.google.com/go/iam v1.2.1 // indirect
