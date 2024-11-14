@@ -18,51 +18,74 @@ package azure
 import (
 	"context"
 	"crypto"
+	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/rsa"
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azkeys"
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
 )
 
-type mockAzureVaultClient struct {
-	pubKey   crypto.PublicKey
-	privKey  crypto.PrivateKey
-	azSigAlg azkeys.SignatureAlgorithm
-	hashAlg  crypto.Hash
+type mockVaultClient struct {
+	pubKey     crypto.PublicKey
+	privKey    crypto.PrivateKey
+	azSigAlg   azkeys.SignatureAlgorithm
+	hashAlg    crypto.Hash
+	verifyFunc func(context.Context, []byte, []byte) error
 }
 
-func (c *mockAzureVaultClient) createKey(ctx context.Context) (crypto.PublicKey, error) {
+func (c *mockVaultClient) isRSAKey() bool {
+	algString := string(c.azSigAlg)
+	return strings.HasPrefix(algString, "RS")
+}
+
+func (c *mockVaultClient) createKey(ctx context.Context) (crypto.PublicKey, error) {
 	return c.pubKey, nil
 }
 
-func (c *mockAzureVaultClient) fetchPublicKey(ctx context.Context) (crypto.PublicKey, error) {
+func (c *mockVaultClient) fetchPublicKey(ctx context.Context) (crypto.PublicKey, error) {
 	return c.pubKey, nil
 }
 
-func (c *mockAzureVaultClient) getKey(ctx context.Context) (azkeys.KeyBundle, error) {
+func (c *mockVaultClient) getKey(ctx context.Context) (azkeys.KeyBundle, error) {
 	return azkeys.KeyBundle{}, nil
 }
 
-func (c *mockAzureVaultClient) getKeyVaultHashFunc(ctx context.Context) (crypto.Hash, azkeys.SignatureAlgorithm, error) {
+func (c *mockVaultClient) getKeyVaultHashFunc(ctx context.Context) (crypto.Hash, azkeys.SignatureAlgorithm, error) {
 	return c.hashAlg, c.azSigAlg, nil
 }
 
-func (c *mockAzureVaultClient) public(ctx context.Context) (crypto.PublicKey, error) {
+func (c *mockVaultClient) public(ctx context.Context) (crypto.PublicKey, error) {
 	return c.pubKey, nil
 }
 
-func (c *mockAzureVaultClient) sign(ctx context.Context, hash []byte) ([]byte, error) {
-	rsaPrivKey, ok := c.privKey.(*rsa.PrivateKey)
+func (c *mockVaultClient) sign(ctx context.Context, hash []byte) ([]byte, error) {
+	if c.isRSAKey() {
+		rsaPrivKey, ok := c.privKey.(*rsa.PrivateKey)
+		if !ok {
+			return nil, fmt.Errorf("private key is not of type *rsa.PrivateKey")
+		}
+
+		// Sign the hashed input
+		signature, err := rsa.SignPKCS1v15(rand.Reader, rsaPrivKey, c.hashAlg, hash)
+		if err != nil {
+			return nil, fmt.Errorf("error signing input: %w", err)
+		}
+
+		return signature, nil
+	}
+
+	ecdsaPrivKey, ok := c.privKey.(*ecdsa.PrivateKey)
 	if !ok {
-		return nil, fmt.Errorf("private key is not of type *rsa.PrivateKey")
+		return nil, fmt.Errorf("private key is not of type *ecdsa.PrivateKey")
 	}
 
 	// Sign the hashed input
-	signature, err := rsa.SignPKCS1v15(rand.Reader, rsaPrivKey, c.hashAlg, hash)
+	signature, err := ecdsa.SignASN1(rand.Reader, ecdsaPrivKey, hash)
 	if err != nil {
 		return nil, fmt.Errorf("error signing input: %w", err)
 	}
@@ -70,23 +93,37 @@ func (c *mockAzureVaultClient) sign(ctx context.Context, hash []byte) ([]byte, e
 	return signature, nil
 }
 
-func (c *mockAzureVaultClient) verify(ctx context.Context, signature, hash []byte) error {
-	// Convert the public key to an *rsa.PublicKey
-	rsaPubKey, ok := c.pubKey.(*rsa.PublicKey)
+func (c *mockVaultClient) verify(ctx context.Context, signature, hash []byte) error {
+	if c.isRSAKey() {
+		// Convert the public key to an *rsa.PublicKey
+		rsaPubKey, ok := c.pubKey.(*rsa.PublicKey)
+		if !ok {
+			return fmt.Errorf("public key is not of type *rsa.PublicKey")
+		}
+
+		// Verify the signature
+		if err := rsa.VerifyPKCS1v15(rsaPubKey, c.hashAlg, hash, signature); err != nil {
+			return fmt.Errorf("verification error: %w", err)
+		}
+
+		return nil
+	}
+
+	// Convert the public key to an *ecdsa.PublicKey
+	ecdsaPubKey, ok := c.pubKey.(*ecdsa.PublicKey)
 	if !ok {
-		return fmt.Errorf("public key is not of type *rsa.PublicKey")
+		return fmt.Errorf("public key is not of type *ecdsa.PublicKey")
 	}
 
 	// Verify the signature
-	err := rsa.VerifyPKCS1v15(rsaPubKey, c.hashAlg, hash, signature)
-	if err != nil {
-		return fmt.Errorf("verification error: %w", err)
+	if verified := ecdsa.VerifyASN1(ecdsaPubKey, hash, signature); !verified {
+		return fmt.Errorf("verification error")
 	}
 
 	return nil
 }
 
-func newRSAMockAzureVaultClient(t *testing.T) *mockAzureVaultClient {
+func newRSAMockAzureVaultClient(t *testing.T) *mockVaultClient {
 	priv, pub, err := cryptoutils.GeneratePEMEncodedRSAKeyPair(4098, nil)
 	if err != nil {
 		t.Fatalf("error generating RSA key pair: %v", err)
@@ -102,7 +139,7 @@ func newRSAMockAzureVaultClient(t *testing.T) *mockAzureVaultClient {
 		t.Fatalf("error unmarshalling private key: %v", err)
 	}
 
-	return &mockAzureVaultClient{
+	return &mockVaultClient{
 		pubKey:   pubKey,
 		privKey:  privKey,
 		azSigAlg: azkeys.SignatureAlgorithmRS512,
@@ -110,7 +147,7 @@ func newRSAMockAzureVaultClient(t *testing.T) *mockAzureVaultClient {
 	}
 }
 
-func newECDSAMockAzureVaultClient(t *testing.T) *mockAzureVaultClient {
+func newECDSAMockAzureVaultClient(t *testing.T) *mockVaultClient {
 	priv, pub, err := cryptoutils.GeneratePEMEncodedECDSAKeyPair(elliptic.P256(), nil)
 	if err != nil {
 		t.Fatalf("error generating ECDSA key pair: %v", err)
@@ -126,7 +163,7 @@ func newECDSAMockAzureVaultClient(t *testing.T) *mockAzureVaultClient {
 		t.Fatalf("error unmarshalling private key: %v", err)
 	}
 
-	return &mockAzureVaultClient{
+	return &mockVaultClient{
 		pubKey:   pubKey,
 		privKey:  privKey,
 		azSigAlg: azkeys.SignatureAlgorithmES256,
