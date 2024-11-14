@@ -34,7 +34,7 @@ func TestSignMessageWithECDSA(t *testing.T) {
 		client: newECDSAMockAzureVaultClient(t),
 	}
 
-	sig, err := sv.SignMessage(strings.NewReader("my message"), nil)
+	sig, err := sv.SignMessage(strings.NewReader("my message"))
 	if err != nil {
 		t.Fatalf("error signing message: %v", err)
 	}
@@ -52,12 +52,12 @@ func TestVerifyMessageWithECDSA(t *testing.T) {
 	}
 	message := strings.NewReader("my message")
 
-	sig, err := sv.SignMessage(message, nil)
+	sig, err := sv.SignMessage(message)
 	if err != nil {
 		t.Fatalf("error signing message: %v", err)
 	}
 
-	err = sv.VerifySignature(bytes.NewReader(sig), message, nil)
+	err = sv.VerifySignature(bytes.NewReader(sig), message)
 	if err != nil {
 		t.Fatalf("error verifying signature: %v", err)
 	}
@@ -68,7 +68,7 @@ func TestSignMessageWithRSA(t *testing.T) {
 		client: newRSAMockAzureVaultClient(t),
 	}
 
-	sig, err := sv.SignMessage(strings.NewReader("my message"), nil)
+	sig, err := sv.SignMessage(strings.NewReader("my message"))
 	if err != nil {
 		t.Fatalf("error signing message: %v", err)
 	}
@@ -86,12 +86,12 @@ func TestVerifyMessageWithRSA(t *testing.T) {
 	}
 	message := strings.NewReader("my message")
 
-	sig, err := sv.SignMessage(message, nil)
+	sig, err := sv.SignMessage(message)
 	if err != nil {
 		t.Fatalf("error signing message: %v", err)
 	}
 
-	err = sv.VerifySignature(bytes.NewReader(sig), message, nil)
+	err = sv.VerifySignature(bytes.NewReader(sig), message)
 	if err != nil {
 		t.Fatalf("error verifying signature: %v", err)
 	}
