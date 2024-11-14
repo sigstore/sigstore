@@ -2,87 +2,34 @@
 version: 2
 updates:
   - package-ecosystem: gomod
-    directory: "/"
+    directories:
+      - "/"
+      - "./pkg/signature/kms/aws"
+      - "./pkg/signature/kms/azure"
+      - "./pkg/signature/kms/gcp"
+      - "./pkg/signature/kms/hashivault"
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 10
     groups:
-      all:
+      gomod:
         update-types:
-        - "minor"
-        - "patch"
+          - "patch"
 
   # hack/tools/go.mod
-  - package-ecosystem: gomod
-    directory: "./hack/tools"
-    schedule:
-      interval: "weekly"
-    open-pull-requests-limit: 10
-    groups:
-      all:
-        update-types:
-        - "minor"
-        - "patch"
-
   # test/fuzz/go.mod
   - package-ecosystem: gomod
-    directory: "./test/fuzz"
+    directories:
+      - "./hack/tools"
+      - "./test/fuzz"
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 10
     groups:
-      all:
+      tools:
         update-types:
-        - "minor"
-        - "patch"
-
-  # pkg/signature/kms/aws/go.mod
-  - package-ecosystem: gomod
-    directory: "./pkg/signature/kms/aws"
-    schedule:
-      interval: "weekly"
-    open-pull-requests-limit: 10
-    groups:
-      all:
-        update-types:
-        - "minor"
-        - "patch"
-
-  # pkg/signature/kms/azure/go.mod
-  - package-ecosystem: gomod
-    directory: "./pkg/signature/kms/azure"
-    schedule:
-      interval: "weekly"
-    open-pull-requests-limit: 10
-    groups:
-      all:
-        update-types:
-        - "minor"
-        - "patch"
-
-  # pkg/signature/kms/gcp/go.mod
-  - package-ecosystem: gomod
-    directory: "./pkg/signature/kms/gcp"
-    schedule:
-      interval: "weekly"
-    open-pull-requests-limit: 10
-    groups:
-      all:
-        update-types:
-        - "minor"
-        - "patch"
-
-  # pkg/signature/kms/hashivault/go.mod
-  - package-ecosystem: gomod
-    directory: "./pkg/signature/kms/hashivault"
-    schedule:
-      interval: "weekly"
-    open-pull-requests-limit: 10
-    groups:
-      all:
-        update-types:
-        - "minor"
-        - "patch"
+          - "minor"
+          - "patch"
 
   - package-ecosystem: "github-actions"
     directory: "/"
@@ -91,8 +38,8 @@ updates:
     groups:
       all:
         update-types:
-        - "minor"
-        - "patch"
+          - "minor"
+          - "patch"
 
   - package-ecosystem: "docker"
     directory: "/test/e2e"
@@ -101,5 +48,5 @@ updates:
     groups:
       all:
         update-types:
-        - "minor"
-        - "patch"
+          - "minor"
+          - "patch"
