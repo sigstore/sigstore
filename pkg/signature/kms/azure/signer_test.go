@@ -73,10 +73,13 @@ func TestSignMessageWithRSA(t *testing.T) {
 		t.Fatalf("error signing message: %v", err)
 	}
 
-	var raw asn1.RawValue
-	_, err = asn1.Unmarshal(sig, &raw)
-	if err == nil {
-		t.Fatalf("Signature should not be ASN.1 encoded: %v\n", err)
+	asn1Encoded, err := encodeToASN1(sig)
+	if err != nil {
+		t.Fatalf("error encoding signature to ASN.1: %v", err)
+	}
+
+	if bytes.Equal(sig, asn1Encoded) {
+		t.Fatal("Signature should be ASN.1 encoded\n")
 	}
 }
 
