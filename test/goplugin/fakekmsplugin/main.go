@@ -77,6 +77,7 @@ func main() {
 	// }
 
 	wrappedSignerVerifier := &LocalSignerVerifier{}
+	// wrappedSignerVerifier2 := &LocalSignerVerifier{}
 
 	// You can use the KeyResourcesID
 	logger.Info(
@@ -84,13 +85,13 @@ func main() {
 		common.KeyResourceIDEnvKey, common.GetKeyResourceIDFromEnv(),
 	)
 
-	// common.ServePlugin(5, wrappedSignerVerifier, logger)
+	// common.ServePlugin(common.PluginProtocolVersion, wrappedSignerVerifier, logger)
 	common.ServeVersionedPlugins(map[int]plugin.PluginSet{
 		common.PluginProtocolVersion: map[string]plugin.Plugin{
-			common.KMSPluginName: &common.SignerVerifierRPCPlugin{Impl: wrappedSignerVerifier},
+			common.KMSPluginNameRPC: &common.SignerVerifierRPCPlugin{Impl: wrappedSignerVerifier},
 		},
-		3: map[string]plugin.Plugin{
-			common.KMSPluginName: &common.SignerVerifierRPCPlugin{Impl: wrappedSignerVerifier},
+		common.PluginProtocolVersion + 1: map[string]plugin.Plugin{
+			common.KMSPluginNameGRPC: &common.SignerVerifierGRPCPlugin{Impl: wrappedSignerVerifier},
 		},
 	}, logger)
 }

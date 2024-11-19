@@ -34,7 +34,8 @@ const (
 	ReferenceScheme                 = "plugin://"
 	DefaultPluginBinaryRelativePath = "./sigstore-kms-go-plugin"
 	PluginPathEnvKey                = "SIGSTORE_KMS_GO_PLUGIN_PATH"
-	KMSPluginName                   = "sigstore-kms-plugin"
+	KMSPluginNameRPC                = "sigstore-kms-plugin-rpc"
+	KMSPluginNameGRPC               = "sigstore-kms-plugin-grpc"
 	KeyResourceIDEnvKey             = "SIGSTORE_KMS_GO_PLUGIN_KEY_RESOURCE_ID"
 	HashFuncEnvKey                  = "SIGSTORE_KMS_GO_PLUGIN_HASH_FUNC"
 	PluginProtocolVersion           = 1
@@ -48,8 +49,11 @@ var (
 		MagicCookieKey:   "SIGSTORE_KMS_PLUGIN",
 		MagicCookieValue: "sigstore",
 	}
-	PluginMap = map[string]plugin.Plugin{
-		KMSPluginName: &SignerVerifierRPCPlugin{},
+	RPCPluginMap = map[string]plugin.Plugin{
+		KMSPluginNameRPC: &SignerVerifierRPCPlugin{},
+	}
+	GRPCPluginMap = map[string]plugin.Plugin{
+		KMSPluginNameGRPC: &SignerVerifierGRPCPlugin{},
 	}
 )
 
@@ -103,17 +107,18 @@ func GetHashFuncFromEnv() crypto.Hash {
 // You may optionally provide a hclog.Logger to be used by the server.
 func ServePlugin(version int, impl KMSGoPluginSignerVerifier, logger hclog.Logger) {
 	var pluginMap = map[string]plugin.Plugin{
-		KMSPluginName: &SignerVerifierRPCPlugin{Impl: impl},
-		// KMSPluginName: &SignerVerifierGRPCPlugin{Impl: impl},
+		KMSPluginNameRPC:  &SignerVerifierRPCPlugin{Impl: impl},
+		KMSPluginNameGRPC: &SignerVerifierGRPCPlugin{Impl: impl},
 	}
 	plugin.Serve(&plugin.ServeConfig{
 		HandshakeConfig: HandshakeConfig,
-		// Plugins:         pluginMap,
+		Plugins:         pluginMap,
 		VersionedPlugins: map[int]plugin.PluginSet{
 			version: pluginMap,
 		},
-		// GRPCServer:      plugin.DefaultGRPCServer,
-		Logger: logger,
+
+		GRPCServer: plugin.DefaultGRPCServer,
+		Logger:     logger,
 	})
 }
 
@@ -121,8 +126,8 @@ func ServeVersionedPlugins(versionedPlugins map[int]plugin.PluginSet, logger hcl
 	plugin.Serve(&plugin.ServeConfig{
 		HandshakeConfig:  HandshakeConfig,
 		VersionedPlugins: versionedPlugins,
-		// GRPCServer:      plugin.DefaultGRPCServer,
-		Logger: logger,
+		GRPCServer:       plugin.DefaultGRPCServer,
+		Logger:           logger,
 	})
 }
 

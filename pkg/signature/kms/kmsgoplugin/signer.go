@@ -20,6 +20,7 @@ package kmsgoplugin
 import (
 	"context"
 	"crypto"
+	"log/slog"
 	"os"
 	"os/exec"
 
@@ -45,24 +46,42 @@ func init() {
 	})
 }
 
+// CleanupClients calls plugin.CleanupClients to kill the plugin programs.
+func CleanupClients() {
+	slog.Info("cleanup")
+	plugin.CleanupClients()
+}
+
 // LoadSignerVerifier loads a SignerVerifier that uses the plugin.
-func LoadSignerVerifier(ctx context.Context, referenceStr string) (*common.SignerVerifierRPC, error) {
-	kmsPluginName := common.KMSPluginName
+func LoadSignerVerifier(ctx context.Context, referenceStr string) (common.KMSGoPluginSignerVerifier, error) {
+	// kmsPluginName := common.KMSPluginNameRPC
+	version := common.PluginProtocolVersion
+	version += 1
+
+	kmsPluginName := common.KMSPluginNameRPC
+	pluginMap := common.RPCPluginMap
+	if version == common.PluginProtocolVersion+1 {
+		kmsPluginName = common.KMSPluginNameGRPC
+		pluginMap = common.GRPCPluginMap
+	}
+
 	logger := hclog.New(&hclog.LoggerOptions{
 		Name:  kmsPluginName,
 		Level: hclog.Debug,
 	})
+
 	pluginPath := getPluginPath()
 	client := plugin.NewClient(&plugin.ClientConfig{
+		Managed:         true,
 		HandshakeConfig: common.HandshakeConfig,
 		// Plugins:         pluginMap,
 		VersionedPlugins: map[int]plugin.PluginSet{
-			common.PluginProtocolVersion: common.PluginMap,
+			version: pluginMap,
 		},
-		Cmd: exec.Command(pluginPath),
-		// AllowedProtocols: []plugin.Protocol{plugin.ProtocolGRPC},
-		Logger:   logger,
-		AutoMTLS: true,
+		Cmd:              exec.Command(pluginPath),
+		AllowedProtocols: []plugin.Protocol{plugin.ProtocolGRPC, plugin.ProtocolNetRPC},
+		Logger:           logger,
+		AutoMTLS:         true,
 	})
 
 	rpcClient, err := client.Client()
@@ -75,11 +94,13 @@ func LoadSignerVerifier(ctx context.Context, referenceStr string) (*common.Signe
 		return nil, err
 	}
 	// signerVerifier := raw.(*common.GRPCClient)
-	signerVerifier := raw.(*common.SignerVerifierRPC)
+	// signerVerifier := raw.(*common.SignerVerifierRPC)
+	signerVerifier := raw.(common.KMSGoPluginSignerVerifier)
 	signerVerifier.SetState(&common.KMSGoPluginState{
 		KeyResourceID: referenceStr,
 		HashFunc:      crypto.SHA256,
 	})
+
 	// signerVerifier.SignerOpts = crypto.SHA256
 
 	// signer, _, err := signerVerifier.CryptoSigner(ctx, func(err error) {

@@ -10,7 +10,7 @@ service KMSService {
     rpc SupportedAlgorithms(SupportedAlgorithmsRequest) returns (SupportedAlgorithmsResponse);
     rpc DefaultAlgorithm(DefaultAlgorithmRequest) returns (DefaultAlgorithmResponse);
     rpc CreateKey(CreateKeyRequest) returns (CreateKeyResponse);
-    rpc SignMessage(SignMessageRequest) returns (SignMessageResponse);
+    rpc SignMessage(stream SignMessageRequest) returns (SignMessageResponse);
     rpc VerifySignature(VerifySignatureRequest) returns (VerifySignatureResponse);
     rpc PublicKey(PublicKeyRequest) returns (PublicKeyResponse);
     rpc CryptoSigner(CryptoSignerRequest) returns (CryptoSignerResponse);

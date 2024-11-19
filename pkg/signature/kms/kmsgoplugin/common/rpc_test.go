@@ -59,7 +59,7 @@ func TestMain(m *testing.M) {
 	go plugin.Serve(&plugin.ServeConfig{
 		HandshakeConfig: HandshakeConfig,
 		Plugins: map[string]plugin.Plugin{
-			KMSPluginName: &SignerVerifierRPCPlugin{Impl: TestSignerVerifierImpl{}},
+			KMSPluginNameRPC: &SignerVerifierRPCPlugin{Impl: TestSignerVerifierImpl{}},
 		},
 		Test: &plugin.ServeTestConfig{
 			Context:          ctx,
@@ -72,14 +72,14 @@ func TestMain(m *testing.M) {
 	client := plugin.NewClient(&plugin.ClientConfig{
 		Cmd:             nil,
 		HandshakeConfig: HandshakeConfig,
-		Plugins:         PluginMap,
+		Plugins:         RPCPluginMap,
 		Reattach:        reattachConfig,
 	})
 	rpcClient, err := client.Client()
 	if err != nil {
 		panic(fmt.Sprintf("could not get client: %v", err))
 	}
-	raw, err := rpcClient.Dispense(KMSPluginName)
+	raw, err := rpcClient.Dispense(KMSPluginNameRPC)
 	if err != nil {
 		panic(fmt.Sprintf("ould not dispense: %v", err))
 	}

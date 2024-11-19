@@ -247,14 +247,14 @@ func (c *SignerVerifierRPC) SignMessage(message io.Reader, opts ...signature.Sig
 	// opts = append(opts, options.WithDigest([]byte("abc123")))
 	opts = append(opts, options.WithCryptoSignerOpts(crypto.SHA256))
 	methodOpts := newMethodOpts(opts...)
-	if len(methodOpts.Digest) == 0 {
-		digest, hf, err := signature.ComputeDigestForSigning(message, *methodOpts.Hash.Hash, []crypto.Hash{*methodOpts.Hash.Hash}, opts...)
-		if err != nil {
-			return nil, err
-		}
-		methodOpts.Digest = digest
-		methodOpts.Hash = CryptoHashGobWrapper{Hash: &hf}
-	}
+	// if len(methodOpts.Digest) == 0 {
+	// 	digest, hf, err := signature.ComputeDigestForSigning(message, *methodOpts.Hash.Hash, []crypto.Hash{*methodOpts.Hash.Hash}, opts...)
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
+	// 	methodOpts.Digest = digest
+	// 	methodOpts.Hash = CryptoHashGobWrapper{Hash: &hf}
+	// }
 	args := SignMessageArgs{
 		Message: wrappedMessage,
 		Opts:    *methodOpts,

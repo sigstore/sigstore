@@ -140,20 +140,17 @@ func computeDigest(message *io.Reader, hashFunc crypto.Hash) ([]byte, error) {
 	return hasher.Sum(nil), nil
 }
 
-func signMessageWithPrivateKey(privateKey *rsa.PrivateKey, message io.Reader, opts ...signature.SignOption) ([]byte, error) {
+func (g LocalSignerVerifier) signMessageWithPrivateKey(privateKey *rsa.PrivateKey, message io.Reader, opts ...signature.SignOption) ([]byte, error) {
 	var digest []byte
-	var signerOpts crypto.SignerOpts = common.GetHashFuncFromEnv()
+	var signerOpts crypto.SignerOpts = g.state.HashFunc
 	for _, opt := range opts {
 		opt.ApplyDigest(&digest)
 		opt.ApplyCryptoSignerOpts(&signerOpts)
 	}
-	var hashFunc crypto.Hash
-	if len(digest) > 0 {
-		hashFunc = crypto.Hash(0)
-	} else if signerOpts != nil {
-		hashFunc = signerOpts.HashFunc()
-		var err error
-		digest, err = computeDigest(&message, hashFunc)
+
+	var err error
+	if len(digest) == 0 {
+		digest, err = computeDigest(&message, signerOpts.HashFunc())
 		if err != nil {
 			return nil, err
 		}
@@ -172,7 +169,12 @@ func (g LocalSignerVerifier) SignMessage(message io.Reader, opts ...signature.Si
 	if err != nil {
 		return nil, err
 	}
-	return signMessageWithPrivateKey(privateKey, message, opts...)
+	// d, err := io.ReadAll(message)
+	// if err != nil {
+	// 	slog.Error(err.Error())
+	// }
+	// slog.Info("msg", "data", d)
+	return g.signMessageWithPrivateKey(privateKey, message, opts...)
 }
 
 // VerifySignature verifies the signature for the given message. Unless provided
@@ -268,5 +270,5 @@ func (c CryptoSignerWrapper) Sign(rand io.Reader, digest []byte, opts crypto.Sig
 		options.WithDigest(digest),
 		options.WithCryptoSignerOpts(hashFunc),
 	}
-	return signMessageWithPrivateKey(privateKey, emptyMessage, signOpts...)
+	return c.SignerVerifier.signMessageWithPrivateKey(privateKey, emptyMessage, signOpts...)
 }

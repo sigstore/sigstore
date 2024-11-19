@@ -24,13 +24,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log/slog"
-	"time"
 
 	"github.com/sigstore/sigstore/pkg/signature"
 	kmsproto "github.com/sigstore/sigstore/pkg/signature/kms/kmsgoplugin/common/proto"
 	"github.com/sigstore/sigstore/pkg/signature/options"
-	"google.golang.org/grpc/metadata"
 
 	"context"
 )
@@ -185,39 +182,81 @@ type CtxKey string
 
 var ctxKey = CtxKey("trace")
 
-// SignMessage
-func (c *GRPCClient) SignMessage(message io.Reader, opts ...signature.SignOption) ([]byte, error) {
-	messageBytes, err := io.ReadAll(message)
-	if err != nil {
-		return nil, err
-	}
+// // SignMessage
+// func (c *GRPCClient) SignMessage(message io.Reader, opts ...signature.SignOption) ([]byte, error) {
+// 	messageBytes, err := io.ReadAll(message)
+// 	if err != nil {
+// 		return nil, err
+// 	}
 
+// 	ctx, messageOption, err := c.extractMessageFromOpts(opts)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+
+// 	signMessageRequest := &kmsproto.SignMessageRequest{
+// 		Message: messageBytes,
+// 	}
+// 	if messageOption != nil {
+// 		signMessageRequest.SignOptions = &kmsproto.SignOptions{
+// 			MessageOption: messageOption,
+// 		}
+// 	}
+
+// 	*ctx, _ = context.WithDeadline(*ctx, time.Now().Add(1*time.Minute))
+// 	*ctx = context.WithValue(*ctx, ctxKey, "abc123")
+// 	*ctx = metadata.NewOutgoingContext(
+// 		*ctx,
+// 		metadata.Pairs("key1", "val1", "key2", "val2"),
+// 	)
+
+// 	resp, err := c.client.SignMessage(*ctx, signMessageRequest)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	return resp.Signature, nil
+// }
+
+func (c *GRPCClient) SignMessage(message io.Reader, opts ...signature.SignOption) ([]byte, error) {
 	ctx, messageOption, err := c.extractMessageFromOpts(opts)
 	if err != nil {
 		return nil, err
 	}
 
-	signMessageRequest := &kmsproto.SignMessageRequest{
-		Message: messageBytes,
+	stream, err := c.client.SignMessage(*ctx)
+	if err != nil {
+		return nil, fmt.Errorf("creating stream: %s", err)
 	}
-	if messageOption != nil {
-		signMessageRequest.SignOptions = &kmsproto.SignOptions{
-			MessageOption: messageOption,
+
+	chunkSizeBytes := 1024
+	buffer := make([]byte, chunkSizeBytes)
+	for {
+		n, err := message.Read(buffer)
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return nil, fmt.Errorf("reading message: %s", err)
+		}
+
+		signMessageRequest := &kmsproto.SignMessageRequest{
+			Message: buffer[:n],
+		}
+		if messageOption != nil {
+			signMessageRequest.SignOptions = &kmsproto.SignOptions{
+				MessageOption: messageOption,
+			}
+		}
+		if err := stream.Send(signMessageRequest); err != nil {
+			return nil, fmt.Errorf("sending message: %s", err)
 		}
 	}
-
-	*ctx, _ = context.WithDeadline(*ctx, time.Now().Add(1*time.Minute))
-	*ctx = context.WithValue(*ctx, ctxKey, "abc123")
-	*ctx = metadata.NewOutgoingContext(
-		*ctx,
-		metadata.Pairs("key1", "val1", "key2", "val2"),
-	)
-
-	resp, err := c.client.SignMessage(*ctx, signMessageRequest)
+	reply, err := stream.CloseAndRecv()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("receiving response: %s", err)
 	}
-	return resp.Signature, nil
+	signature := reply.Signature
+	return signature, nil
 }
 
 // extractOptsFromMessage extracts the signature.[Sign|Verify]Option from the proto.Message.
@@ -246,41 +285,103 @@ func (s *GRPCServer) extractOptsFromMessage(messageOption *kmsproto.MessageOptio
 	return opts, nil
 }
 
-func (s *GRPCServer) SignMessage(ctx context.Context, req *kmsproto.SignMessageRequest) (*kmsproto.SignMessageResponse, error) {
-	messageReader := bytes.NewReader(req.Message)
+type MessageReader struct {
+	io.Reader
+	stream kmsproto.KMSService_SignMessageServer
+	buffer []byte
+	pos    int
+}
 
-	deadline, ok := ctx.Deadline()
-	if ok {
-		slog.Info("context", "now", time.Now(), "deadline", deadline, "diff", time.Until(deadline))
+func (m *MessageReader) Read(p []byte) (n int, err error) {
+	if m.pos >= len(m.buffer) {
+		msg, err := m.stream.Recv()
+		if err != nil {
+			return 0, err
+		}
+		m.buffer = msg.Message
+		m.pos = 0
 	}
-	md, ok := metadata.FromIncomingContext(ctx)
-	if ok {
-		slog.Info("context", "md", md.Get("trace"))
-	}
-	ctxVal := ctx.Value(ctxKey)
-	slog.Info("context", "val", ctxVal, "other", metadata.ValueFromIncomingContext(ctx, "key1"))
+	n = copy(p, m.buffer[m.pos:])
+	m.pos += n
+	return n, nil
+}
 
+func (m *MessageReader) GetSignOptions() (*kmsproto.SignOptions, error) {
+	msg, err := m.stream.Recv()
+	if err != nil {
+		return nil, fmt.Errorf("initializing msg: %s", err)
+	}
+	m.buffer = msg.Message
+	m.pos = 0
+	return msg.SignOptions, nil
+}
+
+func (s *GRPCServer) SignMessage(stream kmsproto.KMSService_SignMessageServer) error {
+	messageReader := MessageReader{
+		stream: stream,
+	}
+	signOptions, err := messageReader.GetSignOptions()
+	if err != nil {
+		return err
+	}
 	opts := []signature.SignOption{}
-	if req.SignOptions != nil {
-		signOptions := req.SignOptions
+	if signOptions != nil {
 		messageOption := signOptions.MessageOption
 		exOptsInt, err := s.extractOptsFromMessage(messageOption)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		exOpts, ok := exOptsInt.([]signature.SignOption)
 		if !ok {
-			return nil, err
+			return err
 		}
 		opts = exOpts
 	}
 
-	signature, err := s.Impl.SignMessage(messageReader, opts...)
+	signature, err := s.Impl.SignMessage(&messageReader, opts...)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	return &kmsproto.SignMessageResponse{Signature: signature}, nil
+	return stream.SendAndClose(&kmsproto.SignMessageResponse{
+		Signature: signature,
+	})
 }
+
+// func (s *GRPCServer) SignMessage(ctx context.Context, req *kmsproto.SignMessageRequest) (*kmsproto.SignMessageResponse, error) {
+// 	messageReader := bytes.NewReader(req.Message)
+
+// 	deadline, ok := ctx.Deadline()
+// 	if ok {
+// 		slog.Info("context", "now", time.Now(), "deadline", deadline, "diff", time.Until(deadline))
+// 	}
+// 	md, ok := metadata.FromIncomingContext(ctx)
+// 	if ok {
+// 		slog.Info("context", "md", md.Get("trace"))
+// 	}
+// 	ctxVal := ctx.Value(ctxKey)
+// 	slog.Info("context", "val", ctxVal, "other", metadata.ValueFromIncomingContext(ctx, "key1"))
+
+// 	opts := []signature.SignOption{}
+// 	if req.SignOptions != nil {
+// 		signOptions := req.SignOptions
+// 		messageOption := signOptions.MessageOption
+// 		exOptsInt, err := s.extractOptsFromMessage(messageOption)
+// 		if err != nil {
+// 			return nil, err
+// 		}
+// 		exOpts, ok := exOptsInt.([]signature.SignOption)
+// 		if !ok {
+// 			return nil, err
+// 		}
+// 		opts = exOpts
+// 	}
+
+// 	signature, err := s.Impl.SignMessage(messageReader, opts...)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	return &kmsproto.SignMessageResponse{Signature: signature}, nil
+// }
 
 func (c *GRPCClient) VerifySignature(signature, message io.Reader, opts ...signature.VerifyOption) error {
 	signatureBytes, err := io.ReadAll(signature)
