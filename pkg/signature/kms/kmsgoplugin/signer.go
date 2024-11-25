@@ -20,7 +20,6 @@ package kmsgoplugin
 import (
 	"context"
 	"crypto"
-	"log/slog"
 	"os"
 	"os/exec"
 
@@ -48,7 +47,6 @@ func init() {
 
 // CleanupClients calls plugin.CleanupClients to kill the plugin programs.
 func CleanupClients() {
-	slog.Info("cleanup")
 	plugin.CleanupClients()
 }
 

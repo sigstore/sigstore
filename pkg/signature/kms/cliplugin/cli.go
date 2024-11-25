@@ -4,10 +4,10 @@ import (
 	"context"
 	"crypto"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
-	"log/slog"
 	"os"
 	"os/exec"
 	"strings"
@@ -19,11 +19,18 @@ import (
 )
 
 const (
-	PluginBinaryName              = "cliplugin"
-	SubcommandSupportedAlgorithms = "supported-algorithms"
-	SubcommandPublicKey           = "public-key"
-	SubcommandSignMessage         = "sign-message"
-	ReferenceScheme               = "cliplugin://"
+	SupportedAlgorithmsMethodName = "SupportedAlgorithms"
+	PublicKeyMethodName           = "publicKey"
+	SignMessageMethodName         = "signMessage"
+	ReferenceScheme               = "sigstore-kms-"
+	ProtocolVersion               = "1"
+)
+
+var (
+	ErrorExecutingPlugin         = errors.New("error executing plugin program")
+	ErrorResponseParseError      = errors.New("parsing plugin response")
+	ErrorPluginReturnError       = errors.New("plugin returned error")
+	ErrorParsingPluginBinaryName = errors.New("parsing plugin binary name")
 )
 
 func init() {
@@ -32,81 +39,96 @@ func init() {
 	})
 }
 
-func LoadSignerVerifier(ctx context.Context, keyresourceID string, hashFunc crypto.Hash) (sigkms.SignerVerifier, error) {
-	return &CLIKMS{
-		ctx: ctx,
+func LoadSignerVerifier(ctx context.Context, inputKeyresourceID string, hashFunc crypto.Hash) (sigkms.SignerVerifier, error) {
+	parts := strings.SplitN(inputKeyresourceID, "://", 2)
+	if len(parts) != 2 {
+		return nil, fmt.Errorf("%w: expected format: [binary name]://[key ref], got: %s", ErrorParsingPluginBinaryName, inputKeyresourceID)
+	}
+	executable, keyResourceID := parts[0], parts[1]
+	return &PluginClient{
+		ctx:        ctx,
+		executable: executable,
 		initOptions: InitOptions{
-			KeyResourceID: strings.TrimPrefix(keyresourceID, ReferenceScheme),
-			HashFunc:      hashFunc,
+			ProtoclVersion: ProtocolVersion,
+			KeyResourceID:  keyResourceID,
+			HashFunc:       hashFunc,
 		},
 	}, nil
 }
 
-type CLIKMS struct {
+type PluginClient struct {
 	sigkms.SignerVerifier
 	ctx         context.Context
+	executable  string
 	initOptions InitOptions
+}
+
+type Plugin struct {
+}
+
+type SupportedAlgorithmsArgs struct {
 }
 
 type SupportedAlgorithmsResp struct {
 	SupportedAlgorithms []string
 }
 
-func invokePlugin(ctx context.Context, resp interface{}, stdin io.Reader, initOptions *InitOptions, subcommand string, args interface{}) error {
-	// slog.Info("invokePlugin", "initOptions", initOptions, "subcommand", subcommand, "args", args)
+type PluginArgs struct {
+	Method             string                   `json:"method"`
+	MethodArgs         interface{}              `json:"methodArgs"`
+	SuportedAlgorithms *SupportedAlgorithmsArgs `json:"supportedAlgorithms,omitempty"`
+	PublicKey          *PublicKeyArgs           `json:"publicKey,omitempty"`
+	SignMessage        *SignMessageArgs         `json:"signMessage,omitempty"`
+	InitOptions        *InitOptions
+}
+
+type Resp struct {
+	Error               *ErrorResp               `json:"error,omitempty"`
+	SupportedAlgorithms *SupportedAlgorithmsResp `json:"supportedAlgorithms,omitempty"`
+	PublicKey           *PublicKeyResp           `json:"publicKey,omitempty"`
+	SignMessage         *SignMessageResp         `json:"signMessage,omitempty"`
+}
+
+func (c PluginClient) invokePlugin(ctx context.Context, executable string, stdin io.Reader, args *PluginArgs, resp *Resp) error {
+	// slog.Info("invk")
 	argsEnc, err := json.Marshal(args)
 	if err != nil {
 		return err
 	}
-	initOptionsEnc, err := json.Marshal(initOptions)
-	if err != nil {
-		return err
-	}
-	cmd := exec.CommandContext(ctx, PluginBinaryName, string(initOptionsEnc), subcommand, string(argsEnc))
+	// slog.Info("invokePlugin", "init", initOptionsEnc, "args", argsEnc)
+	cmd := exec.CommandContext(ctx, executable, ProtocolVersion, string(argsEnc))
+
 	cmd.Stdin = stdin
+	cmd.Stderr = os.Stderr
 
-	stderrPipe, err := cmd.StderrPipe()
-	if err != nil {
-		return err
+	// we won't look at exit status as a pottential error.
+	// If a program exit(1), the only debugging is to either parse the the returned error in stdout,
+	// or for the user to examine the sterr logs.
+	stdout, _ := cmd.Output()
+	if unmarshallErr := json.Unmarshal(stdout, resp); unmarshallErr != nil {
+		return fmt.Errorf("%w: %w", ErrorResponseParseError, unmarshallErr)
 	}
-	stdoutPipe, err := cmd.StdoutPipe()
-	if err != nil {
-		return err
+	if resp.Error != nil {
+		return fmt.Errorf("%w: %s", ErrorPluginReturnError, resp.Error.Message)
 	}
-
-	// slog.Info("invokePlugin", "start", "starting")
-	if err := cmd.Start(); err != nil {
-		return err
-	}
-	// slog.Info("invokePlugin", "start", "started")
-
-	stdout, err := io.ReadAll(stdoutPipe)
-	if err != nil {
-		return err
-	}
-	slog.Info("invokePlugin", "readstdout", stdout)
-	stderr, err := io.ReadAll(stderrPipe)
-	if err != nil {
-		return err
-	}
-	slog.Info("invokePlugin", "readstderr", stderr)
-	if err = cmd.Wait(); err != nil {
-		return err
-	}
-	fmt.Print(string(stderr))
-
-	err = json.Unmarshal(stdout, resp)
-	slog.Info("invokePlugin", "unmarshall", resp)
-	return err
+	// if cmdErr != nil {
+	// 	return fmt.Errorf("%w: %w", ErrorExecutingPlugin, cmdErr)
+	// }
+	// slog.Info("invokePlugin", "unmarshall", resp)
+	return nil
 }
 
-func (c CLIKMS) SupportedAlgorithms() (result []string) {
-	var args interface{}
-	var resp SupportedAlgorithmsResp
-	if err := invokePlugin(context.TODO(), &resp, nil, &c.initOptions, SubcommandPublicKey, args); err != nil {
+func (c PluginClient) SupportedAlgorithms() (result []string) {
+	args := &PluginArgs{
+		Method:             SupportedAlgorithmsMethodName,
+		SuportedAlgorithms: &SupportedAlgorithmsArgs{},
+		InitOptions:        &c.initOptions,
+	}
+	var resp Resp
+	if err := c.invokePlugin(c.ctx, c.executable, nil, args, &resp); err != nil {
 		log.Fatal(err)
 	}
-	return resp.SupportedAlgorithms
+	return resp.SupportedAlgorithms.SupportedAlgorithms
 }
 
 type PublicKeyArgs struct {
@@ -117,22 +139,26 @@ type PublicKeyResp struct {
 	PublicKeyPEM []byte
 }
 
-func (c CLIKMS) PublicKey(opts ...signature.PublicKeyOption) (crypto.PublicKey, error) {
-	ctx := context.TODO()
+func (c PluginClient) PublicKey(opts ...signature.PublicKeyOption) (crypto.PublicKey, error) {
+	ctx := c.ctx
 	keyVersion := "1"
 	for _, opt := range opts {
 		opt.ApplyContext(&ctx)
 		opt.ApplyKeyVersion(&keyVersion)
 	}
-	args := &PublicKeyArgs{
-		KeyVersion: keyVersion,
+	args := &PluginArgs{
+		Method: PublicKeyMethodName,
+		PublicKey: &PublicKeyArgs{
+			KeyVersion: keyVersion,
+		},
+		InitOptions: &c.initOptions,
 	}
-	var resp PublicKeyResp
-	if err := invokePlugin(ctx, &resp, nil, &c.initOptions, SubcommandPublicKey, args); err != nil {
+	var resp Resp
+	if err := c.invokePlugin(ctx, c.executable, nil, args, &resp); err != nil {
 		return nil, err
 	}
-	// slog.Info("PublicKey", "pem", resp.PublicKeyPEM)
-	publicKey, err := cryptoutils.UnmarshalPEMToPublicKey(resp.PublicKeyPEM)
+	// slog.Warn("PublicKey", "pem", resp.PublicKey.PublicKeyPEM)
+	publicKey, err := cryptoutils.UnmarshalPEMToPublicKey(resp.PublicKey.PublicKeyPEM)
 	if err != nil {
 		return nil, err
 	}
@@ -148,7 +174,7 @@ type SignMessageResp struct {
 	Signature []byte
 }
 
-func (c CLIKMS) SignMessage(message io.Reader, opts ...signature.SignOption) ([]byte, error) {
+func (c PluginClient) SignMessage(message io.Reader, opts ...signature.SignOption) ([]byte, error) {
 	ctx := c.ctx
 	var signerOpts crypto.SignerOpts = c.initOptions.HashFunc
 	var keyVersion string
@@ -157,26 +183,23 @@ func (c CLIKMS) SignMessage(message io.Reader, opts ...signature.SignOption) ([]
 		opt.ApplyCryptoSignerOpts(&signerOpts)
 		opt.ApplyKeyVersion(&keyVersion)
 	}
-	args := SignMessageArgs{
-		HashFunc:   signerOpts.HashFunc(),
-		KeyVersion: keyVersion,
+	args := &PluginArgs{
+		Method: SignMessageMethodName,
+		SignMessage: &SignMessageArgs{
+			HashFunc:   signerOpts.HashFunc(),
+			KeyVersion: keyVersion,
+		},
+		InitOptions: &c.initOptions,
 	}
-	var resp SignMessageResp
-
-	// if b, err := io.ReadAll(message); err != nil {
-	// 	return nil, err
-	// } else {
-	// 	slog.Info("SignMessage", "message", b)
-	// }
-	subCommand := SubcommandSignMessage
-	if err := invokePlugin(ctx, &resp, message, &c.initOptions, subCommand, args); err != nil {
+	var resp Resp
+	if err := c.invokePlugin(ctx, c.executable, message, args, &resp); err != nil {
 		return nil, err
 	}
-	signature := resp.Signature
+	signature := resp.SignMessage.Signature
 	return signature, nil
 }
 
-func writeResponse(resp interface{}) error {
+func WriteResponse(resp *Resp) error {
 	enc, err := json.Marshal(resp)
 	if err != nil {
 		return err
@@ -186,87 +209,118 @@ func writeResponse(resp interface{}) error {
 }
 
 type InitOptions struct {
-	KeyResourceID string
-	KeyVersion    string
-	HashFunc      crypto.Hash
+	ProtoclVersion string
+	KeyResourceID  string
+	KeyVersion     string
+	HashFunc       crypto.Hash
 }
 
-func GetInitOptions() (*InitOptions, error) {
-	args := os.Args
-	initOptionsJSON := args[1]
-	var initOptions InitOptions
-	if err := json.Unmarshal([]byte(initOptionsJSON), &initOptions); err != nil {
+func GetPluginArgs(osArgs []string) (*PluginArgs, error) {
+	argsStr := osArgs[2]
+	var args PluginArgs
+	// slog.Info("parseargs2", "argsstr", argsStr)
+	if err := json.Unmarshal([]byte(argsStr), &args); err != nil {
 		return nil, err
 	}
-	return &initOptions, nil
+	return &args, nil
 }
 
-func HandleSubcommand(impl sigkms.SignerVerifier) error {
-	if err := func() error {
-		args := os.Args
-		// slog.Error("plugin", "args", args)
-		subCommand := args[2]
-		subCommandArgs := args[3]
-		switch subCommand {
-		case SubcommandSupportedAlgorithms:
-			supportedAlgorithms := impl.SupportedAlgorithms()
-			resp := &SupportedAlgorithmsResp{
-				SupportedAlgorithms: supportedAlgorithms,
-			}
-			if err := writeResponse(resp); err != nil {
-				return err
-			}
-		case SubcommandPublicKey:
-			var publicKeyArgs PublicKeyArgs
-			if err := json.Unmarshal([]byte(subCommandArgs), &publicKeyArgs); err != nil {
-				return err
-			}
-			opts := []signature.PublicKeyOption{
-				options.WithKeyVersion(publicKeyArgs.KeyVersion),
-			}
-			// slog.Error("HandlePluginInvocation", "subcommand", subCommand, "opts", opts, "impl", impl)
-			publicKey, err := impl.PublicKey(opts...)
-			if err != nil {
-				return err
-			}
-			publicKeyPEM, err := cryptoutils.MarshalPublicKeyToPEM(publicKey)
-			if err != nil {
-				return err
-			}
-			// slog.Error("HandlePluginInvocation", "subcommand", subCommand, "pem", publicKeyPEM)
-			resp := &PublicKeyResp{
-				PublicKeyPEM: publicKeyPEM,
-			}
-			if err := writeResponse(resp); err != nil {
-				return err
-			}
-		case SubcommandSignMessage:
-			var signMessageArgs SignMessageArgs
-			if err := json.Unmarshal([]byte(subCommandArgs), &signMessageArgs); err != nil {
-				return err
-			}
-			opts := []signature.SignOption{
-				options.WithKeyVersion(signMessageArgs.KeyVersion),
-				options.WithCryptoSignerOpts(signMessageArgs.HashFunc),
-			}
-			message := os.Stdin
-			signature, err := impl.SignMessage(message, opts...)
-			if err != nil {
-				return err
-			}
-			resp := &SignMessageResp{
-				Signature: signature,
-			}
-			if err := writeResponse(resp); err != nil {
-				return err
-			}
-		default:
-			return fmt.Errorf("uknown arg: %s", subCommand)
-		}
-		return nil
-	}(); err != nil {
-
-		slog.Error(err.Error())
+func ParseArgs(argsStr string) (*PluginArgs, error) {
+	var args PluginArgs
+	// slog.Info("parseargs2", "argsstr", argsStr)
+	if err := json.Unmarshal([]byte(argsStr), &args); err != nil {
+		return nil, err
 	}
-	return nil
+	return &args, nil
+}
+
+type ErrorResp struct {
+	Message string
+}
+
+func Dispatch(stdin io.Reader, args *PluginArgs, impl sigkms.SignerVerifier) (*Resp, error) {
+	var resp Resp
+	var err error
+	switch args.Method {
+	case SupportedAlgorithmsMethodName:
+		resp.SupportedAlgorithms, err = SupportedAlgorithms(stdin, args.SuportedAlgorithms, impl)
+	case PublicKeyMethodName:
+		resp.PublicKey, err = PublicKey(stdin, args.PublicKey, impl)
+	case SignMessageMethodName:
+		resp.SignMessage, err = SignMessage(stdin, args.SignMessage, impl)
+	}
+	if err != nil {
+		resp.Error = &ErrorResp{Message: err.Error()}
+	}
+	WriteResponse(&resp)
+	return &resp, err
+}
+
+func WriteErrorResponse(err error) {
+	resp := &Resp{
+		Error: &ErrorResp{Message: err.Error()},
+	}
+	WriteResponse(resp)
+}
+
+func SupportedAlgorithms(stdin io.Reader, args *SupportedAlgorithmsArgs, impl sigkms.SignerVerifier) (*SupportedAlgorithmsResp, error) {
+	supportedAlgorithms := impl.SupportedAlgorithms()
+	resp := &SupportedAlgorithmsResp{
+		SupportedAlgorithms: supportedAlgorithms,
+	}
+	return resp, nil
+}
+
+func PublicKey(stdin io.Reader, args *PublicKeyArgs, impl sigkms.SignerVerifier) (*PublicKeyResp, error) {
+	opts := []signature.PublicKeyOption{
+		options.WithKeyVersion(args.KeyVersion),
+	}
+	publicKey, err := impl.PublicKey(opts...)
+	if err != nil {
+		return nil, err
+	}
+	publicKeyPEM, err := cryptoutils.MarshalPublicKeyToPEM(publicKey)
+	if err != nil {
+		return nil, err
+	}
+	resp := &PublicKeyResp{
+		PublicKeyPEM: publicKeyPEM,
+	}
+	return resp, nil
+}
+
+func SignMessage(stdin io.Reader, args *SignMessageArgs, impl sigkms.SignerVerifier) (*SignMessageResp, error) {
+	opts := []signature.SignOption{
+		options.WithKeyVersion(args.KeyVersion),
+		options.WithCryptoSignerOpts(args.HashFunc),
+	}
+	message := os.Stdin
+	signature, err := impl.SignMessage(message, opts...)
+	if err != nil {
+		return nil, err
+	}
+	resp := &SignMessageResp{
+		Signature: signature,
+	}
+	return resp, nil
+}
+
+type PluginHandler struct {
+	Impl sigkms.SignerVerifier
+}
+
+func (h PluginHandler) SignMessage(stdin io.Reader, args *SignMessageArgs) (*SignMessageResp, error) {
+	opts := []signature.SignOption{
+		options.WithKeyVersion(args.KeyVersion),
+		options.WithCryptoSignerOpts(args.HashFunc),
+	}
+	message := os.Stdin
+	signature, err := h.Impl.SignMessage(message, opts...)
+	if err != nil {
+		return nil, err
+	}
+	resp := &SignMessageResp{
+		Signature: signature,
+	}
+	return resp, nil
 }
