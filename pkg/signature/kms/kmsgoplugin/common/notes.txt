@@ -20,8 +20,8 @@ protoc --proto_path=. --go_out=. --go_opt=paths=source_relative ./kms.proto
 
 
 export PATH="$PATH:`pwd`"
-PATH="$PATH:`pwd`" && (cd sigstore/test/cliplugin/fakekmsplugin &&  go build -o ../../../../cliplugin) && (cd cosign && COSIGN_PASSWORD=123 go run ./cmd/cosign public-key --key cliplugin://key.pem)
-(cd sigstore/test/cliplugin/fakekmsplugin &&  go build -o ../../../../cliplugin) && (cd cosign && COSIGN_PASSWORD=123 go run ./cmd/cosign sign-blob ../temp_10GB_file --key cliplugin://key.pem --tlog-upload=false | tee ../sig.txt)
+PATH="$PATH:`pwd`" && (cd sigstore/test/cliplugin/fakekmsplugin &&  go build -o ../../../../cliplugin) && (cd cosign && COSIGN_PASSWORD=123 go run ./cmd/cosign public-key --key sigstore-kms-plugin-fakekms://key.pem)
+PATH="$PATH:`pwd`" && (cd sigstore/test/cliplugin/fakekmsplugin &&  go build -o ../../../../cliplugin) && (cd cosign && COSIGN_PASSWORD=123 go run ./cmd/cosign sign-blob ../temp_10GB_file --key sigstore-kms-plugin-fakekms://key.pem --tlog-upload=false | tee ../sig.txt)
 
 mkfile -n 10g temp_10GB_file
 mkfile -n 10m temp_10GB_file
