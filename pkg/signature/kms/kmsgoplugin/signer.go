@@ -54,7 +54,7 @@ func CleanupClients() {
 func LoadSignerVerifier(ctx context.Context, referenceStr string) (common.KMSGoPluginSignerVerifier, error) {
 	// kmsPluginName := common.KMSPluginNameRPC
 	version := common.PluginProtocolVersion
-	version += 1
+	// version += 1
 
 	kmsPluginName := common.KMSPluginNameRPC
 	pluginMap := common.RPCPluginMap

@@ -14,13 +14,13 @@ import (
 	"github.com/sigstore/sigstore/pkg/signature/kms/kmsgoplugin/common"
 )
 
-const expectedProtocolVersion = "11"
+const expectedProtocolVersion = "1"
 
 func main() {
 	slog.Info("plugin", "args", os.Args[1])
 	if protocolVersion := os.Args[1]; protocolVersion != expectedProtocolVersion {
 		err := fmt.Errorf("expected protocl version: %s, got %s", expectedProtocolVersion, protocolVersion)
-		cliplugin.WriteErrorResponse(err)
+		cliplugin.WriteErrorResponse(os.Stdout, err)
 		log.Fatal(err)
 	}
 	pluginArgs, err := cliplugin.GetPluginArgs(os.Args)
@@ -28,7 +28,7 @@ func main() {
 		log.Fatal(err)
 	}
 	initOptions := pluginArgs.InitOptions
-	slog.Info("plugin", "args", pluginArgs)
+	// slog.Info("plugin", "args", pluginArgs)
 	var sv kms.SignerVerifier
 	sv, err = fake.LoadSignerVerifier(context.TODO(), crypto.SHA256)
 	if err != nil {
@@ -36,11 +36,11 @@ func main() {
 	}
 	sv = &LocalSignerVerifier{
 		state: &common.KMSGoPluginState{
-			HashFunc:      initOptions.HashFunc,
-			KeyResourceID: initOptions.KeyResourceID,
+			HashFunc:      pluginArgs.initOptions.HashFunc,
+			KeyResourceID: pluginArgs.initOptions.KeyResourceID,
 		},
 	}
-	resp, err := cliplugin.Dispatch(os.Stdin, pluginArgs, sv)
+	resp, err := cliplugin.Dispatch(os.Stdout, os.Stdin, pluginArgs, sv)
 	// if err != nil {
 	// 	log.Fatal(err)
 	// }

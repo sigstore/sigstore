@@ -45,22 +45,31 @@ func LoadSignerVerifier(ctx context.Context, inputKeyresourceID string, hashFunc
 		return nil, fmt.Errorf("%w: expected format: [binary name]://[key ref], got: %s", ErrorParsingPluginBinaryName, inputKeyresourceID)
 	}
 	executable, keyResourceID := parts[0], parts[1]
-	return &PluginClient{
-		ctx:        ctx,
-		executable: executable,
-		initOptions: InitOptions{
-			ProtoclVersion: ProtocolVersion,
-			KeyResourceID:  keyResourceID,
-			HashFunc:       hashFunc,
-		},
-	}, nil
+	InitOptions := &InitOptions{
+		ProtocolVersion: ProtocolVersion,
+		KeyResourceID:   keyResourceID,
+		HashFunc:        hashFunc,
+	}
+	pluginClient := newPluginClient(ctx, executable, InitOptions, makeCommand)
+	return pluginClient, nil
+}
+
+func newPluginClient(ctx context.Context, executable string, initOptions *InitOptions, makeCommand makeCommandFunc) *PluginClient {
+	pluginClient := &PluginClient{
+		Ctx:             ctx,
+		executable:      executable,
+		initOptions:     *initOptions,
+		makeCommandFunc: makeCommand,
+	}
+	return pluginClient
 }
 
 type PluginClient struct {
 	sigkms.SignerVerifier
-	ctx         context.Context
-	executable  string
-	initOptions InitOptions
+	Ctx             context.Context
+	executable      string
+	initOptions     InitOptions
+	makeCommandFunc makeCommandFunc
 }
 
 type Plugin struct {
@@ -75,57 +84,65 @@ type SupportedAlgorithmsResp struct {
 
 type PluginArgs struct {
 	Method             string                   `json:"method"`
-	MethodArgs         interface{}              `json:"methodArgs"`
-	SuportedAlgorithms *SupportedAlgorithmsArgs `json:"supportedAlgorithms,omitempty"`
+	SuportedAlgorithms *SupportedAlgorithmsArgs `json:"suportedAlgorithms,omitempty"`
 	PublicKey          *PublicKeyArgs           `json:"publicKey,omitempty"`
 	SignMessage        *SignMessageArgs         `json:"signMessage,omitempty"`
-	InitOptions        *InitOptions
+	InitOptions        *InitOptions             `json:"initOptions"`
 }
 
-type Resp struct {
-	Error               *ErrorResp               `json:"error,omitempty"`
+type PluginResp struct {
+	ErrorMessage        string                   `json:"errorMessage,omitempty"`
 	SupportedAlgorithms *SupportedAlgorithmsResp `json:"supportedAlgorithms,omitempty"`
 	PublicKey           *PublicKeyResp           `json:"publicKey,omitempty"`
 	SignMessage         *SignMessageResp         `json:"signMessage,omitempty"`
 }
 
-func (c PluginClient) invokePlugin(ctx context.Context, executable string, stdin io.Reader, args *PluginArgs, resp *Resp) error {
-	// slog.Info("invk")
+type command interface {
+	Output() ([]byte, error)
+}
+
+type makeCommandFunc func(ctx context.Context, stdin io.Reader, stderr io.Writer, name string, args ...string) command
+
+func makeCommand(ctx context.Context, stdin io.Reader, stderr io.Writer, name string, args ...string) command {
+	cmd := exec.CommandContext(ctx, name, args...)
+	cmd.Stdin = stdin
+	cmd.Stderr = stderr
+	return cmd
+}
+
+func (c PluginClient) invokePlugin(ctx context.Context, stdin io.Reader, args *PluginArgs) (*PluginResp, error) {
+	args.InitOptions = &c.initOptions
 	argsEnc, err := json.Marshal(args)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	// slog.Info("invokePlugin", "init", initOptionsEnc, "args", argsEnc)
-	cmd := exec.CommandContext(ctx, executable, ProtocolVersion, string(argsEnc))
-
-	cmd.Stdin = stdin
-	cmd.Stderr = os.Stderr
-
+	cmd := c.makeCommandFunc(ctx, stdin, os.Stderr, c.executable, ProtocolVersion, string(argsEnc))
 	// we won't look at exit status as a pottential error.
 	// If a program exit(1), the only debugging is to either parse the the returned error in stdout,
 	// or for the user to examine the sterr logs.
 	stdout, _ := cmd.Output()
-	if unmarshallErr := json.Unmarshal(stdout, resp); unmarshallErr != nil {
-		return fmt.Errorf("%w: %w", ErrorResponseParseError, unmarshallErr)
+	// slog.Info("invokePlugin", "stdout", stdout)
+	var resp PluginResp
+	if unmarshallErr := json.Unmarshal(stdout, &resp); unmarshallErr != nil {
+		return nil, fmt.Errorf("%w: %w", ErrorResponseParseError, unmarshallErr)
 	}
-	if resp.Error != nil {
-		return fmt.Errorf("%w: %s", ErrorPluginReturnError, resp.Error.Message)
+	if resp.ErrorMessage != "" {
+		return nil, fmt.Errorf("%w: %s", ErrorPluginReturnError, resp.ErrorMessage)
 	}
 	// if cmdErr != nil {
 	// 	return fmt.Errorf("%w: %w", ErrorExecutingPlugin, cmdErr)
 	// }
 	// slog.Info("invokePlugin", "unmarshall", resp)
-	return nil
+	return &resp, nil
 }
 
 func (c PluginClient) SupportedAlgorithms() (result []string) {
 	args := &PluginArgs{
 		Method:             SupportedAlgorithmsMethodName,
 		SuportedAlgorithms: &SupportedAlgorithmsArgs{},
-		InitOptions:        &c.initOptions,
 	}
-	var resp Resp
-	if err := c.invokePlugin(c.ctx, c.executable, nil, args, &resp); err != nil {
+	resp, err := c.invokePlugin(c.Ctx, nil, args)
+	if err != nil {
 		log.Fatal(err)
 	}
 	return resp.SupportedAlgorithms.SupportedAlgorithms
@@ -140,7 +157,7 @@ type PublicKeyResp struct {
 }
 
 func (c PluginClient) PublicKey(opts ...signature.PublicKeyOption) (crypto.PublicKey, error) {
-	ctx := c.ctx
+	ctx := c.Ctx
 	keyVersion := "1"
 	for _, opt := range opts {
 		opt.ApplyContext(&ctx)
@@ -151,10 +168,10 @@ func (c PluginClient) PublicKey(opts ...signature.PublicKeyOption) (crypto.Publi
 		PublicKey: &PublicKeyArgs{
 			KeyVersion: keyVersion,
 		},
-		InitOptions: &c.initOptions,
 	}
-	var resp Resp
-	if err := c.invokePlugin(ctx, c.executable, nil, args, &resp); err != nil {
+	// slog.Info("client", "pi", c.pluginInvoker)
+	resp, err := c.invokePlugin(ctx, nil, args)
+	if err != nil {
 		return nil, err
 	}
 	// slog.Warn("PublicKey", "pem", resp.PublicKey.PublicKeyPEM)
@@ -166,16 +183,16 @@ func (c PluginClient) PublicKey(opts ...signature.PublicKeyOption) (crypto.Publi
 }
 
 type SignMessageArgs struct {
-	HashFunc   crypto.Hash
-	KeyVersion string
+	HashFunc   crypto.Hash `json:"hashFunc"`
+	KeyVersion string      `json:"keyVersion"`
 }
 
 type SignMessageResp struct {
-	Signature []byte
+	Signature []byte `json:"signature"`
 }
 
 func (c PluginClient) SignMessage(message io.Reader, opts ...signature.SignOption) ([]byte, error) {
-	ctx := c.ctx
+	ctx := c.Ctx
 	var signerOpts crypto.SignerOpts = c.initOptions.HashFunc
 	var keyVersion string
 	for _, opt := range opts {
@@ -189,36 +206,34 @@ func (c PluginClient) SignMessage(message io.Reader, opts ...signature.SignOptio
 			HashFunc:   signerOpts.HashFunc(),
 			KeyVersion: keyVersion,
 		},
-		InitOptions: &c.initOptions,
 	}
-	var resp Resp
-	if err := c.invokePlugin(ctx, c.executable, message, args, &resp); err != nil {
+	resp, err := c.invokePlugin(ctx, message, args)
+	if err != nil {
 		return nil, err
 	}
 	signature := resp.SignMessage.Signature
 	return signature, nil
 }
 
-func WriteResponse(resp *Resp) error {
+func WriteResponse(wr io.Writer, resp *PluginResp) error {
 	enc, err := json.Marshal(resp)
 	if err != nil {
 		return err
 	}
-	fmt.Fprint(os.Stdout, string(enc))
+	fmt.Fprint(wr, string(enc))
 	return nil
 }
 
 type InitOptions struct {
-	ProtoclVersion string
-	KeyResourceID  string
-	KeyVersion     string
-	HashFunc       crypto.Hash
+	ProtocolVersion string      `json:"protocolVersion"`
+	KeyResourceID   string      `json:"keyResourceID"`
+	KeyVersion      string      `json:"keyVersion,omitempty"`
+	HashFunc        crypto.Hash `json:"hashFunc"`
 }
 
 func GetPluginArgs(osArgs []string) (*PluginArgs, error) {
 	argsStr := osArgs[2]
 	var args PluginArgs
-	// slog.Info("parseargs2", "argsstr", argsStr)
 	if err := json.Unmarshal([]byte(argsStr), &args); err != nil {
 		return nil, err
 	}
@@ -227,7 +242,6 @@ func GetPluginArgs(osArgs []string) (*PluginArgs, error) {
 
 func ParseArgs(argsStr string) (*PluginArgs, error) {
 	var args PluginArgs
-	// slog.Info("parseargs2", "argsstr", argsStr)
 	if err := json.Unmarshal([]byte(argsStr), &args); err != nil {
 		return nil, err
 	}
@@ -238,8 +252,8 @@ type ErrorResp struct {
 	Message string
 }
 
-func Dispatch(stdin io.Reader, args *PluginArgs, impl sigkms.SignerVerifier) (*Resp, error) {
-	var resp Resp
+func Dispatch(stdout io.Writer, stdin io.Reader, args *PluginArgs, impl sigkms.SignerVerifier) (*PluginResp, error) {
+	var resp PluginResp
 	var err error
 	switch args.Method {
 	case SupportedAlgorithmsMethodName:
@@ -250,17 +264,17 @@ func Dispatch(stdin io.Reader, args *PluginArgs, impl sigkms.SignerVerifier) (*R
 		resp.SignMessage, err = SignMessage(stdin, args.SignMessage, impl)
 	}
 	if err != nil {
-		resp.Error = &ErrorResp{Message: err.Error()}
+		resp.ErrorMessage = err.Error()
 	}
-	WriteResponse(&resp)
+	WriteResponse(stdout, &resp)
 	return &resp, err
 }
 
-func WriteErrorResponse(err error) {
-	resp := &Resp{
-		Error: &ErrorResp{Message: err.Error()},
+func WriteErrorResponse(wr io.Writer, err error) {
+	resp := &PluginResp{
+		ErrorMessage: err.Error(),
 	}
-	WriteResponse(resp)
+	WriteResponse(wr, resp)
 }
 
 func SupportedAlgorithms(stdin io.Reader, args *SupportedAlgorithmsArgs, impl sigkms.SignerVerifier) (*SupportedAlgorithmsResp, error) {
@@ -294,28 +308,7 @@ func SignMessage(stdin io.Reader, args *SignMessageArgs, impl sigkms.SignerVerif
 		options.WithKeyVersion(args.KeyVersion),
 		options.WithCryptoSignerOpts(args.HashFunc),
 	}
-	message := os.Stdin
-	signature, err := impl.SignMessage(message, opts...)
-	if err != nil {
-		return nil, err
-	}
-	resp := &SignMessageResp{
-		Signature: signature,
-	}
-	return resp, nil
-}
-
-type PluginHandler struct {
-	Impl sigkms.SignerVerifier
-}
-
-func (h PluginHandler) SignMessage(stdin io.Reader, args *SignMessageArgs) (*SignMessageResp, error) {
-	opts := []signature.SignOption{
-		options.WithKeyVersion(args.KeyVersion),
-		options.WithCryptoSignerOpts(args.HashFunc),
-	}
-	message := os.Stdin
-	signature, err := h.Impl.SignMessage(message, opts...)
+	signature, err := impl.SignMessage(stdin, opts...)
 	if err != nil {
 		return nil, err
 	}
