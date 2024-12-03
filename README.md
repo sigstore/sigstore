@@ -13,6 +13,7 @@ The following KMS systems are available:
 * Azure Key Vault
 * HashiCorp Vault
 * Google Cloud Platform Key Management Service
+* Alibaba Cloud Key Management Service
 
 For example code, look at the relevant test code for each main code file.
 
