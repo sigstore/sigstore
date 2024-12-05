@@ -14,6 +14,8 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/sigstore/sigstore/pkg/signature"
 	"github.com/sigstore/sigstore/pkg/signature/kms"
+	"github.com/sigstore/sigstore/pkg/signature/kms/cliplugin/common"
+	"github.com/sigstore/sigstore/pkg/signature/kms/cliplugin/handler"
 	"github.com/sigstore/sigstore/pkg/signature/options"
 )
 
@@ -30,7 +32,7 @@ func Test_invokePlugin(t *testing.T) {
 	tests := []struct {
 		name                   string
 		cmdOutput              string
-		resp                   *PluginResp
+		resp                   *common.PluginResp
 		invokePluginErrType    error
 		invokePluginErrContent string
 		commandErrType         error
@@ -38,8 +40,8 @@ func Test_invokePlugin(t *testing.T) {
 		{
 			name:      "success",
 			cmdOutput: `{"supportedAlgorithms":{"supportedAlgorithms":["alg1", "alg2"]}}`,
-			resp: &PluginResp{
-				SupportedAlgorithms: &SupportedAlgorithmsResp{
+			resp: &common.PluginResp{
+				SupportedAlgorithms: &common.SupportedAlgorithmsResp{
 					SupportedAlgorithms: []string{"alg1", "alg2"},
 				},
 			},
@@ -48,8 +50,8 @@ func Test_invokePlugin(t *testing.T) {
 		{
 			name:      "success: expected stdin",
 			cmdOutput: `{"supportedAlgorithms":{"supportedAlgorithms":["alg1", "alg2"]}}`,
-			resp: &PluginResp{
-				SupportedAlgorithms: &SupportedAlgorithmsResp{
+			resp: &common.PluginResp{
+				SupportedAlgorithms: &common.SupportedAlgorithmsResp{
 					SupportedAlgorithms: []string{"alg1", "alg2"},
 				},
 			},
@@ -58,8 +60,8 @@ func Test_invokePlugin(t *testing.T) {
 		{
 			name:      "success: continue if command exits 1",
 			cmdOutput: `{"supportedAlgorithms":{"supportedAlgorithms":["alg1", "alg2"]}}`,
-			resp: &PluginResp{
-				SupportedAlgorithms: &SupportedAlgorithmsResp{
+			resp: &common.PluginResp{
+				SupportedAlgorithms: &common.SupportedAlgorithmsResp{
 					SupportedAlgorithms: []string{"alg1", "alg2"},
 				},
 			},
@@ -89,7 +91,7 @@ func Test_invokePlugin(t *testing.T) {
 				if name != "sigstore-kms-test" {
 					t.Fatalf("unexpected executable name: %s", name)
 				}
-				if args[0] != ProtocolVersion {
+				if args[0] != common.ProtocolVersion {
 					t.Fatalf("unexpected protocol version: %s", args[0])
 				}
 				if args[1] != `{"method":"any-method","initOptions":{"protocolVersion":"","keyResourceID":"","hashFunc":0}}` {
@@ -105,10 +107,10 @@ func Test_invokePlugin(t *testing.T) {
 			testPluginClient := newPluginClient(
 				context.TODO(),
 				"sigstore-kms-test",
-				&InitOptions{},
+				&common.InitOptions{},
 				makeCommandFunc,
 			)
-			resp, err := testPluginClient.invokePlugin(context.TODO(), nil, &PluginArgs{
+			resp, err := testPluginClient.invokePlugin(context.TODO(), nil, &common.PluginArgs{
 				Method: "any-method",
 			})
 			if errorDiff := cmp.Diff(tc.invokePluginErrType, err, cmpopts.EquateErrors()); errorDiff != "" {
@@ -182,11 +184,11 @@ func Test_SignMessage(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			makeCommandFunc := func(ctx context.Context, stdin io.Reader, stderr io.Writer, name string, args ...string) command {
 				osArgs := append([]string{name}, args...)
-				pluginArgs, err := GetPluginArgs(osArgs)
+				pluginArgs, err := handler.GetPluginArgs(osArgs)
 				if err != nil {
 					t.Fatal(err)
 				}
-				if pluginArgs.Method != SignMessageMethodName {
+				if pluginArgs.Method != common.SignMessageMethodName {
 					t.Fatalf("unexpected method: %s", pluginArgs.Method)
 				}
 				if pluginArgs.SignMessage.KeyVersion != "1" {
@@ -196,7 +198,7 @@ func Test_SignMessage(t *testing.T) {
 					t.Fatalf("unexpected hash func: %s", pluginArgs.SignMessage.HashFunc)
 				}
 				var respBuffer bytes.Buffer
-				_, err = Dispatch(&respBuffer, stdin, pluginArgs, TestSignerVerifierImpl{
+				_, err = handler.Dispatch(&respBuffer, stdin, pluginArgs, TestSignerVerifierImpl{
 					t:                      t,
 					wantedErr:              tc.implErr,
 					wantedKeyVersion:       tc.keyVersion,
@@ -217,7 +219,7 @@ func Test_SignMessage(t *testing.T) {
 			testPluginClient := newPluginClient(
 				context.TODO(),
 				"sigstore-kms-test",
-				&InitOptions{},
+				&common.InitOptions{},
 				makeCommandFunc,
 			)
 			signature, err := testPluginClient.SignMessage(bytes.NewReader(tc.message), []signature.SignOption{
