@@ -29,7 +29,8 @@ import (
 	"strings"
 
 	"github.com/sigstore/sigstore/pkg/signature"
-	"github.com/sigstore/sigstore/pkg/signature/kms/kmsgoplugin/common"
+	"github.com/sigstore/sigstore/pkg/signature/kms"
+	"github.com/sigstore/sigstore/pkg/signature/kms/cliplugin"
 	"github.com/sigstore/sigstore/pkg/signature/options"
 )
 
@@ -39,16 +40,13 @@ const (
 
 // LocalSignerVerifier creates and verifies digital signatures with a key saved at KeyResourceID.
 type LocalSignerVerifier struct {
-	common.KMSGoPluginSignerVerifier
-	state *common.KMSGoPluginState
+	kms.SignerVerifier
+	keyResourceID string
+	hashFunc      crypto.Hash
 }
 
 func (i LocalSignerVerifier) getKeyPath() string {
-	return strings.TrimPrefix(i.state.KeyResourceID, common.ReferenceScheme)
-}
-
-func (i *LocalSignerVerifier) SetState(state *common.KMSGoPluginState) {
-	i.state = state
+	return strings.TrimPrefix(i.keyResourceID, cliplugin.ReferenceScheme)
 }
 
 // DefaultAlgorithm returns the default algorithm for the signer
@@ -142,7 +140,7 @@ func computeDigest(message *io.Reader, hashFunc crypto.Hash) ([]byte, error) {
 
 func (g LocalSignerVerifier) signMessageWithPrivateKey(privateKey *rsa.PrivateKey, message io.Reader, opts ...signature.SignOption) ([]byte, error) {
 	var digest []byte
-	var signerOpts crypto.SignerOpts = g.state.HashFunc
+	var signerOpts crypto.SignerOpts = g.hashFunc
 	for _, opt := range opts {
 		opt.ApplyDigest(&digest)
 		opt.ApplyCryptoSignerOpts(&signerOpts)
@@ -194,7 +192,7 @@ func (i *LocalSignerVerifier) VerifySignature(signature, message io.Reader, opts
 		return err
 	}
 	var digest []byte
-	var signerOpts crypto.SignerOpts = common.GetHashFuncFromEnv()
+	var signerOpts crypto.SignerOpts = i.hashFunc
 
 	for _, opt := range opts {
 		opt.ApplyDigest(&digest)
@@ -236,12 +234,12 @@ type CryptoSignerWrapper struct {
 func (i LocalSignerVerifier) CryptoSigner(ctx context.Context, errFunc func(error)) (crypto.Signer, crypto.SignerOpts, error) {
 	signer := &CryptoSignerWrapper{
 		// Ctx:            ctx,
-		HashFunc:       common.GetHashFuncFromEnv(),
+		HashFunc:       i.hashFunc,
 		SignerVerifier: &i,
 		ErrFunc:        errFunc,
-		KeyResourceID:  i.state.KeyResourceID,
+		KeyResourceID:  i.keyResourceID,
 	}
-	opts := common.GetHashFuncFromEnv()
+	opts := i.hashFunc
 	return signer, opts, nil
 }
 
@@ -256,7 +254,7 @@ func (c CryptoSignerWrapper) Public() crypto.PublicKey {
 
 // Sign signs the digest and returns a signature. The rand argument is ignored.
 func (c CryptoSignerWrapper) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpts) ([]byte, error) {
-	privateKey, err := loadRSAPrivateKey(common.GetKeyResourceIDFromEnv())
+	privateKey, err := loadRSAPrivateKey(c.KeyResourceID)
 	if err != nil {
 		return nil, err
 	}

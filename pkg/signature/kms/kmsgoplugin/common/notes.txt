@@ -25,3 +25,6 @@ PATH="$PATH:`pwd`" && (cd sigstore/test/cliplugin/fakekmsplugin &&  go build -o 
 
 mkfile -n 10g temp_10GB_file
 mkfile -n 10m temp_10GB_file
+
+
+PATH="$PATH:`pwd`" && (cd sigstore/test/cliplugin/fakekmsplugin &&  go build -o ../../../../sigstore-kms-plugin-fakekms) && (cd cosign && COSIGN_PASSWORD=123 go run ./cmd/cosign sign-blob ../temp_10GB_file --key sigstore-kms-plugin-fakekms://key.pem --tlog-upload=false | tee ../sig.txt)
