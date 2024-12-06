@@ -62,6 +62,18 @@ func (c PluginClient) invokePlugin(ctx context.Context, stdin io.Reader, args *c
 	return &resp, nil
 }
 
+func (c PluginClient) DefaultAlgorithm() string {
+	args := &common.PluginArgs{
+		Method:           common.DefaultAlgorithmMethodName,
+		DefaultAlgorithm: &common.DefaultAlgorithmArgs{},
+	}
+	resp, err := c.invokePlugin(c.Ctx, nil, args)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return resp.DefaultAlgorithm.DefaultAlgorithm
+}
+
 func (c PluginClient) SupportedAlgorithms() (result []string) {
 	args := &common.PluginArgs{
 		Method:             common.SupportedAlgorithmsMethodName,
