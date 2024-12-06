@@ -10,6 +10,7 @@ const (
 	DefaultAlgorithmMethodName    = "defaultAlgorithm"
 	SupportedAlgorithmsMethodName = "supportedAlgorithms"
 	PublicKeyMethodName           = "publicKey"
+	CreateKeyMethodName           = "createKey"
 	SignMessageMethodName         = "signMessage"
 )
 
@@ -26,6 +27,7 @@ type PluginArgs struct {
 	DefaultAlgorithm   *DefaultAlgorithmArgs    `json:"defaultAlgorithm,omitempty"`
 	SuportedAlgorithms *SupportedAlgorithmsArgs `json:"suportedAlgorithms,omitempty"`
 	PublicKey          *PublicKeyArgs           `json:"publicKey,omitempty"`
+	CreateKey          *CreateKeyArgs           `json:"createKey,omitempty"`
 	SignMessage        *SignMessageArgs         `json:"signMessage,omitempty"`
 	InitOptions        *InitOptions             `json:"initOptions"`
 }
@@ -35,6 +37,7 @@ type PluginResp struct {
 	DefaultAlgorithm    *DefaultAlgorithmResp    `json:"defaultAlgorithm,omitempty"`
 	SupportedAlgorithms *SupportedAlgorithmsResp `json:"supportedAlgorithms,omitempty"`
 	PublicKey           *PublicKeyResp           `json:"publicKey,omitempty"`
+	CreateKey           *CreateKeyResp           `json:"createKey,omitempty"`
 	SignMessage         *SignMessageResp         `json:"signMessage,omitempty"`
 }
 
@@ -57,6 +60,15 @@ type PublicKeyArgs struct {
 }
 
 type PublicKeyResp struct {
+	PublicKeyPEM []byte
+}
+
+type CreateKeyArgs struct {
+	CtxDeadline *time.Time
+	Algorithm   string
+}
+
+type CreateKeyResp struct {
 	PublicKeyPEM []byte
 }
 
