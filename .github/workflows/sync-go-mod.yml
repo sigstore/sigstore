@@ -1,0 +1,49 @@
+name: Synchronize go.mod in submodules
+
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - synchronize
+    paths:
+      - 'go.mod'
+
+jobs:
+  sync-go-mod:
+    if: github.actor == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # v4.2.1
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          token: ${{ secrets.GO_MOD_SYNC_TOKEN }}
+
+      - name: Install Go
+        uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5.0.2
+        with:
+          go-version-file: go.mod
+
+      - name: Synchronize go.mod in submodules
+        run: |
+          WORKDIR=$(pwd)
+          cd $WORKDIR/pkg/signature/kms/aws; go mod tidy
+          cd $WORKDIR/pkg/signature/kms/azure; go mod tidy
+          cd $WORKDIR/pkg/signature/kms/gcp; go mod tidy
+          cd $WORKDIR/pkg/signature/kms/hashivault; go mod tidy
+
+      - name: Commit and push changes
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "Changes detected:"
+            git diff
+            git config --global user.name "github-actions[bot]"
+            git config --global user.email "github-actions[bot]@users.noreply.github.com"
+            git commit -a -s -m "Synchronize go.mod in submodules"
+            git push origin HEAD:${{ github.event.pull_request.head.ref }}
+          else
+            echo "No changes to commit"
+          fi
