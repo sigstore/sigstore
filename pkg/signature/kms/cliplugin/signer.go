@@ -87,7 +87,7 @@ func (c PluginClient) SupportedAlgorithms() (result []string) {
 }
 
 func (c PluginClient) PublicKey(opts ...signature.PublicKeyOption) (crypto.PublicKey, error) {
-	ctx := c.Ctx
+	ctx := context.TODO()
 	keyVersion := "1"
 	for _, opt := range opts {
 		opt.ApplyContext(&ctx)
@@ -110,8 +110,30 @@ func (c PluginClient) PublicKey(opts ...signature.PublicKeyOption) (crypto.Publi
 	return publicKey, nil
 }
 
+func (c PluginClient) CreateKey(ctx context.Context, algorithm string) (crypto.PublicKey, error) {
+	args := &common.PluginArgs{
+		Method: common.CreateKeyMethodName,
+		CreateKey: &common.CreateKeyArgs{
+			Algorithm: algorithm,
+		},
+	}
+	deadline, ok := ctx.Deadline()
+	if ok {
+		args.InitOptions.CtxDeadline = &deadline
+	}
+	resp, err := c.invokePlugin(ctx, nil, args)
+	if err != nil {
+		return nil, err
+	}
+	publicKey, err := cryptoutils.UnmarshalPEMToPublicKey(resp.CreateKey.PublicKeyPEM)
+	if err != nil {
+		return nil, err
+	}
+	return publicKey, nil
+}
+
 func (c PluginClient) SignMessage(message io.Reader, opts ...signature.SignOption) ([]byte, error) {
-	ctx := c.Ctx
+	ctx := context.TODO()
 	var signerOpts crypto.SignerOpts = c.initOptions.HashFunc
 	var keyVersion string
 	for _, opt := range opts {
