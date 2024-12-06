@@ -28,14 +28,14 @@ func LoadSignerVerifier(ctx context.Context, inputKeyresourceID string, hashFunc
 		return nil, fmt.Errorf("%w: expected format: [binary name]://[key ref], got: %s", ErrorParsingPluginBinaryName, inputKeyresourceID)
 	}
 	executable, keyResourceID := parts[0], parts[1]
-	InitOptions := &common.InitOptions{
+	initOptions := &common.InitOptions{
 		ProtocolVersion: common.ProtocolVersion,
 		KeyResourceID:   keyResourceID,
 		HashFunc:        hashFunc,
 	}
 	if ctxDeadline, ok := ctx.Deadline(); ok {
-		InitOptions.CtxDeadline = &ctxDeadline
+		initOptions.CtxDeadline = &ctxDeadline
 	}
-	pluginClient := newPluginClient(ctx, executable, InitOptions, makeCommand)
+	pluginClient := newPluginClient(ctx, executable, initOptions, makeCommand)
 	return pluginClient, nil
 }
