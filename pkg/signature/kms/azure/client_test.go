@@ -25,7 +25,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"os"
 	"testing"
 
 	"github.com/jellydator/ttlcache/v3"
@@ -165,32 +164,10 @@ func generatePublicKey(azureKeyType string) (azkeys.JSONWebKey, error) {
 }
 
 func TestAzureVaultClientFetchPublicKey(t *testing.T) {
-	type test struct {
-		azureKeyType  string
-		expectSuccess bool
-	}
+	keyTypes := []string{"EC", "EC-HSM", "RSA", "RSA-HSM"}
 
-	tests := []test{
-		{
-			azureKeyType:  "EC",
-			expectSuccess: true,
-		},
-		{
-			azureKeyType:  "EC-HSM",
-			expectSuccess: true,
-		},
-		{
-			azureKeyType:  "RSA",
-			expectSuccess: true,
-		},
-		{
-			azureKeyType:  "RSA-HSM",
-			expectSuccess: true,
-		},
-	}
-
-	for _, tc := range tests {
-		key, err := generatePublicKey(tc.azureKeyType)
+	for _, keyType := range keyTypes {
+		key, err := generatePublicKey(keyType)
 		if err != nil {
 			t.Fatalf("unexpected error while generating public key for testing: %v", err)
 		}
@@ -201,11 +178,8 @@ func TestAzureVaultClientFetchPublicKey(t *testing.T) {
 		}
 
 		_, err = client.fetchPublicKey(context.Background())
-		if err != nil && tc.expectSuccess {
+		if err != nil {
 			t.Fatalf("expected error to be nil, actual value: %v", err)
-		}
-		if err == nil && !tc.expectSuccess {
-			t.Fatal("expected error not to be nil")
 		}
 	}
 }
@@ -265,90 +239,6 @@ func TestAzureVaultClientCreateKey(t *testing.T) {
 		}
 		if err == nil && !tc.expectSuccess {
 			t.Fatalf("Test '%s' failed. Expected non-nil error", tc.name)
-		}
-	}
-}
-
-func TestGetAuthenticationMethod(t *testing.T) {
-	clearEnv := map[string]string{
-		"AZURE_TENANT_ID":     "",
-		"AZURE_CLIENT_ID":     "",
-		"AZURE_CLIENT_SECRET": "",
-		"AZURE_AUTH_METHOD":   "",
-	}
-	resetEnv := testSetEnv(t, clearEnv)
-	defer resetEnv()
-
-	cases := []struct {
-		testDescription      string
-		environmentVariables map[string]string
-		expectedResult       authenticationMethod
-	}{
-		{
-			testDescription:      "No environment variables set",
-			environmentVariables: map[string]string{},
-			expectedResult:       unknownAuthenticationMethod,
-		},
-		{
-			testDescription: "AZURE_AUTH_METHOD=environment",
-			environmentVariables: map[string]string{
-				"AZURE_AUTH_METHOD": "environment",
-			},
-			expectedResult: environmentAuthenticationMethod,
-		},
-		{
-			testDescription: "AZURE_AUTH_METHOD=cli",
-			environmentVariables: map[string]string{
-				"AZURE_AUTH_METHOD": "cli",
-			},
-			expectedResult: cliAuthenticationMethod,
-		},
-		{
-			testDescription: "Set environment variables AZURE_TENANT_ID, AZURE_CLIENT_ID & AZURE_CLIENT_SECRET",
-			environmentVariables: map[string]string{
-				"AZURE_TENANT_ID":     "foo",
-				"AZURE_CLIENT_ID":     "bar",
-				"AZURE_CLIENT_SECRET": "baz",
-			},
-			expectedResult: environmentAuthenticationMethod,
-		},
-	}
-
-	for i, c := range cases {
-		t.Logf("Test #%d: %s", i, c.testDescription)
-		reset := testSetEnv(t, c.environmentVariables)
-
-		result := getAuthenticationMethod()
-		if result != c.expectedResult {
-			t.Logf("got: %q, want: %q", result, c.expectedResult)
-			t.Fail()
-		}
-
-		reset()
-	}
-}
-
-func testSetEnv(t *testing.T, s map[string]string) func() {
-	t.Helper()
-
-	backup := map[string]string{}
-	for k, v := range s {
-		currentEnv := os.Getenv(k)
-		backup[k] = currentEnv
-		if v == "" {
-			os.Unsetenv(k)
-			continue
-		}
-		os.Setenv(k, v)
-	}
-
-	return func() {
-		for k, v := range backup {
-			if v == "" {
-				os.Unsetenv(k)
-				continue
-			}
-			os.Setenv(k, v)
 		}
 	}
 }

@@ -43,7 +43,7 @@ func doOobFlow(cfg *oauth2.Config, stateToken string, opts []oauth2.AuthCodeOpti
 	fmt.Fprintln(os.Stderr, "Go to the following link in a browser:\n\n\t", authURL)
 	fmt.Fprintf(os.Stderr, "Enter verification code: ")
 	var code string
-	fmt.Scanln(&code)
+	_, _ = fmt.Scanln(&code)
 	return code
 }
 
