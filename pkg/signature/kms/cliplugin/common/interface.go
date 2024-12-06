@@ -6,10 +6,11 @@ import (
 )
 
 const (
-	SupportedAlgorithmsMethodName = "SupportedAlgorithms"
+	ProtocolVersion               = "1"
+	DefaultAlgorithmMethodName    = "defaultAlgorithm"
+	SupportedAlgorithmsMethodName = "supportedAlgorithms"
 	PublicKeyMethodName           = "publicKey"
 	SignMessageMethodName         = "signMessage"
-	ProtocolVersion               = "1"
 )
 
 type InitOptions struct {
@@ -22,6 +23,7 @@ type InitOptions struct {
 
 type PluginArgs struct {
 	Method             string                   `json:"method"`
+	DefaultAlgorithm   *DefaultAlgorithmArgs    `json:"defaultAlgorithm,omitempty"`
 	SuportedAlgorithms *SupportedAlgorithmsArgs `json:"suportedAlgorithms,omitempty"`
 	PublicKey          *PublicKeyArgs           `json:"publicKey,omitempty"`
 	SignMessage        *SignMessageArgs         `json:"signMessage,omitempty"`
@@ -30,9 +32,17 @@ type PluginArgs struct {
 
 type PluginResp struct {
 	ErrorMessage        string                   `json:"errorMessage,omitempty"`
+	DefaultAlgorithm    *DefaultAlgorithmResp    `json:"defaultAlgorithm,omitempty"`
 	SupportedAlgorithms *SupportedAlgorithmsResp `json:"supportedAlgorithms,omitempty"`
 	PublicKey           *PublicKeyResp           `json:"publicKey,omitempty"`
 	SignMessage         *SignMessageResp         `json:"signMessage,omitempty"`
+}
+
+type DefaultAlgorithmArgs struct {
+}
+
+type DefaultAlgorithmResp struct {
+	DefaultAlgorithm string
 }
 
 type SupportedAlgorithmsArgs struct {
