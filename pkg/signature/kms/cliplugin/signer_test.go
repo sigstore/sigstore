@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto"
+	"encoding/json"
 	"errors"
 	"io"
 	"log/slog"
@@ -47,6 +48,16 @@ func Test_invokePlugin(t *testing.T) {
 		SupportedAlgorithms: &common.SupportedAlgorithmsResp{
 			SupportedAlgorithms: []string{"alg1", "alg2"},
 		},
+	}
+	pluginArgsEnc, err := json.Marshal(common.PluginArgs{
+		InitOptions: &common.InitOptions{},
+		MethodArgs: &common.MethodArgs{
+			MethodName:         common.SupportedAlgorithmsMethodName,
+			SuportedAlgorithms: &common.SupportedAlgorithmsArgs{},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
 	}
 
 	tests := []struct {
@@ -123,7 +134,7 @@ func Test_invokePlugin(t *testing.T) {
 				if args[0] != common.ProtocolVersion {
 					t.Fatalf("unexpected protocol version: %s", args[0])
 				}
-				if args[1] != `{"method":"any-method","initOptions":{"protocolVersion":"","keyResourceID":"","hashFunc":0}}` {
+				if args[1] != string(pluginArgsEnc) {
 					t.Fatalf("unexpected args: %s", args[1])
 				}
 				return testCommand{
@@ -139,9 +150,7 @@ func Test_invokePlugin(t *testing.T) {
 				&common.InitOptions{},
 				makeCommandFunc,
 			)
-			resp, err := testPluginClient.invokePlugin(context.TODO(), nil, &common.PluginArgs{
-				Method: "any-method",
-			})
+			resp, err := invokePlugin(context.TODO(), testPluginClient, nil, &common.SupportedAlgorithmsArgs{})
 			if errorDiff := cmp.Diff(tc.err, err, cmpopts.EquateErrors()); errorDiff != "" {
 				t.Errorf("unexpected error (-want +got):\n%s", errorDiff)
 			}
@@ -203,7 +212,7 @@ func Test_SignMessage(t *testing.T) {
 			name:             "success",
 			message:          []byte(`my-message`),
 			keyVersion:       "1",
-			cryptoSignerOpts: crypto.SHA256,
+			cryptoSignerOpts: crypto.SHA384,
 			implSig:          []byte(`my-signatureXXXXXXX000000`),
 			implErr:          nil,
 			err:              nil,
@@ -217,14 +226,14 @@ func Test_SignMessage(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				if pluginArgs.Method != common.SignMessageMethodName {
-					t.Fatalf("unexpected method: %s", pluginArgs.Method)
+				if pluginArgs.MethodName != common.SignMessageMethodName {
+					t.Fatalf("unexpected method: %s", pluginArgs.MethodName)
 				}
-				if pluginArgs.SignMessage.KeyVersion != "1" {
-					t.Fatalf("unexpected key version: %s", pluginArgs.SignMessage.KeyVersion)
+				if *pluginArgs.SignMessage.SignOptions.KeyVersion != tc.keyVersion {
+					t.Fatalf("unexpected key version: %s", *pluginArgs.SignMessage.SignOptions.KeyVersion)
 				}
-				if pluginArgs.SignMessage.HashFunc != crypto.SHA256 {
-					t.Fatalf("unexpected hash func: %s", pluginArgs.SignMessage.HashFunc)
+				if *pluginArgs.SignMessage.SignOptions.HashFunc != tc.cryptoSignerOpts.HashFunc() {
+					t.Fatalf("unexpected hash func: %s", *pluginArgs.SignMessage.SignOptions.HashFunc)
 				}
 				var respBuffer bytes.Buffer
 				_, err = handler.Dispatch(&respBuffer, stdin, pluginArgs, TestSignerVerifierImpl{
@@ -251,10 +260,11 @@ func Test_SignMessage(t *testing.T) {
 				&common.InitOptions{},
 				makeCommandFunc,
 			)
-			signature, err := testPluginClient.SignMessage(bytes.NewReader(tc.message), []signature.SignOption{
+			opts := []signature.SignOption{
 				options.WithKeyVersion(tc.keyVersion),
 				options.WithCryptoSignerOpts(tc.cryptoSignerOpts),
-			}...)
+			}
+			signature, err := testPluginClient.SignMessage(bytes.NewReader(tc.message), opts...)
 			if errorDiff := cmp.Diff(tc.err, err, cmpopts.EquateErrors()); errorDiff != "" {
 				t.Errorf("unexpected error (-want +got):\n%s", errorDiff)
 			}

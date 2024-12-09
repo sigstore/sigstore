@@ -3,6 +3,8 @@ package common
 import (
 	"crypto"
 	"time"
+
+	"github.com/sigstore/sigstore/pkg/signature/options"
 )
 
 const (
@@ -23,13 +25,17 @@ type InitOptions struct {
 }
 
 type PluginArgs struct {
-	Method             string                   `json:"method"`
+	*MethodArgs
+	InitOptions *InitOptions `json:"initOptions"`
+}
+
+type MethodArgs struct {
+	MethodName         string                   `json:"methodName"`
 	DefaultAlgorithm   *DefaultAlgorithmArgs    `json:"defaultAlgorithm,omitempty"`
 	SuportedAlgorithms *SupportedAlgorithmsArgs `json:"suportedAlgorithms,omitempty"`
 	PublicKey          *PublicKeyArgs           `json:"publicKey,omitempty"`
 	CreateKey          *CreateKeyArgs           `json:"createKey,omitempty"`
 	SignMessage        *SignMessageArgs         `json:"signMessage,omitempty"`
-	InitOptions        *InitOptions             `json:"initOptions"`
 }
 
 type PluginResp struct {
@@ -56,7 +62,11 @@ type SupportedAlgorithmsResp struct {
 }
 
 type PublicKeyArgs struct {
-	KeyVersion string
+	PublicKeyOptions PublicKeyOptions `json:"publicKeyOptions"`
+}
+
+type PublicKeyOptions struct {
+	*RPCOption
 }
 
 type PublicKeyResp struct {
@@ -73,8 +83,24 @@ type CreateKeyResp struct {
 }
 
 type SignMessageArgs struct {
-	HashFunc   crypto.Hash `json:"hashFunc"`
-	KeyVersion string      `json:"keyVersion"`
+	SignOptions SignOptions `json:"signOptions"`
+}
+
+type SignOptions struct {
+	*RPCOption
+	*MessageOption
+}
+
+type RPCOption struct {
+	CtxDeadline        *time.Time       `json:"ctxDeadline,omitempty"`
+	KeyVersion         *string          `json:"keyVersion,omitempty"`
+	RPCAuth            *options.RPCAuth `json:"rpcAuthOpts,omitempty"` // fully JSON-serializable
+	RemoteVerification *bool            `json:"remoteVerification,omitempty"`
+}
+
+type MessageOption struct {
+	Digest   *[]byte      `json:"digest,omitempty"`
+	HashFunc *crypto.Hash `json:"hashFunc,omitempty"`
 }
 
 type SignMessageResp struct {
