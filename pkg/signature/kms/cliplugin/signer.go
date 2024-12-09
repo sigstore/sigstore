@@ -48,10 +48,18 @@ func (c PluginClient) invokePlugin(ctx context.Context, stdin io.Reader, args *c
 		return nil, err
 	}
 	cmd := c.makeCommandFunc(ctx, stdin, os.Stderr, c.executable, common.ProtocolVersion, string(argsEnc))
-	// we won't look at exit status as a pottential error.
-	// If a program exit(1), the only debugging is to either parse the the returned error in stdout,
+	// We won't look at the program's non-zero exit code, but we will respect any other
+	// error, and cases when exec.ExitError.ExitCode() is 0 or -1:
+	//   * (0) the program finished successfuly or
+	//   * (-1) there was some other problem not due to the program itself.
+	// The only debugging is to either parse the the returned error in stdout,
 	// or for the user to examine the sterr logs.
-	stdout, _ := cmd.Output()
+	// See https://pkg.go.dev/os#ProcessState.ExitCode.
+	stdout, err := cmd.Output()
+	var exitError commandExitError
+	if err != nil && (!errors.As(err, &exitError) || exitError.ExitCode() < 1) {
+		return nil, fmt.Errorf("%w: %w", ErrorExecutingPlugin, err)
+	}
 	var resp common.PluginResp
 	if unmarshallErr := json.Unmarshal(stdout, &resp); unmarshallErr != nil {
 		return nil, fmt.Errorf("%w: %w", ErrorResponseParseError, unmarshallErr)
