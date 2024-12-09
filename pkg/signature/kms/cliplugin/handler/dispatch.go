@@ -37,7 +37,7 @@ func WriteErrorResponse(wr io.Writer, err error) error {
 func Dispatch(stdout io.Writer, stdin io.Reader, args *common.PluginArgs, impl kms.SignerVerifier) (*common.PluginResp, error) {
 	var resp common.PluginResp
 	var err error
-	switch args.Method {
+	switch args.MethodName {
 	case common.DefaultAlgorithmMethodName:
 		resp.DefaultAlgorithm, err = DefaultAlgorithm(stdin, args.DefaultAlgorithm, impl)
 	case common.SupportedAlgorithmsMethodName:

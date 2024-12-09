@@ -27,9 +27,29 @@ func SupportedAlgorithms(stdin io.Reader, args *common.SupportedAlgorithmsArgs, 
 	return resp, nil
 }
 
+func getRPCOpts(args *common.RPCOption) []signature.RPCOption {
+	opts := []signature.RPCOption{}
+	if args.CtxDeadline != nil {
+		ctx, cancel := context.WithDeadline(context.TODO(), *args.CtxDeadline)
+		defer cancel()
+		opts = append(opts, options.WithContext(ctx))
+	}
+	if args.KeyVersion != nil {
+		opts = append(opts, options.WithKeyVersion(*args.KeyVersion))
+	}
+	if args.RPCAuth != nil {
+		opts = append(opts, options.WithRPCAuthOpts(*args.RPCAuth))
+	}
+	if args.RemoteVerification != nil {
+		opts = append(opts, options.WithRemoteVerification(*args.RemoteVerification))
+	}
+	return opts
+}
+
 func PublicKey(stdin io.Reader, args *common.PublicKeyArgs, impl kms.SignerVerifier) (*common.PublicKeyResp, error) {
-	opts := []signature.PublicKeyOption{
-		options.WithKeyVersion(args.KeyVersion),
+	opts := []signature.PublicKeyOption{}
+	for _, opt := range getRPCOpts(args.PublicKeyOptions.RPCOption) {
+		opts = append(opts, opt)
 	}
 	publicKey, err := impl.PublicKey(opts...)
 	if err != nil {
@@ -66,10 +86,24 @@ func CreateKey(stdin io.Reader, args *common.CreateKeyArgs, impl kms.SignerVerif
 	return resp, nil
 }
 
+func getMessageOptions(args *common.MessageOption) []signature.MessageOption {
+	opts := []signature.MessageOption{}
+	if args.Digest != nil {
+		opts = append(opts, options.WithDigest(*args.Digest))
+	}
+	if args.HashFunc != nil {
+		opts = append(opts, options.WithCryptoSignerOpts(*args.HashFunc))
+	}
+	return opts
+}
+
 func SignMessage(stdin io.Reader, args *common.SignMessageArgs, impl kms.SignerVerifier) (*common.SignMessageResp, error) {
-	opts := []signature.SignOption{
-		options.WithKeyVersion(args.KeyVersion),
-		options.WithCryptoSignerOpts(args.HashFunc),
+	opts := []signature.SignOption{}
+	for _, opt := range getRPCOpts(args.SignOptions.RPCOption) {
+		opts = append(opts, opt.(signature.SignOption))
+	}
+	for _, opt := range getMessageOptions(args.SignOptions.MessageOption) {
+		opts = append(opts, opt.(signature.SignOption))
 	}
 	signature, err := impl.SignMessage(stdin, opts...)
 	if err != nil {
