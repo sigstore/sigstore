@@ -1,4 +1,4 @@
-module localkms
+module sigstore-kms-localkms
 
 go 1.23.2
 

@@ -27,11 +27,11 @@ func WriteResponse(wr io.Writer, resp *common.PluginResp) error {
 	return nil
 }
 
-func WriteErrorResponse(wr io.Writer, err error) {
+func WriteErrorResponse(wr io.Writer, err error) error {
 	resp := &common.PluginResp{
 		ErrorMessage: err.Error(),
 	}
-	WriteResponse(wr, resp)
+	return WriteResponse(wr, resp)
 }
 
 func Dispatch(stdout io.Writer, stdin io.Reader, args *common.PluginArgs, impl kms.SignerVerifier) (*common.PluginResp, error) {
