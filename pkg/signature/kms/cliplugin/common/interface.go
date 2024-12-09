@@ -47,6 +47,7 @@ type PluginResp struct {
 	PublicKey           *PublicKeyResp           `json:"publicKey,omitempty"`
 	CreateKey           *CreateKeyResp           `json:"createKey,omitempty"`
 	SignMessage         *SignMessageResp         `json:"signMessage,omitempty"`
+	VerifySignature     *VerifySignatureResp     `json:"verifySignature,omitempty"`
 }
 
 type DefaultAlgorithmArgs struct {

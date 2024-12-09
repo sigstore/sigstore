@@ -48,6 +48,10 @@ func Dispatch(stdout io.Writer, stdin io.Reader, args *common.PluginArgs, impl k
 		resp.CreateKey, err = CreateKey(stdin, args.CreateKey, impl)
 	case common.SignMessageMethodName:
 		resp.SignMessage, err = SignMessage(stdin, args.SignMessage, impl)
+	case common.VerifySignatureMethodName:
+		resp.VerifySignature, err = VerifySignature(stdin, args.VerifySignature, impl)
+	default:
+		err = fmt.Errorf("unsupported method: %s", args.MethodName)
 	}
 	if err != nil {
 		resp.ErrorMessage = err.Error()
