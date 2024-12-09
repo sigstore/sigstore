@@ -18,3 +18,8 @@ func makeCommand(ctx context.Context, stdin io.Reader, stderr io.Writer, name st
 	cmd.Stderr = stderr
 	return cmd
 }
+
+type commandExitError interface {
+	ExitCode() int
+	Error() string
+}

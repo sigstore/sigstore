@@ -20,69 +20,98 @@ import (
 )
 
 type testCommand struct {
-	command
+	// command
 	outputFunc func() ([]byte, error)
 	err        error
+}
+
+type testExitError struct {
+	// *exec.ExitError
+	exitCode int
+}
+
+func (e testExitError) ExitCode() int {
+	return e.exitCode
+}
+
+func (e testExitError) Error() string {
+	return "test exit error"
 }
 
 func (c testCommand) Output() ([]byte, error) {
 	return c.outputFunc()
 }
 func Test_invokePlugin(t *testing.T) {
+	goodOutput := `{"supportedAlgorithms":{"supportedAlgorithms":["alg1", "alg2"]}}`
+	goodResp := &common.PluginResp{
+		SupportedAlgorithms: &common.SupportedAlgorithmsResp{
+			SupportedAlgorithms: []string{"alg1", "alg2"},
+		},
+	}
+
 	tests := []struct {
-		name                   string
-		cmdOutput              string
-		resp                   *common.PluginResp
-		invokePluginErrType    error
-		invokePluginErrContent string
-		commandErrType         error
+		name             string
+		cmdOutput        string
+		resp             *common.PluginResp
+		err              error
+		errContent       string
+		commandOutputErr error
 	}{
 		{
 			name:      "success",
-			cmdOutput: `{"supportedAlgorithms":{"supportedAlgorithms":["alg1", "alg2"]}}`,
-			resp: &common.PluginResp{
-				SupportedAlgorithms: &common.SupportedAlgorithmsResp{
-					SupportedAlgorithms: []string{"alg1", "alg2"},
-				},
-			},
-			invokePluginErrType: nil,
+			cmdOutput: goodOutput,
+			resp:      goodResp,
+			err:       nil,
 		},
 		{
 			name:      "success: expected stdin",
-			cmdOutput: `{"supportedAlgorithms":{"supportedAlgorithms":["alg1", "alg2"]}}`,
-			resp: &common.PluginResp{
-				SupportedAlgorithms: &common.SupportedAlgorithmsResp{
-					SupportedAlgorithms: []string{"alg1", "alg2"},
-				},
-			},
-			invokePluginErrType: nil,
+			cmdOutput: goodOutput,
+			resp:      goodResp,
+			err:       nil,
 		},
 		{
-			name:      "success: continue if command exits 1",
-			cmdOutput: `{"supportedAlgorithms":{"supportedAlgorithms":["alg1", "alg2"]}}`,
-			resp: &common.PluginResp{
-				SupportedAlgorithms: &common.SupportedAlgorithmsResp{
-					SupportedAlgorithms: []string{"alg1", "alg2"},
-				},
-			},
-			invokePluginErrType: nil,
-			commandErrType:      errors.New("command-error"),
+			name:             "success: continue if command exits non-zero",
+			cmdOutput:        goodOutput,
+			resp:             goodResp,
+			err:              nil,
+			commandOutputErr: &testExitError{exitCode: 1},
 		},
 		{
-			name:                   "error: plugin program error",
-			cmdOutput:              `{"errorMessage": "any-error"}`,
-			invokePluginErrType:    ErrorPluginReturnError,
-			invokePluginErrContent: "any-error",
+			name:             "failure: command eror, even if command exits 0",
+			cmdOutput:        goodOutput,
+			resp:             nil,
+			err:              ErrorExecutingPlugin,
+			commandOutputErr: &testExitError{exitCode: 0},
 		},
 		{
-			name:                "error: empty resp",
-			cmdOutput:           "",
-			invokePluginErrType: ErrorResponseParseError,
+			name:             "failure: ExitError.ExitStatus() is -1",
+			cmdOutput:        goodOutput,
+			resp:             nil,
+			err:              ErrorExecutingPlugin,
+			commandOutputErr: &testExitError{exitCode: -1},
 		},
 		{
-			name:                "error: invalid json resp",
-			cmdOutput:           "abc",
-			invokePluginErrType: ErrorResponseParseError,
+			name:             "failure: any other exec error",
+			cmdOutput:        goodOutput,
+			resp:             nil,
+			err:              ErrorExecutingPlugin,
+			commandOutputErr: errors.New("exec-error"),
+		},
+		{
+			name:       "error: plugin program error",
+			cmdOutput:  `{"errorMessage": "any-error"}`,
+			err:        ErrorPluginReturnError,
+			errContent: "any-error",
+		},
+		{
+			name:      "error: empty resp",
+			cmdOutput: "",
+			err:       ErrorResponseParseError,
+		},
+		{
+			name:      "error: invalid json resp",
+			cmdOutput: "abc",
+			err:       ErrorResponseParseError,
 		},
 	}
 	for _, tc := range tests {
@@ -99,9 +128,9 @@ func Test_invokePlugin(t *testing.T) {
 				}
 				return testCommand{
 					outputFunc: func() ([]byte, error) {
-						return []byte(tc.cmdOutput), tc.commandErrType
+						return []byte(tc.cmdOutput), tc.commandOutputErr
 					},
-					err: tc.commandErrType,
+					err: tc.commandOutputErr,
 				}
 			}
 			testPluginClient := newPluginClient(
@@ -113,14 +142,14 @@ func Test_invokePlugin(t *testing.T) {
 			resp, err := testPluginClient.invokePlugin(context.TODO(), nil, &common.PluginArgs{
 				Method: "any-method",
 			})
-			if errorDiff := cmp.Diff(tc.invokePluginErrType, err, cmpopts.EquateErrors()); errorDiff != "" {
+			if errorDiff := cmp.Diff(tc.err, err, cmpopts.EquateErrors()); errorDiff != "" {
 				t.Errorf("unexpected error (-want +got):\n%s", errorDiff)
 			}
 			if respDiff := cmp.Diff(tc.resp, resp); respDiff != "" {
 				t.Errorf("unexpected resp (-want +got):\n%s", respDiff)
 			}
-			if err != nil && !strings.Contains(err.Error(), tc.invokePluginErrContent) {
-				t.Errorf("error content does not contain expecrted substring (-want +got): \n-%s\n+%s", tc.invokePluginErrContent, err.Error())
+			if err != nil && !strings.Contains(err.Error(), tc.errContent) {
+				t.Errorf("error content does not contain expecrted substring (-want +got): \n-%s\n+%s", tc.errContent, err.Error())
 			}
 		})
 	}
