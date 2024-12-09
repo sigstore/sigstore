@@ -27,7 +27,7 @@ func SupportedAlgorithms(stdin io.Reader, args *common.SupportedAlgorithmsArgs, 
 	return resp, nil
 }
 
-func getRPCOpts(args *common.RPCOption) []signature.RPCOption {
+func getRPCOpts(args *common.RPCOptions) []signature.RPCOption {
 	opts := []signature.RPCOption{}
 	if args.CtxDeadline != nil {
 		ctx, cancel := context.WithDeadline(context.TODO(), *args.CtxDeadline)
@@ -48,7 +48,7 @@ func getRPCOpts(args *common.RPCOption) []signature.RPCOption {
 
 func PublicKey(stdin io.Reader, args *common.PublicKeyArgs, impl kms.SignerVerifier) (*common.PublicKeyResp, error) {
 	opts := []signature.PublicKeyOption{}
-	for _, opt := range getRPCOpts(args.PublicKeyOptions.RPCOption) {
+	for _, opt := range getRPCOpts(args.PublicKeyOptions.RPCOptions) {
 		opts = append(opts, opt)
 	}
 	publicKey, err := impl.PublicKey(opts...)
@@ -86,7 +86,7 @@ func CreateKey(stdin io.Reader, args *common.CreateKeyArgs, impl kms.SignerVerif
 	return resp, nil
 }
 
-func getMessageOptions(args *common.MessageOption) []signature.MessageOption {
+func getMessageOptions(args *common.MessageOptions) []signature.MessageOption {
 	opts := []signature.MessageOption{}
 	if args.Digest != nil {
 		opts = append(opts, options.WithDigest(*args.Digest))
@@ -99,10 +99,10 @@ func getMessageOptions(args *common.MessageOption) []signature.MessageOption {
 
 func SignMessage(stdin io.Reader, args *common.SignMessageArgs, impl kms.SignerVerifier) (*common.SignMessageResp, error) {
 	opts := []signature.SignOption{}
-	for _, opt := range getRPCOpts(args.SignOptions.RPCOption) {
+	for _, opt := range getRPCOpts(args.SignOptions.RPCOptions) {
 		opts = append(opts, opt.(signature.SignOption))
 	}
-	for _, opt := range getMessageOptions(args.SignOptions.MessageOption) {
+	for _, opt := range getMessageOptions(args.SignOptions.MessageOptions) {
 		opts = append(opts, opt.(signature.SignOption))
 	}
 	signature, err := impl.SignMessage(stdin, opts...)

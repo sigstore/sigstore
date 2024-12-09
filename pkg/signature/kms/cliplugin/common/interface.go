@@ -14,6 +14,7 @@ const (
 	PublicKeyMethodName           = "publicKey"
 	CreateKeyMethodName           = "createKey"
 	SignMessageMethodName         = "signMessage"
+	VerifySignatureMethodName     = "verifySignature"
 )
 
 type InitOptions struct {
@@ -36,6 +37,7 @@ type MethodArgs struct {
 	PublicKey          *PublicKeyArgs           `json:"publicKey,omitempty"`
 	CreateKey          *CreateKeyArgs           `json:"createKey,omitempty"`
 	SignMessage        *SignMessageArgs         `json:"signMessage,omitempty"`
+	VerifySignature    *VerifySignatureArgs     `json:"verifySignature,omitempty"`
 }
 
 type PluginResp struct {
@@ -62,11 +64,11 @@ type SupportedAlgorithmsResp struct {
 }
 
 type PublicKeyArgs struct {
-	PublicKeyOptions PublicKeyOptions `json:"publicKeyOptions"`
+	PublicKeyOptions *PublicKeyOptions `json:"publicKeyOptions"`
 }
 
 type PublicKeyOptions struct {
-	*RPCOption
+	*RPCOptions
 }
 
 type PublicKeyResp struct {
@@ -83,26 +85,39 @@ type CreateKeyResp struct {
 }
 
 type SignMessageArgs struct {
-	SignOptions SignOptions `json:"signOptions"`
+	SignOptions *SignOptions `json:"signOptions"`
 }
 
 type SignOptions struct {
-	*RPCOption
-	*MessageOption
+	*RPCOptions
+	*MessageOptions
 }
 
-type RPCOption struct {
+type RPCOptions struct {
 	CtxDeadline        *time.Time       `json:"ctxDeadline,omitempty"`
 	KeyVersion         *string          `json:"keyVersion,omitempty"`
 	RPCAuth            *options.RPCAuth `json:"rpcAuthOpts,omitempty"` // fully JSON-serializable
 	RemoteVerification *bool            `json:"remoteVerification,omitempty"`
 }
 
-type MessageOption struct {
+type MessageOptions struct {
 	Digest   *[]byte      `json:"digest,omitempty"`
 	HashFunc *crypto.Hash `json:"hashFunc,omitempty"`
 }
 
 type SignMessageResp struct {
 	Signature []byte `json:"signature"`
+}
+
+type VerifySignatureArgs struct {
+	Signature     *[]byte        `json:"signature"`
+	VerifyOptions *VerifyOptions `json:"verifyOptions"`
+}
+
+type VerifyOptions struct {
+	*RPCOptions
+	*MessageOptions
+}
+
+type VerifySignatureResp struct {
 }

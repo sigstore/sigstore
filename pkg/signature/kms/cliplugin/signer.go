@@ -13,7 +13,7 @@ import (
 
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
 	"github.com/sigstore/sigstore/pkg/signature"
-	sigkms "github.com/sigstore/sigstore/pkg/signature/kms"
+	"github.com/sigstore/sigstore/pkg/signature/kms"
 	"github.com/sigstore/sigstore/pkg/signature/kms/cliplugin/common"
 	"github.com/sigstore/sigstore/pkg/signature/options"
 )
@@ -27,7 +27,7 @@ var (
 )
 
 type PluginClient struct {
-	sigkms.SignerVerifier
+	kms.SignerVerifier
 	Ctx             context.Context
 	executable      string
 	initOptions     common.InitOptions
@@ -46,13 +46,14 @@ func newPluginClient(ctx context.Context, executable string, initOptions *common
 
 // invokePlugin invokes the plugin program and parses its response.
 // Here we use a generic so we can get compile-time errors for incorrect methodArgs,
-// instead of making methodArgs be an interface{}
+// instead of making methodArgs be an interface{}.
 func invokePlugin[
 	T common.DefaultAlgorithmArgs |
 		common.SupportedAlgorithmsArgs |
 		common.PublicKeyArgs |
 		common.CreateKeyArgs |
-		common.SignMessageArgs,
+		common.SignMessageArgs |
+		common.VerifySignatureArgs,
 ](
 	ctx context.Context,
 	client *PluginClient,
@@ -60,7 +61,8 @@ func invokePlugin[
 	methodArgs *T,
 ) (*common.PluginResp, error) {
 	args := &common.MethodArgs{}
-	// we can't type switch on generics, so we must convert it to any.
+	// We can't type switch on generics, so we must convert it to any.
+	// Any generic type of T must also by added to this switch
 	switch a := any(methodArgs).(type) {
 	case *common.DefaultAlgorithmArgs:
 		args.MethodName = common.DefaultAlgorithmMethodName
@@ -77,6 +79,9 @@ func invokePlugin[
 	case *common.SignMessageArgs:
 		args.MethodName = common.SignMessageMethodName
 		args.SignMessage = a
+	case *common.VerifySignatureArgs:
+		args.MethodName = common.VerifySignatureMethodName
+		args.VerifySignature = a
 	default:
 		return nil, fmt.Errorf("%w: %v", ErrorUnsupportedMethod, a)
 	}
@@ -129,7 +134,7 @@ func (c PluginClient) SupportedAlgorithms() (result []string) {
 	return resp.SupportedAlgorithms.SupportedAlgorithms
 }
 
-func getRPCOption(opts []signature.RPCOption) *common.RPCOption {
+func getRPCOptions(opts []signature.RPCOption) *common.RPCOptions {
 	ctx := context.TODO()
 	rpcAuth := options.RPCAuth{}
 	var keyVersion string
@@ -144,7 +149,7 @@ func getRPCOption(opts []signature.RPCOption) *common.RPCOption {
 	if deadline, ok := ctx.Deadline(); ok {
 		ctxDeadline = &deadline
 	}
-	return &common.RPCOption{
+	return &common.RPCOptions{
 		CtxDeadline:        ctxDeadline,
 		KeyVersion:         &keyVersion,
 		RPCAuth:            &rpcAuth,
@@ -158,8 +163,8 @@ func (c PluginClient) PublicKey(opts ...signature.PublicKeyOption) (crypto.Publi
 		rpcOpts = append(rpcOpts, opt)
 	}
 	args := &common.PublicKeyArgs{
-		PublicKeyOptions: common.PublicKeyOptions{
-			RPCOption: getRPCOption(rpcOpts),
+		PublicKeyOptions: &common.PublicKeyOptions{
+			RPCOptions: getRPCOptions(rpcOpts),
 		},
 	}
 	ctx := c.Ctx
@@ -194,17 +199,21 @@ func (c PluginClient) CreateKey(ctx context.Context, algorithm string) (crypto.P
 	return publicKey, nil
 }
 
-func getMessageOption(opts []signature.MessageOption) *common.MessageOption {
+func getMessageOptions(opts []signature.MessageOption) *common.MessageOptions {
 	var digest []byte
 	var signerOpts crypto.SignerOpts
 	for _, opt := range opts {
 		opt.ApplyDigest(&digest)
 		opt.ApplyCryptoSignerOpts(&signerOpts)
 	}
-	hashFunc := signerOpts.HashFunc()
-	return &common.MessageOption{
+	var hashFunc *crypto.Hash
+	if signerOpts != nil {
+		hf := signerOpts.HashFunc()
+		hashFunc = &hf
+	}
+	return &common.MessageOptions{
 		Digest:   &digest,
-		HashFunc: &hashFunc,
+		HashFunc: hashFunc,
 	}
 }
 
@@ -218,9 +227,9 @@ func (c PluginClient) SignMessage(message io.Reader, opts ...signature.SignOptio
 		messageOpts = append(messageOpts, opt)
 	}
 	args := &common.SignMessageArgs{
-		SignOptions: common.SignOptions{
-			RPCOption:     getRPCOption(rpcOpts),
-			MessageOption: getMessageOption(messageOpts),
+		SignOptions: &common.SignOptions{
+			RPCOptions:     getRPCOptions(rpcOpts),
+			MessageOptions: getMessageOptions(messageOpts),
 		},
 	}
 	ctx := c.Ctx
@@ -237,6 +246,35 @@ func (c PluginClient) SignMessage(message io.Reader, opts ...signature.SignOptio
 	return signature, nil
 }
 
-// func (c PluginClient) VerifySignature(signature io.Reader, message io.Reader, opts ...signature.VerifyOption) error {
-
-// }
+func (c PluginClient) VerifySignature(sig io.Reader, message io.Reader, opts ...signature.VerifyOption) error {
+	rpcOpts := []signature.RPCOption{}
+	for _, opt := range opts {
+		rpcOpts = append(rpcOpts, opt)
+	}
+	messageOpts := []signature.MessageOption{}
+	for _, opt := range opts {
+		messageOpts = append(messageOpts, opt)
+	}
+	sigBytes, err := io.ReadAll(sig)
+	if err != nil {
+		return fmt.Errorf("reading signature: %w", err)
+	}
+	args := &common.VerifySignatureArgs{
+		Signature: &sigBytes,
+		VerifyOptions: &common.VerifyOptions{
+			RPCOptions:     getRPCOptions(rpcOpts),
+			MessageOptions: getMessageOptions(messageOpts),
+		},
+	}
+	ctx := c.Ctx
+	if args.VerifyOptions.CtxDeadline != nil {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithDeadline(ctx, *args.VerifyOptions.CtxDeadline)
+		defer cancel()
+	}
+	_, err = invokePlugin(ctx, &c, message, args)
+	if err != nil {
+		return err
+	}
+	return nil
+}
