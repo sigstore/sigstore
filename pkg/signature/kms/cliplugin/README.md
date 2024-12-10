@@ -38,7 +38,7 @@ Plugin authors must implement the `kms.SignerVerifier` interface methods in thei
 
 Exit status is ignored. Your programs stderr will be redirected to the main program, and errors you wish to return must be serialized in `PluginResp.ErrorMessage` in stdout.
 
-For authors using Go, we vend some helper methods to help you get started.
+For authors using Go, we vend some helper functions to help you get started.
 
 * `GetPluginArgs(osArgs []string) (*PluginArgs, error)`
   * to parse the `PluginArgs`. The plugin author can use the values for some pre-processing, perhaps with the values in `PluginArgs.InitOptions`.
@@ -50,6 +50,16 @@ For authors using Go, we vend some helper methods to help you get started.
   * , should the author simply send an error message and exit.
 
 ## Development
+
+Changes to the `SignerVerifier` interface are to be handled in [./signer.go's](./signer.go) `PluginClient` and [./handler/dispatch.go's](./handler/dispatch.go) `Dispatch()`.
+
+### Adding New Methods or Method Options
+
+Adding new methods or options are *not* necessarily breaking changes to the schemas, so we may consider these to be minor version increments, both to the protocol version and the sigstore version.
+
+### Removing Methods
+
+Removing methods, or altering their signatures will break the schemas and will require major version increments, both to the protocl version and the sigstore version.
 
 ### Example Plugin
 
