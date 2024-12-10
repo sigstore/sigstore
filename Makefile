@@ -28,7 +28,7 @@ GOLANGCI_LINT_BIN = $(GOLANGCI_LINT_DIR)/golangci-lint
 
 LDFLAGS ?=
 
-GO_MOD_DIRS = . ./pkg/signature/kms/aws ./pkg/signature/kms/azure ./pkg/signature/kms/gcp ./pkg/signature/kms/hashivault
+GO_MOD_DIRS = . ./pkg/signature/kms/alibaba ./pkg/signature/kms/aws ./pkg/signature/kms/azure ./pkg/signature/kms/gcp ./pkg/signature/kms/hashivault
 
 golangci-lint:
 	rm -f $(GOLANGCI_LINT_BIN) || :
