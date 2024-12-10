@@ -45,35 +45,10 @@ func newPluginClient(ctx context.Context, executable string, initOptions *common
 }
 
 // invokePlugin invokes the plugin program and parses its response.
-func (c PluginClient) invokePlugin(ctx context.Context, stdin io.Reader, methodArgs interface{}) (*common.PluginResp, error) {
-	args := &common.MethodArgs{}
-	// We can't type switch on generics, so we must convert it to any.
-	// Any generic type of T must also by added to this switch
-	switch a := methodArgs.(type) {
-	case *common.DefaultAlgorithmArgs:
-		args.MethodName = common.DefaultAlgorithmMethodName
-		args.DefaultAlgorithm = a
-	case *common.SupportedAlgorithmsArgs:
-		args.MethodName = common.SupportedAlgorithmsMethodName
-		args.SuportedAlgorithms = a
-	case *common.PublicKeyArgs:
-		args.MethodName = common.PublicKeyMethodName
-		args.PublicKey = a
-	case *common.CreateKeyArgs:
-		args.MethodName = common.CreateKeyMethodName
-		args.CreateKey = a
-	case *common.SignMessageArgs:
-		args.MethodName = common.SignMessageMethodName
-		args.SignMessage = a
-	case *common.VerifySignatureArgs:
-		args.MethodName = common.VerifySignatureMethodName
-		args.VerifySignature = a
-	default:
-		return nil, fmt.Errorf("%w: %v", ErrorUnsupportedMethod, a)
-	}
+func (c PluginClient) invokePlugin(ctx context.Context, stdin io.Reader, methodArgs *common.MethodArgs) (*common.PluginResp, error) {
 	pluginArgs := &common.PluginArgs{
 		InitOptions: &c.initOptions,
-		MethodArgs:  args,
+		MethodArgs:  methodArgs,
 	}
 	argsEnc, err := json.Marshal(pluginArgs)
 	if err != nil {
@@ -103,7 +78,10 @@ func (c PluginClient) invokePlugin(ctx context.Context, stdin io.Reader, methodA
 }
 
 func (c PluginClient) DefaultAlgorithm() string {
-	args := &common.DefaultAlgorithmArgs{}
+	args := &common.MethodArgs{
+		MethodName:       common.DefaultAlgorithmMethodName,
+		DefaultAlgorithm: &common.DefaultAlgorithmArgs{},
+	}
 	resp, err := c.invokePlugin(context.TODO(), nil, args)
 	if err != nil {
 		log.Fatal(err)
@@ -112,7 +90,10 @@ func (c PluginClient) DefaultAlgorithm() string {
 }
 
 func (c PluginClient) SupportedAlgorithms() (result []string) {
-	args := &common.SupportedAlgorithmsArgs{}
+	args := &common.MethodArgs{
+		MethodName:          common.SupportedAlgorithmsMethodName,
+		SupportedAlgorithms: &common.SupportedAlgorithmsArgs{},
+	}
 	resp, err := c.invokePlugin(context.TODO(), nil, args)
 	if err != nil {
 		log.Fatal(err)
@@ -148,15 +129,18 @@ func (c PluginClient) PublicKey(opts ...signature.PublicKeyOption) (crypto.Publi
 	for _, opt := range opts {
 		rpcOpts = append(rpcOpts, opt)
 	}
-	args := &common.PublicKeyArgs{
-		PublicKeyOptions: &common.PublicKeyOptions{
-			RPCOptions: getRPCOptions(rpcOpts),
+	args := &common.MethodArgs{
+		MethodName: common.PublicKeyMethodName,
+		PublicKey: &common.PublicKeyArgs{
+			PublicKeyOptions: &common.PublicKeyOptions{
+				RPCOptions: getRPCOptions(rpcOpts),
+			},
 		},
 	}
 	ctx := c.Ctx
-	if args.PublicKeyOptions.CtxDeadline != nil {
+	if args.PublicKey.PublicKeyOptions.CtxDeadline != nil {
 		var cancel context.CancelFunc
-		ctx, cancel = context.WithDeadline(ctx, *args.PublicKeyOptions.CtxDeadline)
+		ctx, cancel = context.WithDeadline(ctx, *args.PublicKey.PublicKeyOptions.CtxDeadline)
 		defer cancel()
 	}
 	resp, err := c.invokePlugin(ctx, nil, args)
@@ -171,8 +155,11 @@ func (c PluginClient) PublicKey(opts ...signature.PublicKeyOption) (crypto.Publi
 }
 
 func (c PluginClient) CreateKey(ctx context.Context, algorithm string) (crypto.PublicKey, error) {
-	args := &common.CreateKeyArgs{
-		Algorithm: algorithm,
+	args := &common.MethodArgs{
+		MethodName: common.CreateKeyMethodName,
+		CreateKey: &common.CreateKeyArgs{
+			Algorithm: algorithm,
+		},
 	}
 	resp, err := c.invokePlugin(context.TODO(), nil, args)
 	if err != nil {
@@ -212,16 +199,19 @@ func (c PluginClient) SignMessage(message io.Reader, opts ...signature.SignOptio
 	for _, opt := range opts {
 		messageOpts = append(messageOpts, opt)
 	}
-	args := &common.SignMessageArgs{
-		SignOptions: &common.SignOptions{
-			RPCOptions:     getRPCOptions(rpcOpts),
-			MessageOptions: getMessageOptions(messageOpts),
+	args := &common.MethodArgs{
+		MethodName: common.SignMessageMethodName,
+		SignMessage: &common.SignMessageArgs{
+			SignOptions: &common.SignOptions{
+				RPCOptions:     getRPCOptions(rpcOpts),
+				MessageOptions: getMessageOptions(messageOpts),
+			},
 		},
 	}
 	ctx := c.Ctx
-	if args.SignOptions.CtxDeadline != nil {
+	if args.SignMessage.SignOptions.CtxDeadline != nil {
 		var cancel context.CancelFunc
-		ctx, cancel = context.WithDeadline(ctx, *args.SignOptions.CtxDeadline)
+		ctx, cancel = context.WithDeadline(ctx, *args.SignMessage.SignOptions.CtxDeadline)
 		defer cancel()
 	}
 	resp, err := c.invokePlugin(ctx, message, args)
@@ -245,17 +235,20 @@ func (c PluginClient) VerifySignature(sig io.Reader, message io.Reader, opts ...
 	if err != nil {
 		return fmt.Errorf("reading signature: %w", err)
 	}
-	args := &common.VerifySignatureArgs{
-		Signature: &sigBytes,
-		VerifyOptions: &common.VerifyOptions{
-			RPCOptions:     getRPCOptions(rpcOpts),
-			MessageOptions: getMessageOptions(messageOpts),
+	args := &common.MethodArgs{
+		MethodName: common.VerifySignatureMethodName,
+		VerifySignature: &common.VerifySignatureArgs{
+			Signature: &sigBytes,
+			VerifyOptions: &common.VerifyOptions{
+				RPCOptions:     getRPCOptions(rpcOpts),
+				MessageOptions: getMessageOptions(messageOpts),
+			},
 		},
 	}
 	ctx := c.Ctx
-	if args.VerifyOptions.CtxDeadline != nil {
+	if args.VerifySignature.VerifyOptions.CtxDeadline != nil {
 		var cancel context.CancelFunc
-		ctx, cancel = context.WithDeadline(ctx, *args.VerifyOptions.CtxDeadline)
+		ctx, cancel = context.WithDeadline(ctx, *args.VerifySignature.VerifyOptions.CtxDeadline)
 		defer cancel()
 	}
 	_, err = c.invokePlugin(ctx, message, args)

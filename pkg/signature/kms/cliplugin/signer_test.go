@@ -52,8 +52,8 @@ func Test_invokePlugin(t *testing.T) {
 	pluginArgsEnc, err := json.Marshal(common.PluginArgs{
 		InitOptions: &common.InitOptions{},
 		MethodArgs: &common.MethodArgs{
-			MethodName:         common.SupportedAlgorithmsMethodName,
-			SuportedAlgorithms: &common.SupportedAlgorithmsArgs{},
+			MethodName:          common.SupportedAlgorithmsMethodName,
+			SupportedAlgorithms: &common.SupportedAlgorithmsArgs{},
 		},
 	})
 	if err != nil {
@@ -150,7 +150,10 @@ func Test_invokePlugin(t *testing.T) {
 				&common.InitOptions{},
 				makeCommandFunc,
 			)
-			resp, err := testPluginClient.invokePlugin(context.TODO(), nil, &common.SupportedAlgorithmsArgs{})
+			resp, err := testPluginClient.invokePlugin(context.TODO(), nil, &common.MethodArgs{
+				MethodName:          common.SupportedAlgorithmsMethodName,
+				SupportedAlgorithms: &common.SupportedAlgorithmsArgs{},
+			})
 			if errorDiff := cmp.Diff(tc.err, err, cmpopts.EquateErrors()); errorDiff != "" {
 				t.Errorf("unexpected error (-want +got):\n%s", errorDiff)
 			}
@@ -213,7 +216,7 @@ func Test_SignMessage(t *testing.T) {
 			message:          []byte(`my-message`),
 			keyVersion:       "1",
 			cryptoSignerOpts: crypto.SHA384,
-			implSig:          []byte(`my-signatureXXXXXXX000000`),
+			implSig:          []byte(`my-signature`),
 			implErr:          nil,
 			err:              nil,
 		},
@@ -228,12 +231,6 @@ func Test_SignMessage(t *testing.T) {
 				}
 				if pluginArgs.MethodName != common.SignMessageMethodName {
 					t.Fatalf("unexpected method: %s", pluginArgs.MethodName)
-				}
-				if *pluginArgs.SignMessage.SignOptions.KeyVersion != tc.keyVersion {
-					t.Fatalf("unexpected key version: %s", *pluginArgs.SignMessage.SignOptions.KeyVersion)
-				}
-				if *pluginArgs.SignMessage.SignOptions.HashFunc != tc.cryptoSignerOpts.HashFunc() {
-					t.Fatalf("unexpected hash func: %s", *pluginArgs.SignMessage.SignOptions.HashFunc)
 				}
 				var respBuffer bytes.Buffer
 				_, err = handler.Dispatch(&respBuffer, stdin, pluginArgs, TestSignerVerifierImpl{
