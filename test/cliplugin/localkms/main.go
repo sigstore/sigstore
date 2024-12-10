@@ -12,6 +12,8 @@ import (
 const expectedProtocolVersion = "1"
 
 func main() {
+	// we log to stderr, not stdout. stdout is reserved for the plugin return value.
+	spew.Fdump(os.Stderr, os.Args)
 	if protocolVersion := os.Args[1]; protocolVersion != expectedProtocolVersion {
 		err := fmt.Errorf("expected protocl version: %s, got %s", expectedProtocolVersion, protocolVersion)
 		handler.WriteErrorResponse(os.Stdout, err)
@@ -22,6 +24,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	spew.Fdump(os.Stderr, pluginArgs)
 
 	signerVerifier := &LocalSignerVerifier{
 		hashFunc:      pluginArgs.InitOptions.HashFunc,

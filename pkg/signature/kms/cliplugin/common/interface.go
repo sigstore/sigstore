@@ -31,13 +31,13 @@ type PluginArgs struct {
 }
 
 type MethodArgs struct {
-	MethodName         string                   `json:"methodName"`
-	DefaultAlgorithm   *DefaultAlgorithmArgs    `json:"defaultAlgorithm,omitempty"`
-	SuportedAlgorithms *SupportedAlgorithmsArgs `json:"suportedAlgorithms,omitempty"`
-	PublicKey          *PublicKeyArgs           `json:"publicKey,omitempty"`
-	CreateKey          *CreateKeyArgs           `json:"createKey,omitempty"`
-	SignMessage        *SignMessageArgs         `json:"signMessage,omitempty"`
-	VerifySignature    *VerifySignatureArgs     `json:"verifySignature,omitempty"`
+	MethodName          string                   `json:"methodName"`
+	DefaultAlgorithm    *DefaultAlgorithmArgs    `json:"defaultAlgorithm,omitempty"`
+	SupportedAlgorithms *SupportedAlgorithmsArgs `json:"suportedAlgorithms,omitempty"`
+	PublicKey           *PublicKeyArgs           `json:"publicKey,omitempty"`
+	CreateKey           *CreateKeyArgs           `json:"createKey,omitempty"`
+	SignMessage         *SignMessageArgs         `json:"signMessage,omitempty"`
+	VerifySignature     *VerifySignatureArgs     `json:"verifySignature,omitempty"`
 }
 
 type PluginResp struct {
