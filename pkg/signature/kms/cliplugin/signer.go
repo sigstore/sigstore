@@ -101,29 +101,6 @@ func (c PluginClient) SupportedAlgorithms() (result []string) {
 	return resp.SupportedAlgorithms.SupportedAlgorithms
 }
 
-func getRPCOptions(opts []signature.RPCOption) *common.RPCOptions {
-	ctx := context.TODO()
-	rpcAuth := options.RPCAuth{}
-	var keyVersion string
-	var remoteVerification bool
-	for _, opt := range opts {
-		opt.ApplyRPCAuthOpts(&rpcAuth)
-		opt.ApplyContext(&ctx)
-		opt.ApplyKeyVersion(&keyVersion)
-		opt.ApplyRemoteVerification(&remoteVerification)
-	}
-	var ctxDeadline *time.Time
-	if deadline, ok := ctx.Deadline(); ok {
-		ctxDeadline = &deadline
-	}
-	return &common.RPCOptions{
-		CtxDeadline:        ctxDeadline,
-		KeyVersion:         &keyVersion,
-		RPCAuth:            &rpcAuth,
-		RemoteVerification: &remoteVerification,
-	}
-}
-
 func (c PluginClient) PublicKey(opts ...signature.PublicKeyOption) (crypto.PublicKey, error) {
 	rpcOpts := []signature.RPCOption{}
 	for _, opt := range opts {
@@ -170,24 +147,6 @@ func (c PluginClient) CreateKey(ctx context.Context, algorithm string) (crypto.P
 		return nil, err
 	}
 	return publicKey, nil
-}
-
-func getMessageOptions(opts []signature.MessageOption) *common.MessageOptions {
-	var digest []byte
-	var signerOpts crypto.SignerOpts
-	for _, opt := range opts {
-		opt.ApplyDigest(&digest)
-		opt.ApplyCryptoSignerOpts(&signerOpts)
-	}
-	var hashFunc *crypto.Hash
-	if signerOpts != nil {
-		hf := signerOpts.HashFunc()
-		hashFunc = &hf
-	}
-	return &common.MessageOptions{
-		Digest:   &digest,
-		HashFunc: hashFunc,
-	}
 }
 
 func (c PluginClient) SignMessage(message io.Reader, opts ...signature.SignOption) ([]byte, error) {
@@ -256,4 +215,45 @@ func (c PluginClient) VerifySignature(sig io.Reader, message io.Reader, opts ...
 		return err
 	}
 	return nil
+}
+
+func getRPCOptions(opts []signature.RPCOption) *common.RPCOptions {
+	ctx := context.TODO()
+	rpcAuth := options.RPCAuth{}
+	var keyVersion string
+	var remoteVerification bool
+	for _, opt := range opts {
+		opt.ApplyRPCAuthOpts(&rpcAuth)
+		opt.ApplyContext(&ctx)
+		opt.ApplyKeyVersion(&keyVersion)
+		opt.ApplyRemoteVerification(&remoteVerification)
+	}
+	var ctxDeadline *time.Time
+	if deadline, ok := ctx.Deadline(); ok {
+		ctxDeadline = &deadline
+	}
+	return &common.RPCOptions{
+		CtxDeadline:        ctxDeadline,
+		KeyVersion:         &keyVersion,
+		RPCAuth:            &rpcAuth,
+		RemoteVerification: &remoteVerification,
+	}
+}
+
+func getMessageOptions(opts []signature.MessageOption) *common.MessageOptions {
+	var digest []byte
+	var signerOpts crypto.SignerOpts
+	for _, opt := range opts {
+		opt.ApplyDigest(&digest)
+		opt.ApplyCryptoSignerOpts(&signerOpts)
+	}
+	var hashFunc *crypto.Hash
+	if signerOpts != nil {
+		hf := signerOpts.HashFunc()
+		hashFunc = &hf
+	}
+	return &common.MessageOptions{
+		Digest:   &digest,
+		HashFunc: hashFunc,
+	}
 }
