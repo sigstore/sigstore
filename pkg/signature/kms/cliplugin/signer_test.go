@@ -145,7 +145,6 @@ func Test_invokePlugin(t *testing.T) {
 				}
 			}
 			testPluginClient := newPluginClient(
-				context.TODO(),
 				"sigstore-kms-test",
 				&common.InitOptions{},
 				makeCommandFunc,
@@ -252,7 +251,6 @@ func Test_SignMessage(t *testing.T) {
 				}
 			}
 			testPluginClient := newPluginClient(
-				context.TODO(),
 				"sigstore-kms-test",
 				&common.InitOptions{},
 				makeCommandFunc,

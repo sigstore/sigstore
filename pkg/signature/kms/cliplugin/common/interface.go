@@ -22,7 +22,10 @@ type InitOptions struct {
 	KeyResourceID   string      `json:"keyResourceID"`
 	KeyVersion      string      `json:"keyVersion,omitempty"`
 	HashFunc        crypto.Hash `json:"hashFunc"`
-	CtxDeadline     *time.Time  `json:"timeout,omitempty"`
+	// CtxDeadline comes from the initial context from cliplugin's LoadSignerVerifier().
+	// This will not be directly used in PluginClient's methods, nor within Command objects.
+	// Instead, plugin authors may use it for KMS-specific initialization tasks.
+	CtxDeadline *time.Time `json:"timeout,omitempty"`
 }
 
 type PluginArgs struct {
