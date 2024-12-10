@@ -1,6 +1,7 @@
 package cliplugin
 
 import (
+	"bytes"
 	"context"
 	"crypto"
 	"encoding/json"
@@ -26,17 +27,20 @@ var (
 	ErrorUnsupportedMethod       = errors.New("unsupported methodArgs")
 )
 
+// PluginClient implements kms.SignerVerifier with calls to our plugin program.
+// The initial Ctx is preserved for use only by the plugin program if plugin authors desire to.
 type PluginClient struct {
 	kms.SignerVerifier
-	Ctx             context.Context
+	// Ctx will not be directly used in PluginClient's methods, nor within Command objects.
+	// Instead, we will pass this initial Ctx's deadline, if it exists, within PluginArgs.InitOptions.
+	// Plugin authors may use it, if desired, for KMS-specific initialization tasks.
 	executable      string
 	initOptions     common.InitOptions
 	makeCommandFunc makeCommandFunc
 }
 
-func newPluginClient(ctx context.Context, executable string, initOptions *common.InitOptions, makeCommand makeCommandFunc) *PluginClient {
+func newPluginClient(executable string, initOptions *common.InitOptions, makeCommand makeCommandFunc) *PluginClient {
 	pluginClient := &PluginClient{
-		Ctx:             ctx,
 		executable:      executable,
 		initOptions:     *initOptions,
 		makeCommandFunc: makeCommand,
@@ -106,19 +110,14 @@ func (c PluginClient) PublicKey(opts ...signature.PublicKeyOption) (crypto.Publi
 	for _, opt := range opts {
 		rpcOpts = append(rpcOpts, opt)
 	}
+	ctx, rpcOptions := getRPCOptions(rpcOpts)
 	args := &common.MethodArgs{
 		MethodName: common.PublicKeyMethodName,
 		PublicKey: &common.PublicKeyArgs{
 			PublicKeyOptions: &common.PublicKeyOptions{
-				RPCOptions: getRPCOptions(rpcOpts),
+				RPCOptions: rpcOptions,
 			},
 		},
-	}
-	ctx := c.Ctx
-	if args.PublicKey.PublicKeyOptions.CtxDeadline != nil {
-		var cancel context.CancelFunc
-		ctx, cancel = context.WithDeadline(ctx, *args.PublicKey.PublicKeyOptions.CtxDeadline)
-		defer cancel()
 	}
 	resp, err := c.invokePlugin(ctx, nil, args)
 	if err != nil {
@@ -158,20 +157,15 @@ func (c PluginClient) SignMessage(message io.Reader, opts ...signature.SignOptio
 	for _, opt := range opts {
 		messageOpts = append(messageOpts, opt)
 	}
+	ctx, rpcOptions := getRPCOptions(rpcOpts)
 	args := &common.MethodArgs{
 		MethodName: common.SignMessageMethodName,
 		SignMessage: &common.SignMessageArgs{
 			SignOptions: &common.SignOptions{
-				RPCOptions:     getRPCOptions(rpcOpts),
+				RPCOptions:     rpcOptions,
 				MessageOptions: getMessageOptions(messageOpts),
 			},
 		},
-	}
-	ctx := c.Ctx
-	if args.SignMessage.SignOptions.CtxDeadline != nil {
-		var cancel context.CancelFunc
-		ctx, cancel = context.WithDeadline(ctx, *args.SignMessage.SignOptions.CtxDeadline)
-		defer cancel()
 	}
 	resp, err := c.invokePlugin(ctx, message, args)
 	if err != nil {
@@ -194,21 +188,16 @@ func (c PluginClient) VerifySignature(sig io.Reader, message io.Reader, opts ...
 	if err != nil {
 		return fmt.Errorf("reading signature: %w", err)
 	}
+	ctx, rpcOptions := getRPCOptions(rpcOpts)
 	args := &common.MethodArgs{
 		MethodName: common.VerifySignatureMethodName,
 		VerifySignature: &common.VerifySignatureArgs{
 			Signature: &sigBytes,
 			VerifyOptions: &common.VerifyOptions{
-				RPCOptions:     getRPCOptions(rpcOpts),
+				RPCOptions:     rpcOptions,
 				MessageOptions: getMessageOptions(messageOpts),
 			},
 		},
-	}
-	ctx := c.Ctx
-	if args.VerifySignature.VerifyOptions.CtxDeadline != nil {
-		var cancel context.CancelFunc
-		ctx, cancel = context.WithDeadline(ctx, *args.VerifySignature.VerifyOptions.CtxDeadline)
-		defer cancel()
 	}
 	_, err = c.invokePlugin(ctx, message, args)
 	if err != nil {
@@ -217,7 +206,19 @@ func (c PluginClient) VerifySignature(sig io.Reader, message io.Reader, opts ...
 	return nil
 }
 
-func getRPCOptions(opts []signature.RPCOption) *common.RPCOptions {
+func (c PluginClient) CryptoSigner(ctx context.Context, errFunc func(error)) (crypto.Signer, crypto.SignerOpts, error) {
+	signer := CryptoSigner{
+		pluginClient: &c,
+		errFunc:      errFunc,
+		ctx:          ctx,
+	}
+	signerOpts := c.initOptions.HashFunc
+	return signer, signerOpts, nil
+}
+
+// getRPCOptions extracts properties of all of opts into struct ready for serializing.
+// The returned context will be context.TODO() if not provided within the opts.
+func getRPCOptions(opts []signature.RPCOption) (context.Context, *common.RPCOptions) {
 	ctx := context.TODO()
 	rpcAuth := options.RPCAuth{}
 	var keyVersion string
@@ -232,7 +233,7 @@ func getRPCOptions(opts []signature.RPCOption) *common.RPCOptions {
 	if deadline, ok := ctx.Deadline(); ok {
 		ctxDeadline = &deadline
 	}
-	return &common.RPCOptions{
+	return ctx, &common.RPCOptions{
 		CtxDeadline:        ctxDeadline,
 		KeyVersion:         &keyVersion,
 		RPCAuth:            &rpcAuth,
@@ -240,6 +241,7 @@ func getRPCOptions(opts []signature.RPCOption) *common.RPCOptions {
 	}
 }
 
+// getMessageOptions extracts properties of all of opts into struct ready for serializing.
 func getMessageOptions(opts []signature.MessageOption) *common.MessageOptions {
 	var digest []byte
 	var signerOpts crypto.SignerOpts
@@ -256,4 +258,33 @@ func getMessageOptions(opts []signature.MessageOption) *common.MessageOptions {
 		Digest:   &digest,
 		HashFunc: hashFunc,
 	}
+}
+
+// CryptoSigner wraps around the PluginClient.
+type CryptoSigner struct {
+	pluginClient *PluginClient
+	errFunc      func(error)
+	ctx          context.Context
+}
+
+// Public returns the public key.
+func (c CryptoSigner) Public() crypto.PublicKey {
+	publicKey, err := c.pluginClient.PublicKey()
+	if err != nil {
+		panic(err)
+	}
+	return publicKey
+}
+
+// Sign signs the digest with the PluginClient. rand is not used.
+func (c CryptoSigner) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpts) ([]byte, error) {
+	// no message is given, only a digest
+	emptyMessage := bytes.NewReader([]byte{})
+	signOpts := []signature.SignOption{
+		// We do not pass the context PluginClient's initial context to this method.
+		options.WithCryptoSignerOpts(opts),
+		options.WithDigest(digest),
+		options.WithKeyVersion(c.pluginClient.initOptions.KeyVersion),
+	}
+	return c.pluginClient.SignMessage(emptyMessage, signOpts...)
 }
