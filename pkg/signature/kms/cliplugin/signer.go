@@ -23,7 +23,7 @@ var (
 	ErrorResponseParseError      = errors.New("parsing plugin response")
 	ErrorPluginReturnError       = errors.New("plugin returned error")
 	ErrorParsingPluginBinaryName = errors.New("parsing plugin binary name")
-	ErrorUnsupportedMethod       = errors.New("unsupported method")
+	ErrorUnsupportedMethod       = errors.New("unsupported methodArgs")
 )
 
 type PluginClient struct {
@@ -45,25 +45,11 @@ func newPluginClient(ctx context.Context, executable string, initOptions *common
 }
 
 // invokePlugin invokes the plugin program and parses its response.
-// Here we use a generic so we can get compile-time errors for incorrect methodArgs,
-// instead of making methodArgs be an interface{}.
-func invokePlugin[
-	T common.DefaultAlgorithmArgs |
-		common.SupportedAlgorithmsArgs |
-		common.PublicKeyArgs |
-		common.CreateKeyArgs |
-		common.SignMessageArgs |
-		common.VerifySignatureArgs,
-](
-	ctx context.Context,
-	client *PluginClient,
-	stdin io.Reader,
-	methodArgs *T,
-) (*common.PluginResp, error) {
+func (c PluginClient) invokePlugin(ctx context.Context, stdin io.Reader, methodArgs interface{}) (*common.PluginResp, error) {
 	args := &common.MethodArgs{}
 	// We can't type switch on generics, so we must convert it to any.
 	// Any generic type of T must also by added to this switch
-	switch a := any(methodArgs).(type) {
+	switch a := methodArgs.(type) {
 	case *common.DefaultAlgorithmArgs:
 		args.MethodName = common.DefaultAlgorithmMethodName
 		args.DefaultAlgorithm = a
@@ -86,14 +72,14 @@ func invokePlugin[
 		return nil, fmt.Errorf("%w: %v", ErrorUnsupportedMethod, a)
 	}
 	pluginArgs := &common.PluginArgs{
-		InitOptions: &client.initOptions,
+		InitOptions: &c.initOptions,
 		MethodArgs:  args,
 	}
 	argsEnc, err := json.Marshal(pluginArgs)
 	if err != nil {
 		return nil, err
 	}
-	cmd := client.makeCommandFunc(ctx, stdin, os.Stderr, client.executable, common.ProtocolVersion, string(argsEnc))
+	cmd := c.makeCommandFunc(ctx, stdin, os.Stderr, c.executable, common.ProtocolVersion, string(argsEnc))
 	// We won't look at the program's non-zero exit code, but we will respect any other
 	// error, and cases when exec.ExitError.ExitCode() is 0 or -1:
 	//   * (0) the program finished successfuly or
@@ -118,7 +104,7 @@ func invokePlugin[
 
 func (c PluginClient) DefaultAlgorithm() string {
 	args := &common.DefaultAlgorithmArgs{}
-	resp, err := invokePlugin(context.TODO(), &c, nil, args)
+	resp, err := c.invokePlugin(context.TODO(), nil, args)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -127,7 +113,7 @@ func (c PluginClient) DefaultAlgorithm() string {
 
 func (c PluginClient) SupportedAlgorithms() (result []string) {
 	args := &common.SupportedAlgorithmsArgs{}
-	resp, err := invokePlugin(context.TODO(), &c, nil, args)
+	resp, err := c.invokePlugin(context.TODO(), nil, args)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -173,7 +159,7 @@ func (c PluginClient) PublicKey(opts ...signature.PublicKeyOption) (crypto.Publi
 		ctx, cancel = context.WithDeadline(ctx, *args.PublicKeyOptions.CtxDeadline)
 		defer cancel()
 	}
-	resp, err := invokePlugin(ctx, &c, nil, args)
+	resp, err := c.invokePlugin(ctx, nil, args)
 	if err != nil {
 		return nil, err
 	}
@@ -188,7 +174,7 @@ func (c PluginClient) CreateKey(ctx context.Context, algorithm string) (crypto.P
 	args := &common.CreateKeyArgs{
 		Algorithm: algorithm,
 	}
-	resp, err := invokePlugin(ctx, &c, nil, args)
+	resp, err := c.invokePlugin(context.TODO(), nil, args)
 	if err != nil {
 		return nil, err
 	}
@@ -238,7 +224,7 @@ func (c PluginClient) SignMessage(message io.Reader, opts ...signature.SignOptio
 		ctx, cancel = context.WithDeadline(ctx, *args.SignOptions.CtxDeadline)
 		defer cancel()
 	}
-	resp, err := invokePlugin(ctx, &c, message, args)
+	resp, err := c.invokePlugin(ctx, message, args)
 	if err != nil {
 		return nil, err
 	}
@@ -272,7 +258,7 @@ func (c PluginClient) VerifySignature(sig io.Reader, message io.Reader, opts ...
 		ctx, cancel = context.WithDeadline(ctx, *args.VerifyOptions.CtxDeadline)
 		defer cancel()
 	}
-	_, err = invokePlugin(ctx, &c, message, args)
+	_, err = c.invokePlugin(ctx, message, args)
 	if err != nil {
 		return err
 	}
