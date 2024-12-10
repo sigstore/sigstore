@@ -150,7 +150,7 @@ func Test_invokePlugin(t *testing.T) {
 				&common.InitOptions{},
 				makeCommandFunc,
 			)
-			resp, err := invokePlugin(context.TODO(), testPluginClient, nil, &common.SupportedAlgorithmsArgs{})
+			resp, err := testPluginClient.invokePlugin(context.TODO(), nil, &common.SupportedAlgorithmsArgs{})
 			if errorDiff := cmp.Diff(tc.err, err, cmpopts.EquateErrors()); errorDiff != "" {
 				t.Errorf("unexpected error (-want +got):\n%s", errorDiff)
 			}

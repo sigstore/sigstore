@@ -156,7 +156,7 @@ func (g LocalSignerVerifier) signMessageWithPrivateKey(privateKey *rsa.PrivateKe
 
 	signature, err := rsa.SignPKCS1v15(rand.Reader, privateKey, crypto.SHA256, digest)
 	if err != nil {
-		return nil, fmt.Errorf("Error signing data:", err)
+		return nil, fmt.Errorf("error signing data: %w", err)
 	}
 	return signature, nil
 }
