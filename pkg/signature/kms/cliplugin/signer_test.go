@@ -1,3 +1,19 @@
+//
+// Copyright 2021 The Sigstore Authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// Package cliplugin implements the plugin functioanlity.
 package cliplugin
 
 import (
@@ -19,27 +35,35 @@ import (
 	"github.com/sigstore/sigstore/pkg/signature/kms/cliplugin/handler"
 )
 
+// testCommand mocks a command.
 type testCommand struct {
 	// command
-	outputFunc func() ([]byte, error)
-	err        error
+	output []byte
+	err    error
 }
 
+// testExitError mocks an exitError.
 type testExitError struct {
 	exitCode int
 }
 
+// ExitCode returns the exitCode.
 func (e testExitError) ExitCode() int {
 	return e.exitCode
 }
 
+// Error returns the error message.
 func (e testExitError) Error() string {
 	return "test exit error"
 }
 
+// Output returns the
 func (c testCommand) Output() ([]byte, error) {
-	return c.outputFunc()
+	return c.output, c.err
 }
+
+// Test_invokePlugin ensures that invokePlugin passes the correct CLI arguments,
+// and handles various eror situations as expected.
 func Test_invokePlugin(t *testing.T) {
 	goodOutput := `{"supportedAlgorithms":{"supportedAlgorithms":["alg1", "alg2"]}}`
 	goodResp := &common.PluginResp{
@@ -136,10 +160,8 @@ func Test_invokePlugin(t *testing.T) {
 					t.Fatalf("unexpected args: %s", args[1])
 				}
 				return testCommand{
-					outputFunc: func() ([]byte, error) {
-						return []byte(tc.cmdOutput), tc.commandOutputErr
-					},
-					err: tc.commandOutputErr,
+					output: []byte(tc.cmdOutput),
+					err:    tc.commandOutputErr,
 				}
 			}
 			testPluginClient := newPluginClient(
@@ -164,6 +186,7 @@ func Test_invokePlugin(t *testing.T) {
 	}
 }
 
+// TestSignerVerifierImpl is a mock implemention of SignerVerifier.
 type TestSignerVerifierImpl struct {
 	kms.SignerVerifier
 	t             *testing.T
@@ -173,6 +196,8 @@ type TestSignerVerifierImpl struct {
 	wantedSignature []byte
 }
 
+// SignMessage is a mock implementation of SignMessage,
+// where received arguments are compared against the saved expected values.
 func (s TestSignerVerifierImpl) SignMessage(message io.Reader, opts ...signature.SignOption) ([]byte, error) {
 	slog.Info("ImplSignMessage", "opts", opts)
 	messageBytes, err := io.ReadAll(message)
@@ -191,6 +216,7 @@ func (s TestSignerVerifierImpl) SignMessage(message io.Reader, opts ...signature
 	return s.wantedSignature, s.wantedErr
 }
 
+// Test_SignMessage ensures that both the client and plugin send and receive the expected values.
 func Test_SignMessage(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -230,10 +256,8 @@ func Test_SignMessage(t *testing.T) {
 					t.Fatal(err)
 				}
 				return testCommand{
-					outputFunc: func() ([]byte, error) {
-						return respBuffer.Bytes(), err
-					},
-					err: err,
+					output: respBuffer.Bytes(),
+					err:    err,
 				}
 			}
 			testPluginClient := newPluginClient(

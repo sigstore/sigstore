@@ -1,3 +1,19 @@
+//
+// Copyright 2021 The Sigstore Authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// Package cliplugin implements the plugin functionality.
 package cliplugin
 
 import (
@@ -6,6 +22,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"os"
 
 	"github.com/sigstore/sigstore/pkg/signature"
@@ -22,7 +39,6 @@ var (
 )
 
 // PluginClient implements kms.SignerVerifier with calls to our plugin program.
-// The initial Ctx is preserved for use only by the plugin program if plugin authors desire to.
 type PluginClient struct {
 	kms.SignerVerifier
 	executable      string
@@ -30,6 +46,7 @@ type PluginClient struct {
 	makeCommandFunc makeCommandFunc
 }
 
+// newPluginClient creates a new PluginClient.
 func newPluginClient(executable string, initOptions *common.InitOptions, makeCommand makeCommandFunc) *PluginClient {
 	pluginClient := &PluginClient{
 		executable:      executable,
@@ -74,6 +91,20 @@ func (c PluginClient) invokePlugin(ctx context.Context, stdin io.Reader, methodA
 
 // TODO: Additonal methods to be implemented
 
+// SupportedAlgorithms returns the list of supported algorithms
+func (c PluginClient) SupportedAlgorithms() (result []string) {
+	args := &common.MethodArgs{
+		MethodName:          common.SupportedAlgorithmsMethodName,
+		SupportedAlgorithms: &common.SupportedAlgorithmsArgs{},
+	}
+	resp, err := c.invokePlugin(context.TODO(), nil, args)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return resp.SupportedAlgorithms.SupportedAlgorithms
+}
+
+// SignMessage signs the message and returns a signature.
 func (c PluginClient) SignMessage(message io.Reader, opts ...signature.SignOption) ([]byte, error) {
 	// TODO: extract values from signature.SignOption
 	args := &common.MethodArgs{
