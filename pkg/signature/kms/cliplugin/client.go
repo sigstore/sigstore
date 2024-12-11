@@ -28,12 +28,11 @@ func LoadSignerVerifier(ctx context.Context, inputKeyresourceID string, hashFunc
 	}
 	pluginName, keyResourceID := parts[0], parts[1]
 	executable := pluginBinaryPrefix + pluginName
-	_, rpcOptions := getRPCOptions(opts)
 	initOptions := &common.InitOptions{
 		ProtocolVersion: common.ProtocolVersion,
 		KeyResourceID:   keyResourceID,
 		HashFunc:        hashFunc,
-		RPCOptions:      rpcOptions,
+		// TODO: include extracted values from opts
 	}
 	pluginClient := newPluginClient(executable, initOptions, makeCommand)
 	return pluginClient, nil

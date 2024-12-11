@@ -17,7 +17,6 @@ import (
 	"github.com/sigstore/sigstore/pkg/signature/kms"
 	"github.com/sigstore/sigstore/pkg/signature/kms/cliplugin/common"
 	"github.com/sigstore/sigstore/pkg/signature/kms/cliplugin/handler"
-	"github.com/sigstore/sigstore/pkg/signature/options"
 )
 
 type testCommand struct {
@@ -27,7 +26,6 @@ type testCommand struct {
 }
 
 type testExitError struct {
-	// *exec.ExitError
 	exitCode int
 }
 
@@ -168,12 +166,11 @@ func Test_invokePlugin(t *testing.T) {
 
 type TestSignerVerifierImpl struct {
 	kms.SignerVerifier
-	t                      *testing.T
-	wantedErr              error
-	wantedMessage          []byte
-	wantedcryptoSignerOpts crypto.SignerOpts
-	wantedKeyVersion       string
-	wantedSignature        []byte
+	t             *testing.T
+	wantedErr     error
+	wantedMessage []byte
+	// TODO: use extracted values from signature.RPCOption, and signature.SignOption.
+	wantedSignature []byte
 }
 
 func (s TestSignerVerifierImpl) SignMessage(message io.Reader, opts ...signature.SignOption) ([]byte, error) {
@@ -191,33 +188,24 @@ func (s TestSignerVerifierImpl) SignMessage(message io.Reader, opts ...signature
 		opt.ApplyKeyVersion(&KeyVersion)
 		opt.ApplyCryptoSignerOpts(&cryptoSignerOpts)
 	}
-	if diff := cmp.Diff(s.wantedKeyVersion, KeyVersion); diff != "" {
-		s.t.Errorf("KeyVersion mismatch (-want +got):\n%s", diff)
-	}
-	if diff := cmp.Diff(s.wantedcryptoSignerOpts, cryptoSignerOpts); diff != "" {
-		s.t.Errorf("cryptoSignerOpts mismatch (-want +got):\n%s", diff)
-	}
 	return s.wantedSignature, s.wantedErr
 }
 
 func Test_SignMessage(t *testing.T) {
 	tests := []struct {
-		name             string
-		message          []byte
-		keyVersion       string
-		cryptoSignerOpts crypto.SignerOpts
-		implSig          []byte
-		implErr          error
-		err              error
+		name    string
+		message []byte
+		// TODO: use extracted values from signature.RPCOption, and signature.SignOption.
+		implSig []byte
+		implErr error
+		err     error
 	}{
 		{
-			name:             "success",
-			message:          []byte(`my-message`),
-			keyVersion:       "1",
-			cryptoSignerOpts: crypto.SHA384,
-			implSig:          []byte(`my-signature`),
-			implErr:          nil,
-			err:              nil,
+			name:    "success",
+			message: []byte(`my-message`),
+			implSig: []byte(`my-signature`),
+			implErr: nil,
+			err:     nil,
 		},
 	}
 	for _, tc := range tests {
@@ -233,12 +221,10 @@ func Test_SignMessage(t *testing.T) {
 				}
 				var respBuffer bytes.Buffer
 				_, err = handler.Dispatch(&respBuffer, stdin, pluginArgs, TestSignerVerifierImpl{
-					t:                      t,
-					wantedErr:              tc.implErr,
-					wantedKeyVersion:       tc.keyVersion,
-					wantedcryptoSignerOpts: tc.cryptoSignerOpts,
-					wantedMessage:          tc.message,
-					wantedSignature:        tc.implSig,
+					t:               t,
+					wantedErr:       tc.implErr,
+					wantedMessage:   tc.message,
+					wantedSignature: tc.implSig,
 				})
 				if err != nil {
 					t.Fatal(err)
@@ -255,11 +241,7 @@ func Test_SignMessage(t *testing.T) {
 				&common.InitOptions{},
 				makeCommandFunc,
 			)
-			opts := []signature.SignOption{
-				options.WithKeyVersion(tc.keyVersion),
-				options.WithCryptoSignerOpts(tc.cryptoSignerOpts),
-			}
-			signature, err := testPluginClient.SignMessage(bytes.NewReader(tc.message), opts...)
+			signature, err := testPluginClient.SignMessage(bytes.NewReader(tc.message))
 			if errorDiff := cmp.Diff(tc.err, err, cmpopts.EquateErrors()); errorDiff != "" {
 				t.Errorf("unexpected error (-want +got):\n%s", errorDiff)
 			}

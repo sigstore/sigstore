@@ -16,17 +16,14 @@
 package main
 
 import (
-	"context"
 	"crypto"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
-	"errors"
 	"fmt"
 	"io"
 	"os"
-	"slices"
 
 	"github.com/sigstore/sigstore/pkg/signature"
 	"github.com/sigstore/sigstore/pkg/signature/kms"
@@ -43,51 +40,9 @@ type LocalSignerVerifier struct {
 	hashFunc      crypto.Hash
 }
 
-func (i LocalSignerVerifier) getKeyPath() string {
-	return i.keyResourceID
-}
-
-// DefaultAlgorithm returns the default algorithm for the signer
-func (i LocalSignerVerifier) DefaultAlgorithm() string {
-	return defaultAlgorithm
-}
-
 // SupportedAlgorithms returns a list with the default algorithm
 func (i *LocalSignerVerifier) SupportedAlgorithms() (result []string) {
 	return []string{defaultAlgorithm}
-}
-
-// CreateKey returns a new public key, and saves the private key to the KeyResourceID.
-func (i LocalSignerVerifier) CreateKey(ctx context.Context, algorithm string) (crypto.PublicKey, error) {
-	if !slices.Contains(i.SupportedAlgorithms(), algorithm) {
-		return nil, fmt.Errorf("algorithm %s not supported", algorithm)
-	}
-
-	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
-	if err != nil {
-		return nil, fmt.Errorf("error generating private key: %w", err)
-	}
-
-	privateKeyPEM := &pem.Block{
-		Type:  "RSA PRIVATE KEY",
-		Bytes: x509.MarshalPKCS1PrivateKey(privateKey),
-	}
-
-	path := i.getKeyPath()
-	privateKeyFile, err := os.Create(path)
-	if err != nil {
-		return nil, fmt.Errorf("error creating private key file: %w", err)
-	}
-	defer privateKeyFile.Close()
-
-	// os.WriteFile(path, privateKeyBytes, 0600)
-
-	if err := pem.Encode(privateKeyFile, privateKeyPEM); err != nil {
-		return nil, fmt.Errorf("error encoding private key: %w", err)
-	}
-
-	publicKey := &privateKey.PublicKey
-	return publicKey, nil
 }
 
 // loadRSAPrivateKey loads the private key from the path.
@@ -109,25 +64,6 @@ func loadRSAPrivateKey(path string) (*rsa.PrivateKey, error) {
 	return privateKey, nil
 }
 
-// loadRSAPrivateKey returns the public key from the path.
-func loadPublicKey(path string) (*rsa.PublicKey, error) {
-	privateKey, err := loadRSAPrivateKey(path)
-	if err != nil {
-		return nil, err
-	}
-	publicKey := privateKey.PublicKey
-	return &publicKey, nil
-}
-
-// PublicKey reads the private key from the KeyResourceID and returns the public key.
-func (i LocalSignerVerifier) PublicKey(_ ...signature.PublicKeyOption) (crypto.PublicKey, error) {
-	publickKey, err := loadPublicKey(i.getKeyPath())
-	if err != nil {
-		return nil, err
-	}
-	return publickKey, nil
-}
-
 func computeDigest(message *io.Reader, hashFunc crypto.Hash) ([]byte, error) {
 	hasher := hashFunc.New()
 	if _, err := io.Copy(hasher, *message); err != nil {
@@ -136,9 +72,9 @@ func computeDigest(message *io.Reader, hashFunc crypto.Hash) ([]byte, error) {
 	return hasher.Sum(nil), nil
 }
 
-func (g LocalSignerVerifier) signMessageWithPrivateKey(privateKey *rsa.PrivateKey, message io.Reader, opts ...signature.SignOption) ([]byte, error) {
+func (i LocalSignerVerifier) signMessageWithPrivateKey(privateKey *rsa.PrivateKey, message io.Reader, opts ...signature.SignOption) ([]byte, error) {
 	var digest []byte
-	var signerOpts crypto.SignerOpts = g.hashFunc
+	var signerOpts crypto.SignerOpts = i.hashFunc
 	for _, opt := range opts {
 		opt.ApplyDigest(&digest)
 		opt.ApplyCryptoSignerOpts(&signerOpts)
@@ -160,74 +96,10 @@ func (g LocalSignerVerifier) signMessageWithPrivateKey(privateKey *rsa.PrivateKe
 }
 
 // SignMessage signs the message with the KeyResourceID.
-func (g LocalSignerVerifier) SignMessage(message io.Reader, opts ...signature.SignOption) ([]byte, error) {
-	privateKey, err := loadRSAPrivateKey(g.getKeyPath())
+func (i LocalSignerVerifier) SignMessage(message io.Reader, opts ...signature.SignOption) ([]byte, error) {
+	privateKey, err := loadRSAPrivateKey(i.keyResourceID)
 	if err != nil {
 		return nil, err
 	}
-	// d, err := io.ReadAll(message)
-	// if err != nil {
-	// 	slog.Error(err.Error())
-	// }
-	// slog.Info("msg", "data", d)
-	return g.signMessageWithPrivateKey(privateKey, message, opts...)
-}
-
-// VerifySignature verifies the signature for the given message. Unless provided
-// in an option, the digest of the message will be computed using the hash function specified
-// when the LocalSignerVerifier was created.
-//
-// This function returns nil if the verification succeeded, and an error message otherwise.
-//
-// This function recognizes the following Options listed in order of preference:
-//
-// - WithDigest()
-//
-// All other options are ignored if specified.
-func (i *LocalSignerVerifier) VerifySignature(signature, message io.Reader, opts ...signature.VerifyOption) error {
-	publicKey, err := loadPublicKey(i.getKeyPath())
-	if err != nil {
-		return err
-	}
-	var digest []byte
-	var signerOpts crypto.SignerOpts = i.hashFunc
-
-	for _, opt := range opts {
-		opt.ApplyDigest(&digest)
-		opt.ApplyCryptoSignerOpts(&signerOpts)
-	}
-	var hashFunc crypto.Hash
-	if len(digest) > 0 {
-		hashFunc = crypto.Hash(0)
-	} else if signerOpts != nil {
-		hashFunc = signerOpts.HashFunc()
-		digest, err = computeDigest(&message, hashFunc)
-		if err != nil {
-			return err
-		}
-	}
-
-	signatureBytes, err := io.ReadAll(signature)
-	if err != nil {
-		return nil
-	}
-
-	if err := rsa.VerifyPKCS1v15(publicKey, hashFunc, digest, signatureBytes); err != nil {
-		return fmt.Errorf("signature verification failed: %w", err)
-	}
-	return nil
-}
-
-type CryptoSignerWrapper struct {
-	crypto.Signer
-	// Ctx            context.Context
-	HashFunc       crypto.Hash
-	SignerVerifier *LocalSignerVerifier
-	ErrFunc        func(error)
-	KeyResourceID  string
-}
-
-// CryptoSigner is not to be implemented by plugins. Instead, the main program's CryptoSigner is a wrapper around the other methods.
-func (i LocalSignerVerifier) CryptoSigner(ctx context.Context, errFunc func(error)) (crypto.Signer, crypto.SignerOpts, error) {
-	return nil, nil, errors.New("not implemented")
+	return i.signMessageWithPrivateKey(privateKey, message, opts...)
 }

@@ -38,18 +38,11 @@ func Dispatch(stdout io.Writer, stdin io.Reader, args *common.PluginArgs, impl k
 	var resp common.PluginResp
 	var err error
 	switch args.MethodName {
-	case common.DefaultAlgorithmMethodName:
-		resp.DefaultAlgorithm, err = DefaultAlgorithm(stdin, args.DefaultAlgorithm, impl)
 	case common.SupportedAlgorithmsMethodName:
 		resp.SupportedAlgorithms, err = SupportedAlgorithms(stdin, args.SupportedAlgorithms, impl)
-	case common.PublicKeyMethodName:
-		resp.PublicKey, err = PublicKey(stdin, args.PublicKey, impl)
-	case common.CreateKeyMethodName:
-		resp.CreateKey, err = CreateKey(stdin, args.CreateKey, impl)
 	case common.SignMessageMethodName:
 		resp.SignMessage, err = SignMessage(stdin, args.SignMessage, impl)
-	case common.VerifySignatureMethodName:
-		resp.VerifySignature, err = VerifySignature(stdin, args.VerifySignature, impl)
+	// TODO: Additonal methods to be implemented
 	default:
 		err = fmt.Errorf("unsupported method: %s", args.MethodName)
 	}
