@@ -30,7 +30,6 @@ import (
 
 	"github.com/sigstore/sigstore/pkg/signature"
 	"github.com/sigstore/sigstore/pkg/signature/kms"
-	"github.com/sigstore/sigstore/pkg/signature/kms/cliplugin"
 	"github.com/sigstore/sigstore/pkg/signature/options"
 )
 
@@ -46,7 +45,7 @@ type LocalSignerVerifier struct {
 }
 
 func (i LocalSignerVerifier) getKeyPath() string {
-	return strings.TrimPrefix(i.keyResourceID, cliplugin.ReferenceScheme)
+	return i.keyResourceID
 }
 
 // DefaultAlgorithm returns the default algorithm for the signer

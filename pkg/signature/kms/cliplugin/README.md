@@ -75,7 +75,7 @@ We have an example plugin in [test/cliplugin/localkms](../../../.././test/cliplu
 2. Generate an RSA key
 
     ```
-    cosign-cli generate-key-pair --kms sigstore-kms-localkms://`pwd`/key.pem
+    cosign-cli generate-key-pair --kms localkms://`pwd`/key.pem
     ```
 
 3. Sign some data
@@ -83,6 +83,6 @@ We have an example plugin in [test/cliplugin/localkms](../../../.././test/cliplu
     ```
     echo hello > data.txt
     export PATH="$PATH:`pwd`"
-    cosign-cli sign-blob data.txt --tlog-upload=false --key sigstore-kms-localkms://`pwd`/key.pem
+    cosign-cli sign-blob data.txt --tlog-upload=false --key localkms://`pwd`/key.pem
     openssl dgst -sha256 -sign key.pem data.txt | base64
     ```

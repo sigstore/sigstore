@@ -25,6 +25,10 @@ import (
 	"github.com/sigstore/sigstore/pkg/signature"
 )
 
+const (
+	CLIPluginProviderKey = "plugin"
+)
+
 // ProviderNotFoundError indicates that no matching KMS provider was found
 type ProviderNotFoundError struct {
 	ref string
@@ -50,6 +54,9 @@ var providersMap = map[string]ProviderInit{}
 // Get returns a KMS SignerVerifier for the given resource string and hash function.
 // If no matching provider is found, Get returns a ProviderNotFoundError. It
 // also returns an error if initializing the SignerVerifier fails.
+// If keyResourceID doesn't match any of our hard-coded provers' schemas,
+// it will try to use the plugin system as a provider. If the caller did not import cliplugin
+// to allow it to run its init(), then it returns ProviderNotFoundError.
 func Get(ctx context.Context, keyResourceID string, hashFunc crypto.Hash, opts ...signature.RPCOption) (SignerVerifier, error) {
 	for ref, pi := range providersMap {
 		if strings.HasPrefix(keyResourceID, ref) {
@@ -59,6 +66,13 @@ func Get(ctx context.Context, keyResourceID string, hashFunc crypto.Hash, opts .
 			}
 			return sv, nil
 		}
+	}
+	if pi, ok := providersMap[CLIPluginProviderKey]; ok {
+		sv, err := pi(ctx, keyResourceID, hashFunc, opts...)
+		if err != nil {
+			return nil, err
+		}
+		return sv, nil
 	}
 	return nil, &ProviderNotFoundError{ref: keyResourceID}
 }

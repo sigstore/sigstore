@@ -8,26 +8,26 @@ import (
 
 	"github.com/sigstore/sigstore/pkg/signature"
 	"github.com/sigstore/sigstore/pkg/signature/kms"
-	sigkms "github.com/sigstore/sigstore/pkg/signature/kms"
 	"github.com/sigstore/sigstore/pkg/signature/kms/cliplugin/common"
 )
 
 const (
-	ReferenceScheme = "sigstore-kms-"
+	pluginBinaryPrefix = "sigstore-kms-"
 )
 
 func init() {
-	kms.AddProvider(ReferenceScheme, func(ctx context.Context, keyResourceID string, hashFunc crypto.Hash, opts ...signature.RPCOption) (kms.SignerVerifier, error) {
+	kms.AddProvider(kms.CLIPluginProviderKey, func(ctx context.Context, keyResourceID string, hashFunc crypto.Hash, opts ...signature.RPCOption) (kms.SignerVerifier, error) {
 		return LoadSignerVerifier(ctx, keyResourceID, hashFunc)
 	})
 }
 
-func LoadSignerVerifier(ctx context.Context, inputKeyresourceID string, hashFunc crypto.Hash) (sigkms.SignerVerifier, error) {
+func LoadSignerVerifier(ctx context.Context, inputKeyresourceID string, hashFunc crypto.Hash) (kms.SignerVerifier, error) {
 	parts := strings.SplitN(inputKeyresourceID, "://", 2)
 	if len(parts) != 2 {
-		return nil, fmt.Errorf("%w: expected format: [binary name]://[key ref], got: %s", ErrorParsingPluginBinaryName, inputKeyresourceID)
+		return nil, fmt.Errorf("%w: expected format: [plugin name]://[key ref], got: %s", ErrorParsingPluginName, inputKeyresourceID)
 	}
-	executable, keyResourceID := parts[0], parts[1]
+	pluginName, keyResourceID := parts[0], parts[1]
+	executable := pluginBinaryPrefix + pluginName
 	initOptions := &common.InitOptions{
 		ProtocolVersion: common.ProtocolVersion,
 		KeyResourceID:   keyResourceID,
