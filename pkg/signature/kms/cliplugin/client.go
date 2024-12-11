@@ -17,24 +17,23 @@ const (
 
 func init() {
 	kms.AddProvider(kms.CLIPluginProviderKey, func(ctx context.Context, keyResourceID string, hashFunc crypto.Hash, opts ...signature.RPCOption) (kms.SignerVerifier, error) {
-		return LoadSignerVerifier(ctx, keyResourceID, hashFunc)
+		return LoadSignerVerifier(ctx, keyResourceID, hashFunc, opts...)
 	})
 }
 
-func LoadSignerVerifier(ctx context.Context, inputKeyresourceID string, hashFunc crypto.Hash) (kms.SignerVerifier, error) {
+func LoadSignerVerifier(ctx context.Context, inputKeyresourceID string, hashFunc crypto.Hash, opts ...signature.RPCOption) (kms.SignerVerifier, error) {
 	parts := strings.SplitN(inputKeyresourceID, "://", 2)
 	if len(parts) != 2 {
 		return nil, fmt.Errorf("%w: expected format: [plugin name]://[key ref], got: %s", ErrorParsingPluginName, inputKeyresourceID)
 	}
 	pluginName, keyResourceID := parts[0], parts[1]
 	executable := pluginBinaryPrefix + pluginName
+	_, rpcOptions := getRPCOptions(opts)
 	initOptions := &common.InitOptions{
 		ProtocolVersion: common.ProtocolVersion,
 		KeyResourceID:   keyResourceID,
 		HashFunc:        hashFunc,
-	}
-	if ctxDeadline, ok := ctx.Deadline(); ok {
-		initOptions.CtxDeadline = &ctxDeadline
+		RPCOptions:      rpcOptions,
 	}
 	pluginClient := newPluginClient(executable, initOptions, makeCommand)
 	return pluginClient, nil

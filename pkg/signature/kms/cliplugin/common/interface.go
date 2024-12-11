@@ -20,12 +20,12 @@ const (
 type InitOptions struct {
 	ProtocolVersion string      `json:"protocolVersion"`
 	KeyResourceID   string      `json:"keyResourceID"`
-	KeyVersion      string      `json:"keyVersion,omitempty"`
 	HashFunc        crypto.Hash `json:"hashFunc"`
-	// CtxDeadline comes from the initial context from cliplugin's LoadSignerVerifier().
-	// This will not be directly used in PluginClient's methods, nor within Command objects.
+	// RPCOptions comes from the initial opts in cliplugin's LoadSignerVerifier().
+	// This will not be directly used to override unsupplied opts in PluginClient's methods,
+	// nor will the RPCOptions.CtxDeadline be used within Command objects.
 	// Instead, plugin authors may use it for KMS-specific initialization tasks.
-	CtxDeadline *time.Time `json:"timeout,omitempty"`
+	*RPCOptions
 }
 
 type PluginArgs struct {
@@ -100,7 +100,7 @@ type SignOptions struct {
 type RPCOptions struct {
 	CtxDeadline        *time.Time       `json:"ctxDeadline,omitempty"`
 	KeyVersion         *string          `json:"keyVersion,omitempty"`
-	RPCAuth            *options.RPCAuth `json:"rpcAuthOpts,omitempty"` // fully JSON-serializable
+	RPCAuth            *options.RPCAuth `json:"rpcAuth,omitempty"` // fully JSON-serializable
 	RemoteVerification *bool            `json:"remoteVerification,omitempty"`
 }
 
