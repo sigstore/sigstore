@@ -1,24 +1,13 @@
 package handler
 
 import (
-	"bytes"
-	"context"
 	"io"
 
-	"github.com/sigstore/sigstore/pkg/cryptoutils"
-	"github.com/sigstore/sigstore/pkg/signature"
 	"github.com/sigstore/sigstore/pkg/signature/kms"
 	"github.com/sigstore/sigstore/pkg/signature/kms/cliplugin/common"
-	"github.com/sigstore/sigstore/pkg/signature/options"
 )
 
-func DefaultAlgorithm(stdin io.Reader, args *common.DefaultAlgorithmArgs, impl kms.SignerVerifier) (*common.DefaultAlgorithmResp, error) {
-	defaultAlgorithm := impl.DefaultAlgorithm()
-	resp := &common.DefaultAlgorithmResp{
-		DefaultAlgorithm: defaultAlgorithm,
-	}
-	return resp, nil
-}
+// TODO: Additonal methods to be implemented
 
 func SupportedAlgorithms(stdin io.Reader, args *common.SupportedAlgorithmsArgs, impl kms.SignerVerifier) (*common.SupportedAlgorithmsResp, error) {
 	supportedAlgorithms := impl.SupportedAlgorithms()
@@ -28,106 +17,16 @@ func SupportedAlgorithms(stdin io.Reader, args *common.SupportedAlgorithmsArgs, 
 	return resp, nil
 }
 
-func getRPCOpts(args *common.RPCOptions) []signature.RPCOption {
-	opts := []signature.RPCOption{}
-	if args.CtxDeadline != nil {
-		ctx, cancel := context.WithDeadline(context.TODO(), *args.CtxDeadline)
-		defer cancel()
-		opts = append(opts, options.WithContext(ctx))
-	}
-	if args.KeyVersion != nil {
-		opts = append(opts, options.WithKeyVersion(*args.KeyVersion))
-	}
-	if args.RPCAuth != nil {
-		opts = append(opts, options.WithRPCAuthOpts(*args.RPCAuth))
-	}
-	if args.RemoteVerification != nil {
-		opts = append(opts, options.WithRemoteVerification(*args.RemoteVerification))
-	}
-	return opts
-}
+// TODO: use extracted values from signature.RPCOption, signature.SignOption, and signature.PublikKeyOption.
 
-func PublicKey(stdin io.Reader, args *common.PublicKeyArgs, impl kms.SignerVerifier) (*common.PublicKeyResp, error) {
-	opts := []signature.PublicKeyOption{}
-	for _, opt := range getRPCOpts(args.PublicKeyOptions.RPCOptions) {
-		opts = append(opts, opt)
-	}
-	publicKey, err := impl.PublicKey(opts...)
-	if err != nil {
-		return nil, err
-	}
-	publicKeyPEM, err := cryptoutils.MarshalPublicKeyToPEM(publicKey)
-	if err != nil {
-		return nil, err
-	}
-	resp := &common.PublicKeyResp{
-		PublicKeyPEM: publicKeyPEM,
-	}
-	return resp, nil
-}
-
-func CreateKey(stdin io.Reader, args *common.CreateKeyArgs, impl kms.SignerVerifier) (*common.CreateKeyResp, error) {
-	ctx := context.TODO()
-	if args.CtxDeadline != nil {
-		var cancel context.CancelFunc
-		ctx, cancel = context.WithDeadline(ctx, *args.CtxDeadline)
-		defer cancel()
-	}
-	publicKey, err := impl.CreateKey(ctx, args.Algorithm)
-	if err != nil {
-		return nil, err
-	}
-	publicKeyPEM, err := cryptoutils.MarshalPublicKeyToPEM(publicKey)
-	if err != nil {
-		return nil, err
-	}
-	resp := &common.CreateKeyResp{
-		PublicKeyPEM: publicKeyPEM,
-	}
-	return resp, nil
-}
-
-func getMessageOptions(args *common.MessageOptions) []signature.MessageOption {
-	opts := []signature.MessageOption{}
-	if args.Digest != nil {
-		opts = append(opts, options.WithDigest(*args.Digest))
-	}
-	if args.HashFunc != nil {
-		opts = append(opts, options.WithCryptoSignerOpts(*args.HashFunc))
-	}
-	return opts
-}
-
+// SignMessage signs the message.
 func SignMessage(stdin io.Reader, args *common.SignMessageArgs, impl kms.SignerVerifier) (*common.SignMessageResp, error) {
-	opts := []signature.SignOption{}
-	for _, opt := range getRPCOpts(args.SignOptions.RPCOptions) {
-		opts = append(opts, opt.(signature.SignOption))
-	}
-	for _, opt := range getMessageOptions(args.SignOptions.MessageOptions) {
-		opts = append(opts, opt.(signature.SignOption))
-	}
-	signature, err := impl.SignMessage(stdin, opts...)
+	signature, err := impl.SignMessage(stdin)
 	if err != nil {
 		return nil, err
 	}
 	resp := &common.SignMessageResp{
 		Signature: signature,
 	}
-	return resp, nil
-}
-
-func VerifySignature(stdin io.Reader, args *common.VerifySignatureArgs, impl kms.SignerVerifier) (*common.VerifySignatureResp, error) {
-	opts := []signature.VerifyOption{}
-	for _, opt := range getRPCOpts(args.VerifyOptions.RPCOptions) {
-		opts = append(opts, opt.(signature.VerifyOption))
-	}
-	for _, opt := range getMessageOptions(args.VerifyOptions.MessageOptions) {
-		opts = append(opts, opt.(signature.SignOption))
-	}
-	err := impl.VerifySignature(bytes.NewReader(*args.Signature), stdin, opts...)
-	if err != nil {
-		return nil, err
-	}
-	resp := &common.VerifySignatureResp{}
 	return resp, nil
 }
