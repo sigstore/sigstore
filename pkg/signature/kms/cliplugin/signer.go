@@ -31,9 +31,6 @@ var (
 // The initial Ctx is preserved for use only by the plugin program if plugin authors desire to.
 type PluginClient struct {
 	kms.SignerVerifier
-	// Ctx will not be directly used in PluginClient's methods, nor within Command objects.
-	// Instead, we will pass this initial Ctx's deadline, if it exists, within PluginArgs.InitOptions.
-	// Plugin authors may use it, if desired, for KMS-specific initialization tasks.
 	executable      string
 	initOptions     common.InitOptions
 	makeCommandFunc makeCommandFunc
