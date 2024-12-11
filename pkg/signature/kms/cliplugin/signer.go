@@ -20,11 +20,11 @@ import (
 )
 
 var (
-	ErrorExecutingPlugin         = errors.New("error executing plugin program")
-	ErrorResponseParseError      = errors.New("parsing plugin response")
-	ErrorPluginReturnError       = errors.New("plugin returned error")
-	ErrorParsingPluginBinaryName = errors.New("parsing plugin binary name")
-	ErrorUnsupportedMethod       = errors.New("unsupported methodArgs")
+	ErrorExecutingPlugin    = errors.New("error executing plugin program")
+	ErrorResponseParseError = errors.New("parsing plugin response")
+	ErrorPluginReturnError  = errors.New("plugin returned error")
+	ErrorParsingPluginName  = errors.New("parsing plugin name")
+	ErrorUnsupportedMethod  = errors.New("unsupported methodArgs")
 )
 
 // PluginClient implements kms.SignerVerifier with calls to our plugin program.
