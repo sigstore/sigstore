@@ -22,15 +22,14 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"io"
 	"os"
 	"slices"
-	"strings"
 
 	"github.com/sigstore/sigstore/pkg/signature"
 	"github.com/sigstore/sigstore/pkg/signature/kms"
-	"github.com/sigstore/sigstore/pkg/signature/options"
 )
 
 const (
@@ -228,44 +227,7 @@ type CryptoSignerWrapper struct {
 	KeyResourceID  string
 }
 
-// CryptoSigner returns a crypto.Signer object that uses the underlying LocalSignerVerifier, along with a crypto.SignerOpts object
-// that allows the KMS to be used in APIs that only accept the standard golang objects
+// CryptoSigner is not to be implemented by plugins. Instead, the main program's CryptoSigner is a wrapper around the other methods.
 func (i LocalSignerVerifier) CryptoSigner(ctx context.Context, errFunc func(error)) (crypto.Signer, crypto.SignerOpts, error) {
-	signer := &CryptoSignerWrapper{
-		// Ctx:            ctx,
-		HashFunc:       i.hashFunc,
-		SignerVerifier: &i,
-		ErrFunc:        errFunc,
-		KeyResourceID:  i.keyResourceID,
-	}
-	opts := i.hashFunc
-	return signer, opts, nil
-}
-
-func (c CryptoSignerWrapper) Public() crypto.PublicKey {
-	publicKey, err := loadPublicKey(c.KeyResourceID)
-	if err != nil {
-		c.ErrFunc(err)
-		return nil
-	}
-	return publicKey
-}
-
-// Sign signs the digest and returns a signature. The rand argument is ignored.
-func (c CryptoSignerWrapper) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpts) ([]byte, error) {
-	privateKey, err := loadRSAPrivateKey(c.KeyResourceID)
-	if err != nil {
-		return nil, err
-	}
-	emptyMessage := strings.NewReader("")
-	hashFunc := c.HashFunc
-	if opts != nil {
-		hashFunc = opts.HashFunc()
-	}
-	signOpts := []signature.SignOption{
-		options.WithContext(context.Background()),
-		options.WithDigest(digest),
-		options.WithCryptoSignerOpts(hashFunc),
-	}
-	return c.SignerVerifier.signMessageWithPrivateKey(privateKey, emptyMessage, signOpts...)
+	return nil, nil, errors.New("not implemented")
 }
