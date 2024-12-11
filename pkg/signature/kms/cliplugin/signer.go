@@ -281,7 +281,7 @@ func (c CryptoSigner) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpts
 		// We do not pass the context PluginClient's initial context to this method.
 		options.WithCryptoSignerOpts(opts),
 		options.WithDigest(digest),
-		options.WithKeyVersion(c.pluginClient.initOptions.KeyVersion),
+		options.WithKeyVersion(*c.pluginClient.initOptions.KeyVersion),
 	}
 	return c.pluginClient.SignMessage(emptyMessage, signOpts...)
 }
