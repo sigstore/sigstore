@@ -102,14 +102,14 @@ func (g *SignerVerifier) CreateKey(_ context.Context, _ string) (crypto.PublicKe
 	return pub, nil
 }
 
-type CryptoSignerWrapper struct {
+type cryptoSignerWrapper struct {
 	ctx      context.Context
 	hashFunc crypto.Hash
 	sv       *SignerVerifier
 	errFunc  func(error)
 }
 
-func (c CryptoSignerWrapper) Public() crypto.PublicKey {
+func (c cryptoSignerWrapper) Public() crypto.PublicKey {
 	pk, err := c.sv.PublicKey(options.WithContext(c.ctx))
 	if err != nil && c.errFunc != nil {
 		c.errFunc(err)
@@ -117,7 +117,7 @@ func (c CryptoSignerWrapper) Public() crypto.PublicKey {
 	return pk
 }
 
-func (c CryptoSignerWrapper) Sign(_ io.Reader, digest []byte, opts crypto.SignerOpts) ([]byte, error) {
+func (c cryptoSignerWrapper) Sign(_ io.Reader, digest []byte, opts crypto.SignerOpts) ([]byte, error) {
 	hashFunc := c.hashFunc
 	if opts != nil {
 		hashFunc = opts.HashFunc()
@@ -134,7 +134,7 @@ func (c CryptoSignerWrapper) Sign(_ io.Reader, digest []byte, opts crypto.Signer
 // CryptoSigner returns a crypto.Signer object that uses the underlying SignerVerifier, along with a crypto.SignerOpts object
 // that allows the KMS to be used in APIs that only accept the standard golang objects
 func (g *SignerVerifier) CryptoSigner(ctx context.Context, errFunc func(error)) (crypto.Signer, crypto.SignerOpts, error) {
-	csw := &CryptoSignerWrapper{
+	csw := &cryptoSignerWrapper{
 		ctx:      ctx,
 		sv:       g,
 		hashFunc: crypto.SHA256,
