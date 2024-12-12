@@ -54,6 +54,6 @@ func LoadSignerVerifier(ctx context.Context, inputKeyresourceID string, hashFunc
 		HashFunc:        hashFunc,
 		// TODO: include extracted values from opts
 	}
-	pluginClient := newPluginClient(executable, initOptions, makeCommand)
+	pluginClient := newPluginClient(executable, initOptions)
 	return pluginClient, nil
 }

@@ -18,6 +18,7 @@ package common
 
 import (
 	"crypto"
+	"time"
 )
 
 const (
@@ -25,9 +26,9 @@ const (
 	// Breaking changes to the PluginClient and this schema necessarily mean major version bumps of
 	// this ProtocolVersion and the sigstore version.
 	// Plugin authors may choose to be backwards compatible with older versions.
-	ProtocolVersion               = "1"
-	SupportedAlgorithmsMethodName = "supportedAlgorithms"
-	SignMessageMethodName         = "signMessage"
+	ProtocolVersion            = "1"
+	DefaultAlgorithmMethodName = "defaultAlgorithm"
+	CreateKeyMethodName        = "createKey"
 	// TODO: Additonal methods to be implemented
 )
 
@@ -49,35 +50,32 @@ type InitOptions struct {
 // while any one of the other fields describing method arguments must also be specified.
 type MethodArgs struct {
 	// MethodName specifies which method is intended to be called.
-	MethodName          string                   `json:"methodName"`
-	SupportedAlgorithms *SupportedAlgorithmsArgs `json:"supportedAlgorithms,omitempty"`
-	SignMessage         *SignMessageArgs         `json:"signMessage,omitempty"`
+	MethodName       string                `json:"methodName"`
+	DefaultAlgorithm *DefaultAlgorithmArgs `json:"defaultAlgorithm,omitempty"`
+	CreateKey        *CreateKeyArgs        `json:"createKey,omitempty"`
 	// TODO: Additonal methods to be implemented
 }
 
 // PluginResp contains the serialized plugin method return values.
 type PluginResp struct {
-	ErrorMessage        string                   `json:"errorMessage,omitempty"`
-	SupportedAlgorithms *SupportedAlgorithmsResp `json:"supportedAlgorithms,omitempty"`
-	SignMessage         *SignMessageResp         `json:"signMessage,omitempty"`
+	ErrorMessage     string                `json:"errorMessage,omitempty"`
+	DefaultAlgorithm *DefaultAlgorithmResp `json:"defaultAlgorithm,omitempty"`
+	CreateKey        *CreateKeyResp        `json:"createKey,omitempty"`
 	// TODO: Additonal methods to be implemented
 }
 
-// SupportedAlgorithmsArgs containts the values for arguments of SupportedAlgorithms().
-type SupportedAlgorithmsArgs struct {
+type DefaultAlgorithmArgs struct {
 }
 
-// SupportedAlgorithmsResp containts the values for returns values of SupportedAlgorithms().
-type SupportedAlgorithmsResp struct {
-	SupportedAlgorithms []string
+type DefaultAlgorithmResp struct {
+	DefaultAlgorithm string
 }
 
-// SignMessageArgs containts the values for arguments of SignMessage().
-type SignMessageArgs struct {
-	// TODO: use extracted values from signature.RPCOption, and signature.SignOption.
+type CreateKeyArgs struct {
+	CtxDeadline *time.Time
+	Algorithm   string
 }
 
-// SignMessageResp containts the values for returns values of SignMessage().
-type SignMessageResp struct {
-	Signature []byte `json:"signature"`
+type CreateKeyResp struct {
+	PublicKeyPEM []byte
 }

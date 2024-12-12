@@ -17,32 +17,41 @@
 package handler
 
 import (
+	"context"
 	"io"
 
+	"github.com/sigstore/sigstore/pkg/cryptoutils"
 	"github.com/sigstore/sigstore/pkg/signature/kms"
 	"github.com/sigstore/sigstore/pkg/signature/kms/cliplugin/common"
 )
 
 // TODO: Additonal methods to be implemented
 
-func SupportedAlgorithms(stdin io.Reader, args *common.SupportedAlgorithmsArgs, impl kms.SignerVerifier) (*common.SupportedAlgorithmsResp, error) {
-	supportedAlgorithms := impl.SupportedAlgorithms()
-	resp := &common.SupportedAlgorithmsResp{
-		SupportedAlgorithms: supportedAlgorithms,
+func DefaultAlgorithm(stdin io.Reader, args *common.DefaultAlgorithmArgs, impl kms.SignerVerifier) (*common.DefaultAlgorithmResp, error) {
+	defaultAlgorithm := impl.DefaultAlgorithm()
+	resp := &common.DefaultAlgorithmResp{
+		DefaultAlgorithm: defaultAlgorithm,
 	}
 	return resp, nil
 }
 
-// TODO: use extracted values from signature.RPCOption, signature.SignOption, and signature.PublikKeyOption.
-
-// SignMessage signs the message.
-func SignMessage(stdin io.Reader, args *common.SignMessageArgs, impl kms.SignerVerifier) (*common.SignMessageResp, error) {
-	signature, err := impl.SignMessage(stdin)
+func CreateKey(stdin io.Reader, args *common.CreateKeyArgs, impl kms.SignerVerifier) (*common.CreateKeyResp, error) {
+	ctx := context.TODO()
+	if args.CtxDeadline != nil {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithDeadline(ctx, *args.CtxDeadline)
+		defer cancel()
+	}
+	publicKey, err := impl.CreateKey(ctx, args.Algorithm)
 	if err != nil {
 		return nil, err
 	}
-	resp := &common.SignMessageResp{
-		Signature: signature,
+	publicKeyPEM, err := cryptoutils.MarshalPublicKeyToPEM(publicKey)
+	if err != nil {
+		return nil, err
+	}
+	resp := &common.CreateKeyResp{
+		PublicKeyPEM: publicKeyPEM,
 	}
 	return resp, nil
 }

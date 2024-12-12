@@ -16,16 +16,15 @@
 package main
 
 import (
+	"context"
 	"crypto"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
-	"io"
 	"os"
 
-	"github.com/sigstore/sigstore/pkg/signature"
 	"github.com/sigstore/sigstore/pkg/signature/kms"
 )
 
@@ -40,66 +39,44 @@ type LocalSignerVerifier struct {
 	hashFunc      crypto.Hash
 }
 
-// SupportedAlgorithms returns a list with the default algorithm
-func (i *LocalSignerVerifier) SupportedAlgorithms() (result []string) {
-	return []string{defaultAlgorithm}
+// DefaultAlgorithm returns the default algorithm for the signer
+func (i LocalSignerVerifier) DefaultAlgorithm() string {
+	return defaultAlgorithm
 }
 
-// loadRSAPrivateKey loads the private key from the path.
-func loadRSAPrivateKey(path string) (*rsa.PrivateKey, error) {
-	privateKeyBytes, err := os.ReadFile(path)
+// CreateKey returns a new public key, and saves the private key to the KeyResourceID.
+func (i LocalSignerVerifier) CreateKey(ctx context.Context, algorithm string) (crypto.PublicKey, error) {
+	// TODO: implement SupportedAlgorithms()
+	// if !slices.Contains(i.SupportedAlgorithms(), algorithm) {
+	// 	return nil, fmt.Errorf("algorithm %s not supported", algorithm)
+	// }
+	if algorithm != i.DefaultAlgorithm() {
+		return nil, fmt.Errorf("algorithm %s not supported", algorithm)
+	}
+
+	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
-		return nil, err
-	}
-	privateKeyBlock, _ := pem.Decode(privateKeyBytes)
-	if privateKeyBlock == nil || privateKeyBlock.Type != "RSA PRIVATE KEY" {
-		return nil, fmt.Errorf("invalid private key PEM block")
+		return nil, fmt.Errorf("error generating private key: %w", err)
 	}
 
-	privateKey, err := x509.ParsePKCS1PrivateKey(privateKeyBlock.Bytes)
+	privateKeyPEM := &pem.Block{
+		Type:  "RSA PRIVATE KEY",
+		Bytes: x509.MarshalPKCS1PrivateKey(privateKey),
+	}
+
+	path := i.keyResourceID
+	privateKeyFile, err := os.Create(path)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error creating private key file: %w", err)
+	}
+	defer privateKeyFile.Close()
+
+	// os.WriteFile(path, privateKeyBytes, 0600)
+
+	if err := pem.Encode(privateKeyFile, privateKeyPEM); err != nil {
+		return nil, fmt.Errorf("error encoding private key: %w", err)
 	}
 
-	return privateKey, nil
-}
-
-func computeDigest(message *io.Reader, hashFunc crypto.Hash) ([]byte, error) {
-	hasher := hashFunc.New()
-	if _, err := io.Copy(hasher, *message); err != nil {
-		return nil, err
-	}
-	return hasher.Sum(nil), nil
-}
-
-func (i LocalSignerVerifier) signMessageWithPrivateKey(privateKey *rsa.PrivateKey, message io.Reader, opts ...signature.SignOption) ([]byte, error) {
-	var digest []byte
-	var signerOpts crypto.SignerOpts = i.hashFunc
-	for _, opt := range opts {
-		opt.ApplyDigest(&digest)
-		opt.ApplyCryptoSignerOpts(&signerOpts)
-	}
-
-	var err error
-	if len(digest) == 0 {
-		digest, err = computeDigest(&message, signerOpts.HashFunc())
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	signature, err := rsa.SignPKCS1v15(rand.Reader, privateKey, crypto.SHA256, digest)
-	if err != nil {
-		return nil, fmt.Errorf("error signing data: %w", err)
-	}
-	return signature, nil
-}
-
-// SignMessage signs the message with the KeyResourceID.
-func (i LocalSignerVerifier) SignMessage(message io.Reader, opts ...signature.SignOption) ([]byte, error) {
-	privateKey, err := loadRSAPrivateKey(i.keyResourceID)
-	if err != nil {
-		return nil, err
-	}
-	return i.signMessageWithPrivateKey(privateKey, message, opts...)
+	publicKey := &privateKey.PublicKey
+	return publicKey, nil
 }

@@ -18,14 +18,16 @@ package cliplugin
 
 import (
 	"context"
+	"crypto"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"log"
 	"os"
+	"os/exec"
 
-	"github.com/sigstore/sigstore/pkg/signature"
+	"github.com/sigstore/sigstore/pkg/cryptoutils"
 	"github.com/sigstore/sigstore/pkg/signature/kms"
 	"github.com/sigstore/sigstore/pkg/signature/kms/cliplugin/common"
 )
@@ -41,17 +43,15 @@ var (
 // PluginClient implements kms.SignerVerifier with calls to our plugin program.
 type PluginClient struct {
 	kms.SignerVerifier
-	executable      string
-	initOptions     common.InitOptions
-	makeCommandFunc makeCommandFunc
+	executable  string
+	initOptions common.InitOptions
 }
 
 // newPluginClient creates a new PluginClient.
-func newPluginClient(executable string, initOptions *common.InitOptions, makeCommand makeCommandFunc) *PluginClient {
+func newPluginClient(executable string, initOptions *common.InitOptions) *PluginClient {
 	pluginClient := &PluginClient{
-		executable:      executable,
-		initOptions:     *initOptions,
-		makeCommandFunc: makeCommand,
+		executable:  executable,
+		initOptions: *initOptions,
 	}
 	return pluginClient
 }
@@ -66,7 +66,9 @@ func (c PluginClient) invokePlugin(ctx context.Context, stdin io.Reader, methodA
 	if err != nil {
 		return nil, err
 	}
-	cmd := c.makeCommandFunc(ctx, stdin, os.Stderr, c.executable, common.ProtocolVersion, string(argsEnc))
+	cmd := exec.CommandContext(ctx, c.executable, common.ProtocolVersion, string(argsEnc))
+	cmd.Stdin = stdin
+	cmd.Stderr = os.Stderr
 	// We won't look at the program's non-zero exit code, but we will respect any other
 	// error, and cases when exec.ExitError.ExitCode() is 0 or -1:
 	//   * (0) the program finished successfuly or
@@ -75,7 +77,7 @@ func (c PluginClient) invokePlugin(ctx context.Context, stdin io.Reader, methodA
 	// or for the user to examine the sterr logs.
 	// See https://pkg.go.dev/os#ProcessState.ExitCode.
 	stdout, err := cmd.Output()
-	var exitError commandExitError
+	var exitError exec.ExitError
 	if err != nil && (!errors.As(err, &exitError) || exitError.ExitCode() < 1) {
 		return nil, fmt.Errorf("%w: %w", ErrorExecutingPlugin, err)
 	}
@@ -91,30 +93,32 @@ func (c PluginClient) invokePlugin(ctx context.Context, stdin io.Reader, methodA
 
 // TODO: Additonal methods to be implemented
 
-// SupportedAlgorithms returns the list of supported algorithms
-func (c PluginClient) SupportedAlgorithms() (result []string) {
+func (c PluginClient) DefaultAlgorithm() string {
 	args := &common.MethodArgs{
-		MethodName:          common.SupportedAlgorithmsMethodName,
-		SupportedAlgorithms: &common.SupportedAlgorithmsArgs{},
+		MethodName:       common.DefaultAlgorithmMethodName,
+		DefaultAlgorithm: &common.DefaultAlgorithmArgs{},
 	}
 	resp, err := c.invokePlugin(context.TODO(), nil, args)
 	if err != nil {
 		log.Fatal(err)
 	}
-	return resp.SupportedAlgorithms.SupportedAlgorithms
+	return resp.DefaultAlgorithm.DefaultAlgorithm
 }
 
-// SignMessage signs the message and returns a signature.
-func (c PluginClient) SignMessage(message io.Reader, opts ...signature.SignOption) ([]byte, error) {
-	// TODO: extract values from signature.SignOption
+func (c PluginClient) CreateKey(ctx context.Context, algorithm string) (crypto.PublicKey, error) {
 	args := &common.MethodArgs{
-		MethodName: common.SignMessageMethodName,
+		MethodName: common.CreateKeyMethodName,
+		CreateKey: &common.CreateKeyArgs{
+			Algorithm: algorithm,
+		},
 	}
-	// TODO: use the extracted context deadline from opts.
-	resp, err := c.invokePlugin(context.TODO(), message, args)
+	resp, err := c.invokePlugin(context.TODO(), nil, args)
 	if err != nil {
 		return nil, err
 	}
-	signature := resp.SignMessage.Signature
-	return signature, nil
+	publicKey, err := cryptoutils.UnmarshalPEMToPublicKey(resp.CreateKey.PublicKeyPEM)
+	if err != nil {
+		return nil, err
+	}
+	return publicKey, nil
 }
