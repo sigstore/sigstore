@@ -58,10 +58,10 @@ func Dispatch(stdout io.Writer, stdin io.Reader, pluginArgs *common.PluginArgs, 
 	var resp common.PluginResp
 	var err error
 	switch pluginArgs.MethodName {
-	case common.SupportedAlgorithmsMethodName:
-		resp.SupportedAlgorithms, err = SupportedAlgorithms(stdin, pluginArgs.SupportedAlgorithms, impl)
-	case common.SignMessageMethodName:
-		resp.SignMessage, err = SignMessage(stdin, pluginArgs.SignMessage, impl)
+	case common.DefaultAlgorithmMethodName:
+		resp.DefaultAlgorithm, err = DefaultAlgorithm(stdin, pluginArgs.DefaultAlgorithm, impl)
+	case common.CreateKeyMethodName:
+		resp.CreateKey, err = CreateKey(stdin, pluginArgs.CreateKey, impl)
 	// TODO: Additonal methods to be implemented
 	default:
 		err = fmt.Errorf("unsupported method: %s", pluginArgs.MethodName)
