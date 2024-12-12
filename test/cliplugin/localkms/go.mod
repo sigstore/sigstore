@@ -1,8 +1,8 @@
 module sigstore-kms-localkms
 
-go 1.23.2
+go 1.22.0
 
-// replace github.com/sigstore/sigstore => ../../..
+replace github.com/sigstore/sigstore => ../../..
 
 replace github.com/sigstore/sigstore/pkg/signature/kms/cliplugin => ../../../pkg/signature/kms/cliplugin
 

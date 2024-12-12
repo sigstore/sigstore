@@ -1,8 +1,6 @@
 module github.com/sigstore/sigstore
 
-go 1.23.2
-
-toolchain go1.23.4
+go 1.22.0
 
 require (
 	github.com/coreos/go-oidc/v3 v3.12.0
@@ -15,7 +13,6 @@ require (
 	github.com/pkg/browser v0.0.0-20210911075715-681adbf594b8
 	github.com/secure-systems-lab/go-securesystemslib v0.9.0
 	github.com/segmentio/ksuid v1.0.4
-	github.com/sigstore/sigstore/pkg/signature/kms/cliplugin v0.0.0-00010101000000-000000000000
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966
 	github.com/stretchr/testify v1.10.0
 	github.com/theupdateframework/go-tuf v0.7.0
@@ -30,7 +27,6 @@ require (
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	github.com/rogpeppe/go-internal v1.13.1 // indirect
 	github.com/syndtr/goleveldb v1.0.1-0.20220721030215-126854af5e6d // indirect
 	github.com/titanous/rocacheck v0.0.0-20171023193734-afe73141d399 // indirect
 	github.com/ysmood/fetchup v0.2.3 // indirect
