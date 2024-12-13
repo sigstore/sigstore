@@ -133,7 +133,6 @@ jobs:
         run: |
           PATH="$PATH:$(pwd)"
           export PATH
-          pwd
-          ls -lah
+          echo $PATH
           cosign generate-key-pair --kms "localkms://$(pwd)/key.pem" && \
           cat cosign.pub
