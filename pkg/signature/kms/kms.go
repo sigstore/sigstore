@@ -26,7 +26,8 @@ import (
 )
 
 const (
-	cLIPluginProviderKey = "plugin"
+	// CLIPluginProviderKey is a placeholder used to register the cliplugin as a provider in AddProvider().
+	CLIPluginProviderKey = "plugin"
 )
 
 // ProviderNotFoundError indicates that no matching KMS provider was found
@@ -67,7 +68,7 @@ func Get(ctx context.Context, keyResourceID string, hashFunc crypto.Hash, opts .
 			return sv, nil
 		}
 	}
-	if pi, ok := providersMap[cLIPluginProviderKey]; ok {
+	if pi, ok := providersMap[CLIPluginProviderKey]; ok {
 		sv, err := pi(ctx, keyResourceID, hashFunc, opts...)
 		if err != nil {
 			return nil, err
