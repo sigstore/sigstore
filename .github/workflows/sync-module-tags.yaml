@@ -20,6 +20,7 @@ jobs:
     strategy:
       matrix:
         module:
+          - pkg/signature/kms/cliplugin
           - pkg/signature/kms/aws
           - pkg/signature/kms/azure
           - pkg/signature/kms/gcp
