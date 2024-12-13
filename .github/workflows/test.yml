@@ -111,7 +111,7 @@ jobs:
           go-version: ${{ matrix.go-version }}
           check-latest: true
 
-      - run: cd ${{ github.workspace }}
+      - run: cd ${{ github.workspace }} && mkdir bin
 
       - name: Use local sigstore in cosign's go.mod
         run: |
@@ -121,7 +121,6 @@ jobs:
 
       - name: Build cosign
         run: |
-          mkddir -p bin
           go -C cosign/cmd/cosign build -o "$(pwd)/bin/cosign"
 
       - name: Build the test plugin
