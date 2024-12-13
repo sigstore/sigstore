@@ -97,10 +97,6 @@ jobs:
       COSIGN_REF: ${{ github.event_name == 'workflow_dispatch' && inputs.cosign_ref  || 'main'}} 
 
     steps:
-      - name: Update Envs
-        run: |
-          echo "MY_ENV_VAR=myValue" >> $GITHUB_ENV
-
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -116,6 +112,7 @@ jobs:
 
       - name: go mod replace
         run: |
+          cd ${{ github.workspace }}
           pwd
           ls -lah
           go -C cosign mod edit -replace github.com/sigstore/sigstore=../sigstore && \
