@@ -121,6 +121,7 @@ jobs:
 
       - name: Build cosign
         run: |
+          mkddir -p bin
           go -C cosign/cmd/cosign build -o "$(pwd)/bin/cosign"
 
       - name: Build the test plugin
