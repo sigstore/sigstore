@@ -115,20 +115,23 @@ jobs:
 
       - run: cd ${{ github.workspace }}
 
-      - name: go mod replace
+      - name: Use local sigstore in cosign
         run: |
           go -C cosign mod edit -replace github.com/sigstore/sigstore=../sigstore && \
           go -C cosign mod edit -replace github.com/sigstore/sigstore/pkg/signature/kms/cliplugin=../sigstore/pkg/signature/kms/cliplugin && \
           go -C cosign mod tidy
 
-      - name: Build
+      - name: Build cosign
         run: |
-          go -C cosign/cmd/cosign build -o "$(pwd)/cosign" && \
+          go -C cosign/cmd/cosign build -o "$(pwd)/cosign"
+
+      - name: Build the test plugin
+        run: |
           go -C sigstore/test/cliplugin/localkms build -o "$(pwd)/sigstore-kms-localkms"
 
-      - name: Run Plugin
+      - name: Run cosign with the plugin
         run: |
           PATH="$PATH:$(pwd)"
           export PATH
-          cosign-cli generate-key-pair --kms "localkms://$(pwd)/key.pem" && \
+          cosign generate-key-pair --kms "localkms://$(pwd)/key.pem" && \
           cat cosign.pub
