@@ -92,7 +92,7 @@ jobs:
     env:
       # COSIGN_REPO: ${{ github.event_name == 'workflow_dispatch' && inputs.cosign_repo  || 'sigstore/cosign'}}
       COSIGN_REPO: ramonpetgrave64/cosign
-      COSIGN_REF: ${{ github.event_name == 'workflow_dispatch' && inputs.cosign_ref  || 'main'}} 
+      COSIGN_REF: ${{ github.event_name == 'workflow_dispatch' && inputs.cosign_ref  || 'main'}}
 
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -121,16 +121,15 @@ jobs:
 
       - name: Build cosign
         run: |
-          go -C cosign/cmd/cosign build -o "$(pwd)/cosign"
+          go -C cosign/cmd/cosign build -o "$(pwd)/bin/cosign"
 
       - name: Build the test plugin
         run: |
-          go -C sigstore/test/cliplugin/localkms build -o "$(pwd)/sigstore-kms-localkms"
+          go -C sigstore/test/cliplugin/localkms build -o "$(pwd)/bin/sigstore-kms-localkms"
 
       - name: Run cosign with the plugin
         run: |
-          PATH="$PATH:$(pwd)"
+          PATH="$PATH:$(pwd)/bin"
           export PATH
-          echo $PATH
           cosign generate-key-pair --kms "localkms://$(pwd)/key.pem" && \
           cat cosign.pub
