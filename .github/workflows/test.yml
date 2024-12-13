@@ -114,6 +114,8 @@ jobs:
 
       - name: go mod replace
         run: |
+          pwd
+          ls -lah
           go -C cosign mod edit -replace github.com/sigstore/sigstore=../sigstore && \
           go -C cosign mod edit -replace github.com/sigstore/sigstore/pkg/signature/kms/cliplugin=../sigstore/pkg/signature/kms/cliplugin
 
