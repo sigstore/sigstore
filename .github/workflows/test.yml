@@ -113,7 +113,7 @@ jobs:
 
       - run: cd ${{ github.workspace }}
 
-      - name: Use local sigstore in cosign
+      - name: Use local sigstore in cosign's go.mod
         run: |
           go -C cosign mod edit -replace github.com/sigstore/sigstore=../sigstore && \
           go -C cosign mod edit -replace github.com/sigstore/sigstore/pkg/signature/kms/cliplugin=../sigstore/pkg/signature/kms/cliplugin && \
@@ -131,5 +131,7 @@ jobs:
         run: |
           PATH="$PATH:$(pwd)"
           export PATH
+          pwd
+          ls -lah
           cosign generate-key-pair --kms "localkms://$(pwd)/key.pem" && \
           cat cosign.pub
