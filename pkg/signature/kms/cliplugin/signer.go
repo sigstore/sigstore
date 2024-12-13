@@ -77,7 +77,7 @@ func (c PluginClient) invokePlugin(ctx context.Context, stdin io.Reader, methodA
 	// or for the user to examine the sterr logs.
 	// See https://pkg.go.dev/os#ProcessState.ExitCode.
 	stdout, err := cmd.Output()
-	var exitError exec.ExitError
+	var exitError *exec.ExitError
 	if err != nil && (!errors.As(err, &exitError) || exitError.ExitCode() < 1) {
 		return nil, fmt.Errorf("%w: %w", ErrorExecutingPlugin, err)
 	}
