@@ -114,15 +114,14 @@ jobs:
       - name: go mod replace
         run: |
           cd ${{ github.workspace }}
-          pwd
-          ls -lah
           go -C cosign mod edit -replace github.com/sigstore/sigstore=../sigstore && \
           go -C cosign mod edit -replace github.com/sigstore/sigstore/pkg/signature/kms/cliplugin=../sigstore/pkg/signature/kms/cliplugin
 
       - name: Build
         run: |
-          go build -C cosign/cmd/cosign -o "$(pwd)/cosign" && \
-          go build -C sigstore/test/cliplugin/localkms -o "$(pwd)/sigstore-kms-localkms"
+          go -C cosign/cmd/cosign build -o "$(pwd)/cosign" && \
+          go -C cosign mod tidy && \
+          go -C sigstore/test/cliplugin/localkms build -o "$(pwd)/sigstore-kms-localkms"
 
       - name: Run Plugin
         run: |
