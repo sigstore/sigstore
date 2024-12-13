@@ -26,7 +26,7 @@ import (
 )
 
 const (
-	CLIPluginProviderKey = "plugin"
+	cLIPluginProviderKey = "plugin"
 )
 
 // ProviderNotFoundError indicates that no matching KMS provider was found
@@ -63,7 +63,7 @@ func Get(ctx context.Context, keyResourceID string, hashFunc crypto.Hash, opts .
 			return pi(ctx, keyResourceID, hashFunc, opts...)
 		}
 	}
-	if pi, ok := providersMap[CLIPluginProviderKey]; ok {
+	if pi, ok := providersMap[cLIPluginProviderKey]; ok {
 		sv, err := pi(ctx, keyResourceID, hashFunc, opts...)
 		if err != nil {
 			return nil, err
