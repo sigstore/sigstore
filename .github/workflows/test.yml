@@ -92,6 +92,7 @@ jobs:
     env:
       # COSIGN_REPO: ${{ github.event_name == 'workflow_dispatch' && inputs.cosign_repo  || 'sigstore/cosign'}}
       # COSIGN_REF: ${{ github.event_name == 'workflow_dispatch' && inputs.cosign_ref  || 'main'}}
+      # TODO: remove my personal forks' references.
       COSIGN_REPO: ramonpetgrave64/cosign
       COSIGN_REF: ramonpetgrave64-kms-plugin-cli
 
