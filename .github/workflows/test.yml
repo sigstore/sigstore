@@ -93,8 +93,9 @@ jobs:
 
     env:
       # COSIGN_REPO: ${{ github.event_name == 'workflow_dispatch' && inputs.cosign_repo  || 'sigstore/cosign'}}
+      # COSIGN_REF: ${{ github.event_name == 'workflow_dispatch' && inputs.cosign_ref  || 'main'}}
       COSIGN_REPO: ramonpetgrave64/cosign
-      COSIGN_REF: ${{ github.event_name == 'workflow_dispatch' && inputs.cosign_ref  || 'main'}}
+      COSIGN_REF: ramonpetgrave64-kms-plugin-cli
 
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
