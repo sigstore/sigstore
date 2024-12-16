@@ -1,6 +1,6 @@
 # CLI Plugin
 
-This is a package and module for using custom KMS plugins as separate executables. 
+This is a package and module for using custom KMS plugins as separate executables.
 It is intended to be used by cosign, but you may use this in your own programs that import sigstore.
 
 ## Design
@@ -42,7 +42,7 @@ Plugin authors may return errors with `PluginResp.ErrorMessage`, but the plugin'
 
 ### Implementation
 
-Plugin authors must implement the `kms.SignerVerifier` interface methods in their chosen language. Each method will inbvoke your program once, and the reponse will be parsed from stdout. 
+Plugin authors must implement the `kms.SignerVerifier` interface methods in their chosen language. Each method will inbvoke your program once, and the reponse will be parsed from stdout.
 
 Exit status is ignored. Your programs stderr will be redirected to the main program, and errors you wish to return must be serialized in `PluginResp.ErrorMessage` in stdout.
 
