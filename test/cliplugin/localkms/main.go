@@ -52,12 +52,3 @@ func main() {
 	}
 	spew.Fdump(os.Stderr, resp)
 }
-
-// don't do this because it's more clean if the host redirects the child's stderr to its own stderr
-// defer func() {
-// 	if r := recover(); r != nil {
-// 		cliplugin.WriteErrorResponse(errors.New(fmt.Sprint(r)))
-// 		panic(r)
-// 	}
-// }()
-// panic("my-panic")
