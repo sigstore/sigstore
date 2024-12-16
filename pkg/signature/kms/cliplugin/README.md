@@ -89,3 +89,12 @@ We have an example plugin in [test/cliplugin/localkms](../../../.././test/cliplu
     ```
 
 TODO: implement more methods
+
+### Testing
+
+Unit tests against a pre-compiled plugin program are in [./signer_program_test.go](./signer_program_test.go), and can be invoked like
+
+```
+export PATH=$PATH:[folder containing plugin program]
+go test -C ./pkg/signature/kms/cliplugin -v -tags=signer_program ./... -key-resource-id [my-kms]://[my key ref]
+```
