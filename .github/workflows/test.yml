@@ -129,6 +129,10 @@ jobs:
         run: |
           go -C sigstore/test/cliplugin/localkms build -o "$(pwd)/bin/sigstore-kms-localkms"
 
+      - name: Run signer_program unit tests
+        run: |
+          make test-signer-program
+
       - name: Run cosign with the plugin
         run: |
           PATH="$PATH:$(pwd)/bin"

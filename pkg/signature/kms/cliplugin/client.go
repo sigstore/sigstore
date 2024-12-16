@@ -41,13 +41,11 @@ func init() {
 }
 
 // LoadSignerVerifier creates a PluginClient with these InitOptions.
-func LoadSignerVerifier(ctx context.Context, inputKeyresourceID string, hashFunc crypto.Hash, opts ...signature.RPCOption) (kms.SignerVerifier, error) {
-	parts := strings.SplitN(inputKeyresourceID, "://", 2)
-	if len(parts) != 2 {
-		return nil, fmt.Errorf("%w: expected format: [plugin name]://[key ref], got: %s", ErrorParsingPluginName, inputKeyresourceID)
+func LoadSignerVerifier(ctx context.Context, inputKeyResourceID string, hashFunc crypto.Hash, opts ...signature.RPCOption) (kms.SignerVerifier, error) {
+	executable, keyResourceID, err := getPluginExecutableAndKeyResourceID(inputKeyResourceID)
+	if err != nil {
+		return nil, err
 	}
-	pluginName, keyResourceID := parts[0], parts[1]
-	executable := PluginBinaryPrefix + pluginName
 	initOptions := &common.InitOptions{
 		ProtocolVersion: common.ProtocolVersion,
 		KeyResourceID:   keyResourceID,
@@ -56,4 +54,14 @@ func LoadSignerVerifier(ctx context.Context, inputKeyresourceID string, hashFunc
 	}
 	pluginClient := newPluginClient(executable, initOptions)
 	return pluginClient, nil
+}
+
+func getPluginExecutableAndKeyResourceID(inputKeyResourceID string) (string, string, error) {
+	parts := strings.SplitN(inputKeyResourceID, "://", 2)
+	if len(parts) != 2 {
+		return "", "", fmt.Errorf("%w: expected format: [plugin name]://[key ref], got: %s", ErrorInputKeyResourceID, inputKeyResourceID)
+	}
+	pluginName, keyResourceID := parts[0], parts[1]
+	executable := PluginBinaryPrefix + pluginName
+	return executable, keyResourceID, nil
 }
