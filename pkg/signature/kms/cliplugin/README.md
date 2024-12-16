@@ -32,6 +32,14 @@ The main program will invoke the program with these specifications:
 
 See [./common/interface.go](./common/interface.go) for the full JSON schema.
 
+The plugin program must first exit before sigstore begins parsing responses.
+
+#### Error Handling
+
+The plugin program’s stderr will be redirected to the main program’s stderr. This way, the main program may also see the plugin program’s debug messages.
+
+Plugin authors may return errors with `PluginResp.ErrorMessage`, but the plugin's exit status will be ignored.
+
 ### Implementation
 
 Plugin authors must implement the `kms.SignerVerifier` interface methods in their chosen language. Each method will inbvoke your program once, and the reponse will be parsed from stdout. 
