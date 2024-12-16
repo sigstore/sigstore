@@ -112,7 +112,7 @@ func (c PluginClient) CreateKey(ctx context.Context, algorithm string) (crypto.P
 			Algorithm: algorithm,
 		},
 	}
-	resp, err := c.invokePlugin(context.TODO(), nil, args)
+	resp, err := c.invokePlugin(ctx, nil, args)
 	if err != nil {
 		return nil, err
 	}
