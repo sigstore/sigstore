@@ -103,6 +103,10 @@ jobs:
         with:
           path: sigstore
 
+      - name: Run signer_program unit tests
+        run: |
+          cd sigstore && make test-signer-program
+
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           path: cosign
@@ -130,10 +134,6 @@ jobs:
       - name: Build the test plugin
         run: |
           go -C sigstore/test/cliplugin/localkms build -o "$(pwd)/bin/sigstore-kms-localkms"
-
-      - name: Run signer_program unit tests
-        run: |
-          make test-signer-program
 
       - name: Run cosign with the plugin
         run: |
