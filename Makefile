@@ -58,7 +58,7 @@ test: ## Run Tests for all Go modules.
 test-signer-program: ## Run Tests for the cliplugin against a pre-compiled plugin program.
 	set -o xtrace; \
 		go -C $(TEST_LOCALKMS_DIR) build -o $(TEST_LOCALKMS_BIN_DIR)/sigstore-kms-testkms && \
-		go -C $(CLI_PLUGIN_DIR) test -v -tags=signer_program -count=1 ./... -key-resource-id testkms://$(TEST_LOCALKMS_BIN_DIR)/key.pem
+		go -C $(CLI_PLUGIN_DIR) test -tags=signer_program ./... -key-resource-id testkms://$(TEST_LOCALKMS_BIN_DIR)/key.pem
 
 tidy: ## Run go mod tidy all Go modules.
 	set -o xtrace; \
