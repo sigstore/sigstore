@@ -36,7 +36,7 @@ var (
 	ErrorExecutingPlugin    = errors.New("error executing plugin program")
 	ErrorResponseParseError = errors.New("parsing plugin response")
 	ErrorPluginReturnError  = errors.New("plugin returned error")
-	ErrorParsingPluginName  = errors.New("parsing plugin name")
+	ErrorInputKeyResourceID = errors.New("parsing input key resource id")
 	ErrorUnsupportedMethod  = errors.New("unsupported methodArgs")
 )
 
