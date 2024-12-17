@@ -27,7 +27,8 @@ import (
 
 const (
 	// CLIPluginProviderKey is a placeholder used to register the cliplugin as a provider in AddProvider().
-	CLIPluginProviderKey = "plugin"
+	// Its value should not conflict with any potential callers of AddProvider().
+	CLIPluginProviderKey = "cliplugin"
 )
 
 // ProviderNotFoundError indicates that no matching KMS provider was found
