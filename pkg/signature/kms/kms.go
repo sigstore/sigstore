@@ -55,7 +55,7 @@ var providersMap = map[string]ProviderInit{}
 // Get returns a KMS SignerVerifier for the given resource string and hash function.
 // If no matching provider is found, Get returns a ProviderNotFoundError. It
 // also returns an error if initializing the SignerVerifier fails.
-// If keyResourceID doesn't match any of our hard-coded provers' schemas,
+// If keyResourceID doesn't match any of our hard-coded providers' schemas,
 // it will try to use the plugin system as a provider. If the caller did not import cliplugin
 // to allow it to run its init(), then it returns ProviderNotFoundError.
 func Get(ctx context.Context, keyResourceID string, hashFunc crypto.Hash, opts ...signature.RPCOption) (SignerVerifier, error) {
