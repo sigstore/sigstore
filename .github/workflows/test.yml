@@ -24,14 +24,6 @@ on:
       - main
   pull_request:
     branches: [ main ]
-  workflow_dispatch:
-    inputs:
-      cosign_repo:
-        default: sigstore/cosign
-        type: string
-      cosign_ref:
-        default: main
-        type: string
 
 jobs:
   unit_test:
@@ -80,64 +72,3 @@ jobs:
 
       - name: Ensure no files were modified as a result of the build
         run: git update-index --refresh && git diff-index --quiet HEAD -- || git diff --exit-code
-
-  plugin_test:
-    name: plugin test
-    runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        go-version:
-          - 1.22.x
-          - 1.23.x
-
-    env:
-      # COSIGN_REPO: ${{ github.event_name == 'workflow_dispatch' && inputs.cosign_repo  || 'sigstore/cosign'}}
-      # COSIGN_REF: ${{ github.event_name == 'workflow_dispatch' && inputs.cosign_ref  || 'main'}}
-      # TODO: remove my personal forks' references.
-      COSIGN_REPO: ramonpetgrave64/cosign
-      COSIGN_REF: ramonpetgrave64-kms-plugin-cli
-
-    steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-        with:
-          path: sigstore
-
-      - name: Run signer_program unit tests
-        run: |
-          cd sigstore && make test-signer-program
-
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-        with:
-          path: cosign
-          repository: ${{ env.COSIGN_REPO }}
-          ref: ${{ env.COSIGN_REF }}
-
-      - name: Set up Go
-        uses: actions/setup-go@41dfa10bad2bb2ae585af6ee5bb4d7d973ad74ed # v5.1.0
-        with:
-          go-version: ${{ matrix.go-version }}
-          check-latest: true
-
-      - run: cd ${{ github.workspace }} && mkdir bin
-
-      - name: Use local sigstore in cosign's go.mod
-        run: |
-          go -C cosign mod edit -replace github.com/sigstore/sigstore=../sigstore && \
-          go -C cosign mod edit -replace github.com/sigstore/sigstore/pkg/signature/kms/cliplugin=../sigstore/pkg/signature/kms/cliplugin && \
-          go -C cosign mod tidy
-
-      - name: Build cosign
-        run: |
-          go -C cosign/cmd/cosign build -o "$(pwd)/bin/cosign"
-
-      - name: Build the test plugin
-        run: |
-          go -C sigstore/test/cliplugin/localkms build -o "$(pwd)/bin/sigstore-kms-localkms"
-
-      - name: Run cosign with the plugin
-        run: |
-          PATH="$PATH:$(pwd)/bin"
-          export PATH
-          cosign generate-key-pair --kms "localkms://$(pwd)/key.pem" && \
-          cat cosign.pub
