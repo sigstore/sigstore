@@ -17,7 +17,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"os"
 
 	"github.com/davecgh/go-spew/spew"
@@ -32,12 +31,13 @@ func main() {
 	if protocolVersion := os.Args[1]; protocolVersion != expectedProtocolVersion {
 		err := fmt.Errorf("expected protocl version: %s, got %s", expectedProtocolVersion, protocolVersion)
 		handler.WriteErrorResponse(os.Stdout, err)
-		log.Fatal(err)
+		panic(err)
 	}
 
 	pluginArgs, err := handler.GetPluginArgs(os.Args)
 	if err != nil {
-		log.Fatal(err)
+		handler.WriteErrorResponse(os.Stdout, err)
+		panic(err)
 	}
 	spew.Fdump(os.Stderr, pluginArgs)
 
@@ -48,7 +48,8 @@ func main() {
 
 	resp, err := handler.Dispatch(os.Stdout, os.Stdin, pluginArgs, signerVerifier)
 	if err != nil {
-		log.Fatal(err)
+		handler.WriteErrorResponse(os.Stdout, err)
+		panic(err)
 	}
 	spew.Fdump(os.Stderr, resp)
 }
