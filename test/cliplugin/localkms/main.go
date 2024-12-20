@@ -48,7 +48,7 @@ func main() {
 
 	resp, err := handler.Dispatch(os.Stdout, os.Stdin, pluginArgs, signerVerifier)
 	if err != nil {
-		handler.WriteErrorResponse(os.Stdout, err)
+		// Dispatch() will have already called WriteResponse() with the error.
 		panic(err)
 	}
 	spew.Fdump(os.Stderr, resp)
