@@ -1,5 +1,5 @@
 //
-// Copyright 2021 The Sigstore Authors.
+// Copyright 2024 The Sigstore Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -33,7 +33,7 @@ const (
 )
 
 // init registers the plugin system as a provider. It does not search for plugin programs.
-// users must import this package, e.g.,  `import _ "github.com/sigstore/sigstore/pkg/signature/kms/cliplugin"`
+// Users must import this package, e.g.,  `import _ "github.com/sigstore/sigstore/pkg/signature/kms/cliplugin"`
 func init() {
 	kms.AddProvider(kms.CLIPluginProviderKey, func(ctx context.Context, keyResourceID string, hashFunc crypto.Hash, opts ...signature.RPCOption) (kms.SignerVerifier, error) {
 		return LoadSignerVerifier(ctx, keyResourceID, hashFunc, opts...)
