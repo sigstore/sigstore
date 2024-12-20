@@ -19,6 +19,7 @@ package cliplugin
 import (
 	"context"
 	"crypto"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -30,6 +31,10 @@ import (
 const (
 	// PluginBinaryPrefix is the prefix for all plugin binaries. e.g., sigstore-kms-my-hsm.
 	PluginBinaryPrefix = "sigstore-kms-"
+)
+
+var (
+	ErrorInputKeyResourceID = errors.New("parsing input key resource id")
 )
 
 // init registers the plugin system as a provider. It does not search for plugin programs.
