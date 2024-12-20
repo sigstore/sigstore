@@ -19,9 +19,9 @@ The main program will invoke the program with these specifications:
 * stdin
   * Data to be signed or verified.
 * arg 1
-  * A number idnetifying the version of this protocol.
+  * A number identifying the version of this protocol.
     * In the future we may change this protocol, either the encoding or the formatting of argument and return values.
-    These are necessarily breaking changes, and will be major-version bumps to sigstore and cosign.
+    Protocol changes will result in a major-version bump for the library.
     When changing the protocol, new versions of sigstore will not maintain backwards compatibility with
     previous protocol versions. If a plugin author wishes, they may branch their plugin program’s behaviour
     to be compatible with multiple versions of the protocol, or multiple major versions of sigstore and cosign.
@@ -42,9 +42,9 @@ Plugin authors may return errors with `PluginResp.ErrorMessage`, but the plugin'
 
 ### Implementation
 
-Plugin authors must implement the `kms.SignerVerifier` interface methods in their chosen language. Each method will inbvoke your program once, and the reponse will be parsed from stdout.
+Plugin authors must implement the `kms.SignerVerifier` interface methods in their chosen language. Each method will invoke your program once, and the reponse will be parsed from stdout.
 
-Exit status is ignored. Your programs stderr will be redirected to the main program, and errors you wish to return must be serialized in `PluginResp.ErrorMessage` in stdout.
+Exit status is ignored. Your program's stderr will be redirected to the main program, and errors you wish to return must be serialized in `PluginResp.ErrorMessage` in stdout.
 
 For authors using Go, we vend some helper functions to help you get started.
 
@@ -71,7 +71,7 @@ Removing methods, or altering their signatures will break the schemas and will r
 
 ### Example Plugin
 
-We have an example plugin in [test/cliplugin/localkms](../../../.././test/cliplugin/localkms).
+We have an example plugin in [test/cliplugin/localkms](../../../../test/cliplugin/localkms).
 
 1. Compile cosign and the plugin
 

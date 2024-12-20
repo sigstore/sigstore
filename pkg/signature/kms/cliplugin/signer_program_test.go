@@ -1,5 +1,5 @@
 //
-// Copyright 2021 The Sigstore Authors.
+// Copyright 2024 The Sigstore Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -58,7 +58,7 @@ func getPluginClient(t *testing.T) *PluginClient {
 	return pluginClient
 }
 
-func Test_DefaultAlgorithm(t *testing.T) {
+func TestDefaultAlgorithm(t *testing.T) {
 	t.Parallel()
 
 	pluginClient := getPluginClient(t)
@@ -68,7 +68,7 @@ func Test_DefaultAlgorithm(t *testing.T) {
 	}
 }
 
-func Test_CreateKey(t *testing.T) {
+func TestCreateKey(t *testing.T) {
 	t.Parallel()
 
 	pluginClient := getPluginClient(t)

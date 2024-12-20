@@ -1,4 +1,4 @@
-// Copyright 2022 The Sigstore Authors.
+// Copyright 2024 The Sigstore Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -44,7 +44,8 @@ func (i LocalSignerVerifier) DefaultAlgorithm() string {
 	return defaultAlgorithm
 }
 
-// CreateKey returns a new public key, and saves the private key to the KeyResourceID.
+// CreateKey returns a new public key, and saves the private key to the path at KeyResourceID.
+// Don't do this in your own real implementation!
 func (i LocalSignerVerifier) CreateKey(ctx context.Context, algorithm string) (crypto.PublicKey, error) {
 	// TODO: implement SupportedAlgorithms()
 	// if !slices.Contains(i.SupportedAlgorithms(), algorithm) {
