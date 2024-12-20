@@ -63,6 +63,7 @@ func WriteErrorResponse(stdout io.Writer, err error) error {
 }
 
 // Dispatch routes to handler functions based on the PluginArgs.
+// If there is an error to be returned, it will also call WriteResponse with the error.
 func Dispatch(stdout io.Writer, stdin io.Reader, pluginArgs *common.PluginArgs, impl kms.SignerVerifier) (*common.PluginResp, error) {
 	var resp common.PluginResp
 	var err error
