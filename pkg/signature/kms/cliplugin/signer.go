@@ -33,11 +33,9 @@ import (
 )
 
 var (
-	ErrorExecutingPlugin    = errors.New("error executing plugin program")
-	ErrorResponseParseError = errors.New("parsing plugin response")
-	ErrorPluginReturnError  = errors.New("plugin returned error")
-	ErrorInputKeyResourceID = errors.New("parsing input key resource id")
-	ErrorUnsupportedMethod  = errors.New("unsupported methodArgs")
+	ErrorExecutingPlugin   = errors.New("error executing plugin program")
+	ErrorResponseParse     = errors.New("parsing plugin response")
+	ErrorPluginReturnError = errors.New("plugin returned error")
 )
 
 // PluginClient implements kms.SignerVerifier with calls to our plugin program.
@@ -83,7 +81,7 @@ func (c PluginClient) invokePlugin(ctx context.Context, stdin io.Reader, methodA
 	}
 	var resp common.PluginResp
 	if unmarshallErr := json.Unmarshal(stdout, &resp); unmarshallErr != nil {
-		return nil, fmt.Errorf("%w: %w", ErrorResponseParseError, unmarshallErr)
+		return nil, fmt.Errorf("%w: %w", ErrorResponseParse, unmarshallErr)
 	}
 	if resp.ErrorMessage != "" {
 		return nil, fmt.Errorf("%w: %s", ErrorPluginReturnError, resp.ErrorMessage)

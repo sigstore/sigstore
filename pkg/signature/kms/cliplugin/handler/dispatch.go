@@ -18,6 +18,7 @@ package handler
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 
@@ -25,8 +26,16 @@ import (
 	"github.com/sigstore/sigstore/pkg/signature/kms/cliplugin/common"
 )
 
+var (
+	ErrorPluginArgsParse   = errors.New("error parsing plign args")
+	ErrorUnsupportedMethod = errors.New("unsupported methodArgs")
+)
+
 // GetPluginArgs parses the PluginArgs from the os args.
 func GetPluginArgs(osArgs []string) (*common.PluginArgs, error) {
+	if len(osArgs) < 3 {
+		return nil, fmt.Errorf("%w: expected at least 3 args, got %d", ErrorPluginArgsParse, len(osArgs))
+	}
 	argsStr := osArgs[2]
 	var args common.PluginArgs
 	if err := json.Unmarshal([]byte(argsStr), &args); err != nil {
@@ -64,7 +73,7 @@ func Dispatch(stdout io.Writer, stdin io.Reader, pluginArgs *common.PluginArgs, 
 		resp.CreateKey, err = CreateKey(stdin, pluginArgs.CreateKey, impl)
 	// TODO: Additonal methods to be implemented
 	default:
-		err = fmt.Errorf("unsupported method: %s", pluginArgs.MethodName)
+		err = fmt.Errorf("%w: %s", ErrorUnsupportedMethod, pluginArgs.MethodName)
 	}
 	if err != nil {
 		resp.ErrorMessage = err.Error()
