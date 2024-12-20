@@ -35,7 +35,7 @@ func GetPluginArgs(osArgs []string) (*common.PluginArgs, error) {
 	return &args, nil
 }
 
-// WriteResponse writes JSON-serialized PluginResp to the outoput.
+// WriteResponse writes JSON-serialized PluginResp to the output.
 func WriteResponse(stdout io.Writer, resp *common.PluginResp) error {
 	enc, err := json.Marshal(resp)
 	if err != nil {
