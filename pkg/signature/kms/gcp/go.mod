@@ -5,12 +5,12 @@ replace github.com/sigstore/sigstore => ../../../../
 go 1.22.0
 
 require (
-	cloud.google.com/go/kms v1.20.2
+	cloud.google.com/go/kms v1.20.3
 	github.com/jellydator/ttlcache/v3 v3.3.0
 	github.com/sigstore/sigstore v1.6.4
 	golang.org/x/oauth2 v0.24.0
 	google.golang.org/api v0.214.0
-	google.golang.org/protobuf v1.36.0
+	google.golang.org/protobuf v1.36.1
 )
 
 require (
@@ -46,8 +46,8 @@ require (
 	golang.org/x/text v0.21.0 // indirect
 	golang.org/x/time v0.8.0 // indirect
 	google.golang.org/genproto v0.0.0-20241118233622-e639e219e697 // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20241113202542-65e8d215514f // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20241118233622-e639e219e697 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20241209162323-e6fa225c2576 // indirect
-	google.golang.org/grpc v1.67.1 // indirect
+	google.golang.org/grpc v1.67.3 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
