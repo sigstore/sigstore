@@ -25,7 +25,6 @@ import (
 	"io"
 	"log"
 	"os"
-	"os/exec"
 
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
 	"github.com/sigstore/sigstore/pkg/signature/kms"
@@ -41,15 +40,17 @@ var (
 // PluginClient implements kms.SignerVerifier with calls to our plugin program.
 type PluginClient struct {
 	kms.SignerVerifier
-	executable  string
-	initOptions common.InitOptions
+	executable      string
+	initOptions     common.InitOptions
+	makeCommandFunc makeCommandFunc
 }
 
 // newPluginClient creates a new PluginClient.
-func newPluginClient(executable string, initOptions *common.InitOptions) *PluginClient {
+func newPluginClient(executable string, initOptions *common.InitOptions, makeCommand makeCommandFunc) *PluginClient {
 	pluginClient := &PluginClient{
-		executable:  executable,
-		initOptions: *initOptions,
+		executable:      executable,
+		initOptions:     *initOptions,
+		makeCommandFunc: makeCommand,
 	}
 	return pluginClient
 }
@@ -64,9 +65,7 @@ func (c PluginClient) invokePlugin(ctx context.Context, stdin io.Reader, methodA
 	if err != nil {
 		return nil, err
 	}
-	cmd := exec.CommandContext(ctx, c.executable, common.ProtocolVersion, string(argsEnc))
-	cmd.Stdin = stdin
-	cmd.Stderr = os.Stderr
+	cmd := c.makeCommandFunc(ctx, stdin, os.Stderr, c.executable, common.ProtocolVersion, string(argsEnc))
 	// We won't look at the program's non-zero exit code, but we will respect any other
 	// error, and cases when exec.ExitError.ExitCode() is 0 or -1:
 	//   * (0) the program finished successfuly or
@@ -75,7 +74,7 @@ func (c PluginClient) invokePlugin(ctx context.Context, stdin io.Reader, methodA
 	// or for the user to examine the sterr logs.
 	// See https://pkg.go.dev/os#ProcessState.ExitCode.
 	stdout, err := cmd.Output()
-	var exitError *exec.ExitError
+	var exitError commandExitError
 	if err != nil && (!errors.As(err, &exitError) || exitError.ExitCode() < 1) {
 		return nil, fmt.Errorf("%w: %w", ErrorExecutingPlugin, err)
 	}
