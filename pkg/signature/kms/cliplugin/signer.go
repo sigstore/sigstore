@@ -109,6 +109,9 @@ func (c PluginClient) CreateKey(ctx context.Context, algorithm string) (crypto.P
 			Algorithm: algorithm,
 		},
 	}
+	if deadline, ok := ctx.Deadline(); ok {
+		args.CreateKey.CtxDeadline = &deadline
+	}
 	resp, err := c.invokePlugin(ctx, nil, args)
 	if err != nil {
 		return nil, err
