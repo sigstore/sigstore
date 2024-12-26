@@ -20,11 +20,8 @@ import (
 	"bytes"
 	"context"
 	"crypto"
-	"crypto/rand"
-	"crypto/rsa"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"os"
 	"strings"
@@ -33,6 +30,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/sigstore/sigstore/pkg/cryptoutils"
 	"github.com/sigstore/sigstore/pkg/signature/kms"
 	"github.com/sigstore/sigstore/pkg/signature/kms/cliplugin/common"
 	"github.com/sigstore/sigstore/pkg/signature/kms/cliplugin/handler"
@@ -41,7 +39,7 @@ import (
 var (
 	testExecutable         = "sigstore-kms-test"
 	testPluginErrorMessage = "404: not found"
-	testContextDeadline    = time.Now().Add(time.Minute * 47)
+	testContextDeadline    = time.Now().Add(time.Hour * 47)
 	testDefaultAlgorithm   = "alg1"
 	testPublicKey          crypto.PublicKey
 )
@@ -69,25 +67,29 @@ func (c testCommand) Output() ([]byte, error) {
 
 func TestMain(m *testing.M) {
 	// Perform global setup here
-
-	// prepare testPublicKey
-	priv, err := rsa.GenerateKey(rand.Reader, 2048)
+	var err error
+	testPublicKey, err = cryptoutils.UnmarshalPEMToPublicKey([]byte(`-----BEGIN PUBLIC KEY-----
+MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEcCPm8ay9sb2hrueFvuwL8pGjQBnd
+HrgLLNu5Gj06Y2S8vvR3MBWbChpOIKGh1YrDoa4lt/XfjaNcHq7vcuYXwg==
+-----END PUBLIC KEY-----`))
 	if err != nil {
-		panic(fmt.Sprintf("rsa.GenerateKey failed: %v", err))
+		panic(err)
 	}
-	testPublicKey = priv.Public()
 
 	exitCode := m.Run() // Run all tests
 	os.Exit(exitCode)
 }
 
+// TestInvokePlugin ensures invokePlugin returns an error in the correct situations by mocking the Command function.
 func TestInvokePlugin(t *testing.T) {
-	goodPluginArgsEnc, err := json.Marshal(common.PluginArgs{
+	testStdinBytes := []byte("my-stdin")
+	testMethodArgs := &common.MethodArgs{
+		MethodName:       common.DefaultAlgorithmMethodName,
+		DefaultAlgorithm: &common.DefaultAlgorithmArgs{},
+	}
+	testSerializedPluginArgs, err := json.Marshal(common.PluginArgs{
 		InitOptions: &common.InitOptions{},
-		MethodArgs: &common.MethodArgs{
-			MethodName:       common.DefaultAlgorithmMethodName,
-			DefaultAlgorithm: &common.DefaultAlgorithmArgs{},
-		},
+		MethodArgs:  testMethodArgs,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -101,10 +103,11 @@ func TestInvokePlugin(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	errorResp := &common.PluginResp{
+
+	// A serialized error by the plugin program in stdout.
+	testErrorOutput, err := json.Marshal(&common.PluginResp{
 		ErrorMessage: testPluginErrorMessage,
-	}
-	errorOutput, err := json.Marshal(errorResp)
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -117,6 +120,7 @@ func TestInvokePlugin(t *testing.T) {
 		err                   error
 		errorMessageSubstring string
 	}{
+		// command and plugin error handling
 		{
 			name:           "success",
 			cmdOutputBytes: goodOutput,
@@ -153,7 +157,7 @@ func TestInvokePlugin(t *testing.T) {
 		},
 		{
 			name:                  "error: plugin program error",
-			cmdOutputBytes:        errorOutput,
+			cmdOutputBytes:        testErrorOutput,
 			err:                   ErrorPluginReturnError,
 			errorMessageSubstring: testPluginErrorMessage,
 		},
@@ -176,10 +180,15 @@ func TestInvokePlugin(t *testing.T) {
 				if name != testExecutable {
 					t.Fatalf("unexpected executable name: %s", name)
 				}
+				if stdinBytes, err := io.ReadAll(stdin); err != nil {
+					t.Fatalf("expected stdin: %v", err)
+				} else if diff := cmp.Diff(testStdinBytes, stdinBytes); diff != "" {
+					t.Errorf("unexpected stdin bytes (-want +got):\n%s", diff)
+				}
 				if args[0] != common.ProtocolVersion {
 					t.Fatalf("unexpected protocol version: %s", args[0])
 				}
-				if args[1] != string(goodPluginArgsEnc) {
+				if args[1] != string(testSerializedPluginArgs) {
 					t.Fatalf("unexpected args: %s", args[1])
 				}
 				return testCommand{
@@ -194,10 +203,9 @@ func TestInvokePlugin(t *testing.T) {
 				makeCommandFunc,
 			)
 			// invokePlugin
-			resp, err := testPluginClient.invokePlugin(context.TODO(), nil, &common.MethodArgs{
-				MethodName:       common.DefaultAlgorithmMethodName,
-				DefaultAlgorithm: &common.DefaultAlgorithmArgs{},
-			})
+			testContext := context.TODO()
+			testStdin := bytes.NewBuffer(testStdinBytes)
+			resp, err := testPluginClient.invokePlugin(testContext, testStdin, testMethodArgs)
 			// compare results
 			if respDiff := cmp.Diff(tc.resp, resp); respDiff != "" {
 				t.Errorf("unexpected resp (-want +got):\n%s", respDiff)
@@ -243,18 +251,15 @@ func (s TestSignerVerifierImpl) CreateKey(ctx context.Context, algorithm string)
 	return testPublicKey, nil
 }
 
-// makeTestCommandFunc returns a makeCommandFunc with the testing.T. It simulates a real plugin program by
-// calling the helper handler functions `GetPluginArgs()` and `Dispatch()`, passing along the stdin stdout, and args.
-func makeTestCommandFunc(t *testing.T) makeCommandFunc {
-	t.Helper()
+// TestPluginClient tests each of PluginClient's methods for correct encoding and decoding between a simulated plugin program,
+// by mocking the Command function and using TestSignerVerifierImpl to both check and return expected values.
+func TestPluginClient(t *testing.T) {
+	t.Parallel()
+
+	// Mock the behavior of Command to simulates a real plugin program by
+	// calling the helper handler functions `GetPluginArgs()` and `Dispatch()`, passing along the stdin stdout, and args.
 	makeCommandFunc := func(ctx context.Context, stdin io.Reader, stderr io.Writer, name string, args ...string) command {
 		t.Helper()
-		if name != testExecutable {
-			t.Fatalf("unexpected executable name: %s", name)
-		}
-		if args[0] != common.ProtocolVersion {
-			t.Fatalf("unexpected protocol version: %s", args[0])
-		}
 		// Use the helpfer functions in the handler package.
 		osArgs := append([]string{name}, args...)
 		pluginArgs, err := handler.GetPluginArgs(osArgs)
@@ -273,70 +278,32 @@ func makeTestCommandFunc(t *testing.T) makeCommandFunc {
 			err:    err,
 		}
 	}
-	return makeCommandFunc
-}
+	testPluginClient := newPluginClient(
+		testExecutable,
+		&common.InitOptions{},
+		makeCommandFunc,
+	)
 
-func TestDefaultAlgorithm(t *testing.T) {
-	tests := []struct {
-		name             string
-		defaultAlgorithm string
-	}{
-		{
-			name:             "success",
-			defaultAlgorithm: testDefaultAlgorithm,
-		},
-	}
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			// Mock the behavior of Command.
-			makeCommandFunc := makeTestCommandFunc(t)
-			// Invoke the method.
-			testPluginClient := newPluginClient(
-				testExecutable,
-				&common.InitOptions{},
-				makeCommandFunc,
-			)
-			defaultAlgorithm := testPluginClient.DefaultAlgorithm()
-			if diff := cmp.Diff(tc.defaultAlgorithm, defaultAlgorithm); diff != "" {
-				t.Errorf("Default algorithm mismatch (-want +got):\n%s", diff)
-			}
-		})
-	}
-}
+	t.Run("DefaultAlgorithm", func(t *testing.T) {
+		t.Parallel()
 
-func TestCreateKey(t *testing.T) {
-	testContext, _ := context.WithDeadline(context.TODO(), testContextDeadline)
-	tests := []struct {
-		name      string
-		ctx       context.Context
-		algorithm string
-		publicKey crypto.PublicKey
-		err       error
-	}{
-		{
-			name:      "success",
-			ctx:       testContext,
-			algorithm: testDefaultAlgorithm,
-			publicKey: testPublicKey,
-		},
-	}
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			// Mock the behavior of Command.
-			makeCommandFunc := makeTestCommandFunc(t)
-			// Invoke the method.
-			testPluginClient := newPluginClient(
-				testExecutable,
-				&common.InitOptions{},
-				makeCommandFunc,
-			)
-			publicKey, err := testPluginClient.CreateKey(tc.ctx, tc.algorithm)
-			if diff := cmp.Diff(tc.publicKey, publicKey); diff != "" {
-				t.Errorf("Public key mismatch (-want +got):\n%s", diff)
-			}
-			if diff := cmp.Diff(tc.err, err); diff != "" {
-				t.Errorf("Error mismatch (-want +got):\n%s", diff)
-			}
-		})
-	}
+		defaultAlgorithm := testPluginClient.DefaultAlgorithm()
+		if diff := cmp.Diff(testDefaultAlgorithm, defaultAlgorithm); diff != "" {
+			t.Errorf("Default algorithm mismatch (-want +got):\n%s", diff)
+		}
+	})
+
+	t.Run("PublicKey", func(t *testing.T) {
+		t.Parallel()
+
+		testContext, _ := context.WithDeadline(context.TODO(), testContextDeadline)
+		publicKey, err := testPluginClient.CreateKey(testContext, testDefaultAlgorithm)
+
+		if diff := cmp.Diff(testPublicKey, publicKey); diff != "" {
+			t.Errorf("Public key mismatch (-want +got):\n%s", diff)
+		}
+		if diff := cmp.Diff(nil, err); diff != "" {
+			t.Errorf("Error mismatch (-want +got):\n%s", diff)
+		}
+	})
 }
