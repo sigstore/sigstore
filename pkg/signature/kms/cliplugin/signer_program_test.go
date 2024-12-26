@@ -54,7 +54,7 @@ func getPluginClient(t *testing.T) *PluginClient {
 		HashFunc:        testHashFunc,
 		// TODO: include extracted values from opts
 	}
-	pluginClient := newPluginClient(executable, initOptions)
+	pluginClient := newPluginClient(executable, initOptions, makeCommand)
 	return pluginClient
 }
 
