@@ -40,7 +40,7 @@ var (
 	testExecutable         = "sigstore-kms-test"
 	testPluginErrorMessage = "404: not found"
 	testKeyResourceID      = "testkms://testkey"
-	testContextDeadline    = time.Now().Add(time.Hour * 47)
+	testContextDeadline    = time.Date(2025, 4, 1, 2, 47, 0, 0, time.UTC)
 	testDefaultAlgorithm   = "alg1"
 	testPublicKey          crypto.PublicKey
 	testHashFunction       = crypto.SHA512
@@ -180,17 +180,16 @@ func TestInvokePlugin(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			// mock the behavior of Command.
 			makeCommandFunc := func(ctx context.Context, stdin io.Reader, stderr io.Writer, name string, args ...string) command {
-				t.Helper()
 				if diff := cmp.Diff(testExecutable, name); diff != "" {
 					t.Errorf("unexpected executable name (-want +got):\n%s", diff)
+				}
+				if diff := cmp.Diff(common.ProtocolVersion, args[0]); diff != "" {
+					t.Errorf("unexpected protocol version (-want +got):\n%s", diff)
 				}
 				if stdinBytes, err := io.ReadAll(stdin); err != nil {
 					t.Fatalf("expected stdin: %v", err)
 				} else if diff := cmp.Diff(testStdinBytes, stdinBytes); diff != "" {
 					t.Errorf("unexpected stdin bytes (-want +got):\n%s", diff)
-				}
-				if diff := cmp.Diff(common.ProtocolVersion, args[0]); diff != "" {
-					t.Errorf("unexpected protocol version (-want +got):\n%s", diff)
 				}
 				osArgs := append([]string{name}, args...)
 				if pluginArgs, err := handler.GetPluginArgs(osArgs); err != nil {
