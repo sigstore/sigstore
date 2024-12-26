@@ -235,7 +235,7 @@ func (s TestSignerVerifierImpl) DefaultAlgorithm() string {
 	return testDefaultAlgorithm
 }
 
-// CreateKey accepts checks the expected context deadline and algorithm, and returns the expected public key.
+// CreateKey checks the expected context deadline and algorithm, and returns the expected public key.
 func (s TestSignerVerifierImpl) CreateKey(ctx context.Context, algorithm string) (crypto.PublicKey, error) {
 	s.t.Helper()
 	if diff := cmp.Diff(testDefaultAlgorithm, algorithm); diff != "" {
