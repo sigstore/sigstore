@@ -83,7 +83,15 @@ TODO: implement more methods
 
 ### Testing
 
-Unit tests against a pre-compiled plugin program are in [./signer_program_test.go](./signer_program_test.go), and can be invoked like
+Unit tests against an example plugin program are in [./signer_program_test.go](./signer_program_test.go). The
+Compile the plugin and invoke unit tests with
+
+```
+make test-signer-program
+```
+
+Or invoke the unit tests with your own pre-compiled plugin program like
+
 
 ```
 export PATH=$PATH:[folder containing plugin program]
