@@ -14,6 +14,10 @@
 // limitations under the License.
 
 // Package common defines the JSON schema for plugin arguments and return values.
+
+//go:build !signer_program
+// +build !signer_program
+
 package common
 
 import (
