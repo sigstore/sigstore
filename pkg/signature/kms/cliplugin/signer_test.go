@@ -187,7 +187,7 @@ func TestInvokePlugin(t *testing.T) {
 					t.Errorf("unexpected protocol version (-want +got):\n%s", diff)
 				}
 				if stdinBytes, err := io.ReadAll(stdin); err != nil {
-					t.Fatalf("expected stdin: %v", err)
+					t.Fatalf("reading stdin: %v", err)
 				} else if diff := cmp.Diff(testStdinBytes, stdinBytes); diff != "" {
 					t.Errorf("unexpected stdin bytes (-want +got):\n%s", diff)
 				}
@@ -195,7 +195,7 @@ func TestInvokePlugin(t *testing.T) {
 				if pluginArgs, err := handler.GetPluginArgs(osArgs); err != nil {
 					t.Error(err)
 				} else if diff := cmp.Diff(testPluginArgs, pluginArgs); diff != "" {
-					t.Errorf("unexpected plugin args (-want +got):\n%s", diff)
+					t.Errorf("parsing plugin args (-want +got):\n%s", diff)
 				}
 				return testCommand{
 					output: tc.cmdOutputBytes,
