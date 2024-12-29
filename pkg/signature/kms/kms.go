@@ -1,5 +1,5 @@
 //
-// Copyright 2021 The Sigstore Authors.
+// Copyright 2024 The Sigstore Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -23,6 +23,12 @@ import (
 	"strings"
 
 	"github.com/sigstore/sigstore/pkg/signature"
+)
+
+const (
+	// CLIPluginProviderKey is a placeholder used to register the cliplugin as a provider in AddProvider().
+	// Its value should not conflict with any potential callers of AddProvider().
+	CLIPluginProviderKey = "cliplugin"
 )
 
 // ProviderNotFoundError indicates that no matching KMS provider was found
@@ -50,11 +56,25 @@ var providersMap = map[string]ProviderInit{}
 // Get returns a KMS SignerVerifier for the given resource string and hash function.
 // If no matching provider is found, Get returns a ProviderNotFoundError. It
 // also returns an error if initializing the SignerVerifier fails.
+// If keyResourceID doesn't match any of our hard-coded providers' schemas,
+// it will try to use the plugin system as a provider. If the caller did not import cliplugin
+// to allow it to run its init(), then it returns ProviderNotFoundError.
 func Get(ctx context.Context, keyResourceID string, hashFunc crypto.Hash, opts ...signature.RPCOption) (SignerVerifier, error) {
 	for ref, pi := range providersMap {
 		if strings.HasPrefix(keyResourceID, ref) {
-			return pi(ctx, keyResourceID, hashFunc, opts...)
+			sv, err := pi(ctx, keyResourceID, hashFunc, opts...)
+			if err != nil {
+				return nil, err
+			}
+			return sv, nil
 		}
+	}
+	if pi, ok := providersMap[CLIPluginProviderKey]; ok {
+		sv, err := pi(ctx, keyResourceID, hashFunc, opts...)
+		if err != nil {
+			return nil, err
+		}
+		return sv, nil
 	}
 	return nil, &ProviderNotFoundError{ref: keyResourceID}
 }
