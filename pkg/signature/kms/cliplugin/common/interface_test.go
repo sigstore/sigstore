@@ -36,7 +36,6 @@ func TestPluginArgs(t *testing.T) {
 	testCtxDeadline := time.Date(2025, 4, 1, 2, 47, 0, 0, time.UTC)
 	testPluginArgs := &PluginArgs{
 		InitOptions: &InitOptions{
-			CtxDeadline:     &testCtxDeadline,
 			ProtocolVersion: ProtocolVersion,
 			KeyResourceID:   "testkms://testkey",
 			HashFunc:        crypto.BLAKE2b_256,

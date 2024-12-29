@@ -40,7 +40,6 @@ type PluginArgs struct {
 
 // InitOptions contains the initial arguments when calling cliplugin.LoadSignerVerifier().
 type InitOptions struct {
-	CtxDeadline     *time.Time  `json:"ctxDeadline,omitempty"`
 	ProtocolVersion string      `json:"protocolVersion"`
 	KeyResourceID   string      `json:"keyResourceID"`
 	HashFunc        crypto.Hash `json:"hashFunc"`
