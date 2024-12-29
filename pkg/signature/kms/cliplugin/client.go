@@ -57,6 +57,9 @@ func LoadSignerVerifier(ctx context.Context, inputKeyResourceID string, hashFunc
 		HashFunc:        hashFunc,
 		// TODO: include extracted values from opts
 	}
+	if deadline, ok := ctx.Deadline(); ok {
+		initOptions.CtxDeadline = &deadline
+	}
 	pluginClient := newPluginClient(executable, initOptions)
 	return pluginClient, nil
 }

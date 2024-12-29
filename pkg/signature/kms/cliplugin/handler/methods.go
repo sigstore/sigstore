@@ -14,6 +14,7 @@
 // limitations under the License.
 
 // Package handler implements helper functions for plugins written in go.
+// It parses arguments  and return values to and from the supplied `SignerVerifier` implementation.
 package handler
 
 import (
@@ -27,6 +28,7 @@ import (
 
 // TODO: Additonal methods to be implemented
 
+// DefaultAlgorithm parses arguments and return values to and from the impl.
 func DefaultAlgorithm(stdin io.Reader, args *common.DefaultAlgorithmArgs, impl kms.SignerVerifier) (*common.DefaultAlgorithmResp, error) {
 	defaultAlgorithm := impl.DefaultAlgorithm()
 	resp := &common.DefaultAlgorithmResp{
@@ -35,6 +37,7 @@ func DefaultAlgorithm(stdin io.Reader, args *common.DefaultAlgorithmArgs, impl k
 	return resp, nil
 }
 
+// CreateKey parses arguments and return values to and from the impl.
 func CreateKey(stdin io.Reader, args *common.CreateKeyArgs, impl kms.SignerVerifier) (*common.CreateKeyResp, error) {
 	ctx := context.TODO()
 	if args.CtxDeadline != nil {

@@ -29,7 +29,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"github.com/sigstore/sigstore/pkg/signature/kms/cliplugin/common"
+	"github.com/sigstore/sigstore/pkg/signature/kms"
 )
 
 // This file tests the PluginClient against a pre-built plugin programs.
@@ -42,22 +42,18 @@ var (
 	testHashFunc       = crypto.SHA512
 )
 
-func getPluginClient(t *testing.T) *PluginClient {
+// getPluginClient parses the build flags for the KeyResourceID and returns a PluginClient.
+func getPluginClient(t *testing.T) kms.SignerVerifier {
 	t.Helper()
-	executable, keyResourceID, err := getPluginExecutableAndKeyResourceID(*inputKeyResourceID)
+	pluginClient, err := LoadSignerVerifier(context.TODO(), *inputKeyResourceID, testHashFunc)
 	if err != nil {
-		t.Fatalf("build flag -key-resource-id is required for this test: %v", err)
+		t.Fatal(err)
 	}
-	initOptions := &common.InitOptions{
-		ProtocolVersion: common.ProtocolVersion,
-		KeyResourceID:   keyResourceID,
-		HashFunc:        testHashFunc,
-		// TODO: include extracted values from opts
-	}
-	pluginClient := newPluginClient(executable, initOptions)
 	return pluginClient
 }
 
+// TestDefaultAlgorithm invokes DefaultAlgorithm against the compiled plugin program.
+// Since implementations can vary, it merely checks that some non-empty value is returned.
 func TestDefaultAlgorithm(t *testing.T) {
 	t.Parallel()
 
@@ -68,6 +64,9 @@ func TestDefaultAlgorithm(t *testing.T) {
 	}
 }
 
+// TestCreateKey invokes CreateKey against the compiled plugin program.
+// Since implementations can vary, it merely checks that some public key is returned,
+// and that the ctx argument's deadline is respected.
 func TestCreateKey(t *testing.T) {
 	t.Parallel()
 
