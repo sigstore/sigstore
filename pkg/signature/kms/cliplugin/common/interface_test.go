@@ -53,12 +53,12 @@ func TestPluginArgs(t *testing.T) {
 
 	encdodedPluginArgs, err := json.Marshal(testPluginArgs)
 	if err != nil {
-		t.Fatalf("encoding pluginArgs: %v", err)
+		t.Errorf("encoding pluginArgs: %v", err)
 	}
 
 	var decodedPluginArgs PluginArgs
 	if err := json.Unmarshal(encdodedPluginArgs, &decodedPluginArgs); err != nil {
-		t.Fatalf("decoding pluginArgs error: %v", err)
+		t.Errorf("decoding pluginArgs error: %v", err)
 	}
 
 	if diff := cmp.Diff(testPluginArgs, &decodedPluginArgs); diff != "" {
@@ -78,12 +78,12 @@ func TestPluginResp(t *testing.T) {
 
 	encdodedPluginResp, err := json.Marshal(testPluginResp)
 	if err != nil {
-		t.Fatalf("encoding pluginArgs: %v", err)
+		t.Errorf("encoding pluginArgs: %v", err)
 	}
 
 	var decodedPluginResp PluginResp
 	if err := json.Unmarshal(encdodedPluginResp, &decodedPluginResp); err != nil {
-		t.Fatalf("decoding pluginResp error: %v", err)
+		t.Errorf("decoding pluginResp error: %v", err)
 	}
 
 	if diff := cmp.Diff(testPluginResp, &decodedPluginResp); diff != "" {

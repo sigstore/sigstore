@@ -187,7 +187,7 @@ func TestInvokePlugin(t *testing.T) {
 					t.Errorf("unexpected protocol version (-want +got):\n%s", diff)
 				}
 				if stdinBytes, err := io.ReadAll(stdin); err != nil {
-					t.Fatalf("reading stdin: %v", err)
+					t.Errorf("reading stdin: %v", err)
 				} else if diff := cmp.Diff(testStdinBytes, stdinBytes); diff != "" {
 					t.Errorf("unexpected stdin bytes (-want +got):\n%s", diff)
 				}
@@ -222,21 +222,21 @@ func TestInvokePlugin(t *testing.T) {
 	}
 }
 
-// TestSignerVerifierImpl is a mock implementation that asserts that the
+// testSignerVerifierImpl is a mock implementation that asserts that the
 // expected values are both sent and received through the encoding and decoding processes
-type TestSignerVerifierImpl struct {
+type testSignerVerifierImpl struct {
 	// TODO: remove this embedding after all methods are implemented.
 	kms.SignerVerifier
 	t *testing.T
 }
 
 // DefaultAlgorithm accepts no arguments, but returns an expected value.
-func (s TestSignerVerifierImpl) DefaultAlgorithm() string {
+func (s testSignerVerifierImpl) DefaultAlgorithm() string {
 	return testDefaultAlgorithm
 }
 
 // CreateKey checks the expected context deadline and algorithm, and returns the expected public key.
-func (s TestSignerVerifierImpl) CreateKey(ctx context.Context, algorithm string) (crypto.PublicKey, error) {
+func (s testSignerVerifierImpl) CreateKey(ctx context.Context, algorithm string) (crypto.PublicKey, error) {
 	if diff := cmp.Diff(testDefaultAlgorithm, algorithm); diff != "" {
 		s.t.Errorf("unexpected algorithm (-want +got):\n%s", diff)
 	}
@@ -262,14 +262,14 @@ func TestPluginClient(t *testing.T) {
 		osArgs := append([]string{name}, args...)
 		pluginArgs, err := handler.GetPluginArgs(osArgs)
 		if err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 		var stdout bytes.Buffer
-		_, err = handler.Dispatch(&stdout, stdin, pluginArgs, TestSignerVerifierImpl{
+		_, err = handler.Dispatch(&stdout, stdin, pluginArgs, testSignerVerifierImpl{
 			t: t,
 		})
 		if err != nil {
-			t.Fatal(err)
+			t.Error(err)
 		}
 		return testCommand{
 			output: stdout.Bytes(),
@@ -281,6 +281,7 @@ func TestPluginClient(t *testing.T) {
 		&common.InitOptions{},
 		makeCommandFunc,
 	)
+	testContext, _ := context.WithDeadline(context.TODO(), testContextDeadline)
 	var testErr error = nil
 
 	t.Run("DefaultAlgorithm", func(t *testing.T) {
@@ -292,12 +293,10 @@ func TestPluginClient(t *testing.T) {
 		}
 	})
 
-	t.Run("PublicKey", func(t *testing.T) {
+	t.Run("CreateKey", func(t *testing.T) {
 		t.Parallel()
 
-		testContext, _ := context.WithDeadline(context.TODO(), testContextDeadline)
 		publicKey, err := testPluginClient.CreateKey(testContext, testDefaultAlgorithm)
-
 		if diff := cmp.Diff(testPublicKey, publicKey); diff != "" {
 			t.Errorf("public key mismatch (-want +got):\n%s", diff)
 		}
