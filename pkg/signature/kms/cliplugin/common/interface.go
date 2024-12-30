@@ -66,7 +66,7 @@ type PluginResp struct {
 	// TODO: Additonal methods to be implemented
 }
 
-// DefaultAlgorithmArgs contains the serialized argments for `DefaultAlgorithm()`.
+// DefaultAlgorithmArgs contains the serialized arguments for `DefaultAlgorithm()`.
 type DefaultAlgorithmArgs struct {
 }
 
@@ -75,7 +75,7 @@ type DefaultAlgorithmResp struct {
 	DefaultAlgorithm string `json:"defaultAlgorithm"`
 }
 
-// CreateKeyArgs contains the serialized argments for `CreateKeyArgs()`.
+// CreateKeyArgs contains the serialized arguments for `CreateKeyArgs()`.
 type CreateKeyArgs struct {
 	CtxDeadline *time.Time `json:"ctxDeadline,omitempty"`
 	Algorithm   string     `json:"algorithm"`
