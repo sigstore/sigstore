@@ -49,6 +49,7 @@ type InitOptions struct {
 
 // MethodArgs contains the method arguments. MethodName must be specified,
 // while any one of the other fields describing method arguments must also be specified.
+// Arguments that are io.Readers, like `message` in `SignMessage()` will be sent over stdin.
 type MethodArgs struct {
 	// MethodName specifies which method is intended to be called.
 	MethodName       string                `json:"methodName"`
@@ -65,18 +66,22 @@ type PluginResp struct {
 	// TODO: Additonal methods to be implemented
 }
 
+// DefaultAlgorithmArgs contains the serialized arguments for `DefaultAlgorithm()`.
 type DefaultAlgorithmArgs struct {
 }
 
+// DefaultAlgorithmResp contains the serialized response for `DefaultAlgorithm()`.
 type DefaultAlgorithmResp struct {
 	DefaultAlgorithm string `json:"defaultAlgorithm"`
 }
 
+// CreateKeyArgs contains the serialized arguments for `CreateKeyArgs()`.
 type CreateKeyArgs struct {
 	CtxDeadline *time.Time `json:"ctxDeadline,omitempty"`
 	Algorithm   string     `json:"algorithm"`
 }
 
+// CreateKeyResp contains the serialized response for `CreateKeyResp()`.
 type CreateKeyResp struct {
 	PublicKeyPEM []byte `json:"publicKeyPEM"`
 }
