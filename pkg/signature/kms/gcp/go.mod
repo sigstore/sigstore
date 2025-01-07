@@ -8,7 +8,7 @@ require (
 	cloud.google.com/go/kms v1.20.4
 	github.com/jellydator/ttlcache/v3 v3.3.0
 	github.com/sigstore/sigstore v1.6.4
-	golang.org/x/oauth2 v0.24.0
+	golang.org/x/oauth2 v0.25.0
 	google.golang.org/api v0.214.0
 	google.golang.org/protobuf v1.36.1
 )
