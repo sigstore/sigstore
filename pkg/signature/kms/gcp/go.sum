@@ -8,8 +8,8 @@ cloud.google.com/go/compute/metadata v0.6.0 h1:A6hENjEsCDtC1k8byVsgwvVcioamEHvZ4
 cloud.google.com/go/compute/metadata v0.6.0/go.mod h1:FjyFAW1MW0C203CEOMDTu3Dk1FlqW3Rga40jzHL4hfg=
 cloud.google.com/go/iam v1.2.2 h1:ozUSofHUGf/F4tCNy/mu9tHLTaxZFLOUiKzjcgWHGIA=
 cloud.google.com/go/iam v1.2.2/go.mod h1:0Ys8ccaZHdI1dEUilwzqng/6ps2YB6vRsjIe00/+6JY=
-cloud.google.com/go/kms v1.20.3 h1:a61yIN5LN8ozWxOC6tjUx5V5SEzfkS+b69kYMQfzGzE=
-cloud.google.com/go/kms v1.20.3/go.mod h1:YvX+xhp2E2Sc3vol5IcRlBhH14Ecl3kegUY/DtH7EWQ=
+cloud.google.com/go/kms v1.20.4 h1:CJ0hMpOg1ANN9tx/a/GPJ+Uxudy8k6f3fvGFuTHiE5A=
+cloud.google.com/go/kms v1.20.4/go.mod h1:gPLsp1r4FblUgBYPOcvI/bUPpdMg2Jm1ZVKU4tQUfcc=
 cloud.google.com/go/longrunning v0.6.2 h1:xjDfh1pQcWPEvnfjZmwjKQEcHnpz6lHjfy7Fo0MK+hc=
 cloud.google.com/go/longrunning v0.6.2/go.mod h1:k/vIs83RN4bE3YCswdXC5PFfWVILjm3hpEUlSko4PiI=
 github.com/beorn7/perks v1.0.1 h1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=
