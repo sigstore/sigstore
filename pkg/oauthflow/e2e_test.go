@@ -23,6 +23,7 @@ import (
 	"testing"
 
 	"github.com/go-rod/rod"
+	"github.com/go-rod/rod/lib/launcher"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
@@ -43,7 +44,8 @@ func (suite *OAuthSuite) TestOauthFlow() {
 
 	go func() {
 		authCodeURL := <-urlCh
-		page := rod.New().MustConnect().MustPage(authCodeURL)
+		launcher := launcher.New().NoSandbox(true).MustLaunch()
+		page := rod.New().ControlURL(launcher).MustConnect().MustPage(authCodeURL)
 		page.MustElement("body > div.dex-container > div > div > div:nth-child(2) > a > button").MustClick()
 	}()
 
