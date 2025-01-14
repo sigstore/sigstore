@@ -27,7 +27,10 @@ permissions:
 jobs:
   e2e_test:
     name: e2e integration tests
-    runs-on: ubuntu-latest
+    # using ubuntu-22.04 because on 24.02 we are getting
+    # panic: [launcher] Failed to get the debug url: [9175:9175:0114/132426.963765:FATAL:zygote_host_impl_linux.cc(126)] No usable sandbox! Update your kernel or see https://chromium.googlesource.com/chromium/src/+/main/docs/linux/suid_sandbox_development.md for more information on developing with the SUID sandbox. If you want to live dangerously and need an immediate workaround, you can try using --no-sandbox.
+    # TODO: investigate and fix the issue or try the latest ubuntu some time in the future
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
