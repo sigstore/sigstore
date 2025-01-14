@@ -50,6 +50,9 @@ jobs:
           wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
           sudo sh -c 'echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google-chrome.list'
           sudo apt update && sudo apt install -y google-chrome-stable
+          ls -al /etc/apparmor
+          sudo cp /etc/apparmor/chrome /etc/apparmor/google-chrome
+          sudo cp /etc/apparmor/chrome /etc/apparmor/google-chrome-stable
 
       - name: Docker Build
         working-directory: ./test/e2e
