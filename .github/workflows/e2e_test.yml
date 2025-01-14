@@ -50,10 +50,8 @@ jobs:
           wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
           sudo sh -c 'echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google-chrome.list'
           sudo apt update && sudo apt install -y google-chrome-stable
-          sudo sed 's|/opt/google/chrome/chrome|/opt/google/chrome/google-chrome|' /etc/apparmor.d/chrome > /etc/apparmor.d/google-chrome
-          cat /etc/apparmor.d/google-chrome
-          sudo sed 's|/opt/google/chrome/chrome|/opt/google/chrome/google-chrome-stable|' /etc/apparmor.d/chrome > /etc/apparmor.d/google-chrome-stable
-          cat /etc/apparmor.d/google-chrome-stable
+          sudo sh -c "sed 's|/opt/google/chrome/chrome|/opt/google/chrome/google-chrome|' /etc/apparmor.d/chrome | tee /etc/apparmor.d/google-chrome"
+          sudo sh -c "sed 's|/opt/google/chrome/chrome|/opt/google/chrome/google-chrome-stable|' /etc/apparmor.d/chrome | tee /etc/apparmor.d/google-chrome-stable"
           ls -al /opt/google/chrome/
           sudo systemctl reload apparmor
 
