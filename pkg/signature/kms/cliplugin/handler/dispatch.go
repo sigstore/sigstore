@@ -27,7 +27,7 @@ import (
 )
 
 var (
-	ErrorPluginArgsParse   = errors.New("error parsing pluign args")
+	ErrorPluginArgsParse   = errors.New("error parsing plugin args")
 	ErrorUnsupportedMethod = errors.New("unsupported methodArgs")
 )
 
