@@ -42,7 +42,7 @@ Plugin authors may return errors with `PluginResp.ErrorMessage`, but the plugin'
 
 ### Implementation
 
-Plugin authors must implement the `kms.SignerVerifier` interface methods in their chosen language. Each method will invoke your program once, and the reponse will be parsed from stdout.
+Plugin authors must implement the `kms.SignerVerifier` interface methods in their chosen language. Each method will invoke your program once, and the response will be parsed from stdout.
 
 Exit status is ignored. Your program's stderr will be redirected to the main program, and errors you wish to return must be serialized in `PluginResp.ErrorMessage` in stdout.
 
@@ -58,7 +58,7 @@ Adding new methods or options are *not* necessarily breaking changes to the sche
 
 ### Removing Methods
 
-Removing methods, or altering their signatures will break the schemas and will require major version increments, both to the protocl version and the sigstore version.
+Removing methods, or altering their signatures will break the schemas and will require major version increments, both to the protocol version and the sigstore version.
 
 ### Example Plugin
 
