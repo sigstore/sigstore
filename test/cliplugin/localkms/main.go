@@ -29,7 +29,7 @@ func main() {
 	// we log to stderr, not stdout. stdout is reserved for the plugin return value.
 	spew.Fdump(os.Stderr, os.Args)
 	if protocolVersion := os.Args[1]; protocolVersion != expectedProtocolVersion {
-		err := fmt.Errorf("expected protocl version: %s, got %s", expectedProtocolVersion, protocolVersion)
+		err := fmt.Errorf("expected protocol version: %s, got %s", expectedProtocolVersion, protocolVersion)
 		handler.WriteErrorResponse(os.Stdout, err)
 		panic(err)
 	}
