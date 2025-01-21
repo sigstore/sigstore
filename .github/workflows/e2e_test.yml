@@ -57,3 +57,6 @@ jobs:
 
       - name: Integration test
         run: make test-e2e
+
+      - name: plugin test
+        run: make test-signer-program
