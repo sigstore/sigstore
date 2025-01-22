@@ -1,9 +1,9 @@
 module github.com/sigstore/sigstore
 
-go 1.22.5
+go 1.22.0
 
 require (
-	github.com/coreos/go-oidc/v3 v3.11.0
+	github.com/coreos/go-oidc/v3 v3.12.0
 	github.com/go-jose/go-jose/v3 v3.0.3
 	github.com/go-rod/rod v0.116.2
 	github.com/go-test/deep v1.1.1
@@ -11,14 +11,14 @@ require (
 	github.com/google/go-containerregistry v0.20.2
 	github.com/letsencrypt/boulder v0.0.0-20240620165639-de9c06129bec
 	github.com/pkg/browser v0.0.0-20210911075715-681adbf594b8
-	github.com/secure-systems-lab/go-securesystemslib v0.8.0
+	github.com/secure-systems-lab/go-securesystemslib v0.9.0
 	github.com/segmentio/ksuid v1.0.4
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966
-	github.com/stretchr/testify v1.9.0
+	github.com/stretchr/testify v1.10.0
 	github.com/theupdateframework/go-tuf v0.7.0
-	golang.org/x/crypto v0.25.0
-	golang.org/x/oauth2 v0.23.0
-	golang.org/x/term v0.22.0
+	golang.org/x/crypto v0.32.0
+	golang.org/x/oauth2 v0.25.0
+	golang.org/x/term v0.28.0
 )
 
 require (
@@ -34,7 +34,7 @@ require (
 	github.com/ysmood/got v0.40.0 // indirect
 	github.com/ysmood/gson v0.7.3 // indirect
 	github.com/ysmood/leakless v0.9.0 // indirect
-	golang.org/x/sys v0.22.0 // indirect
+	golang.org/x/sys v0.29.0 // indirect
 	google.golang.org/protobuf v1.34.2 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
