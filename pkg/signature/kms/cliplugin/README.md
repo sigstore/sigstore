@@ -83,7 +83,7 @@ TODO: implement more methods
 
 ### Testing
 
-Unit tests against an example plugin program are in [./signer_program_test.go](./signer_program_test.go). The
+Unit tests against an example plugin program are in [./signer_program_test.go](./signer_program_test.go).
 Compile the plugin and invoke unit tests with
 
 ```
