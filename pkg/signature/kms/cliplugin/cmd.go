@@ -22,20 +22,24 @@ import (
 	"os/exec"
 )
 
-type command interface {
+// cmd is an interface for os/exec.Cmd.
+type cmd interface {
 	Output() ([]byte, error)
 }
 
-type makeCommandFunc func(ctx context.Context, stdin io.Reader, stderr io.Writer, name string, args ...string) command
+// makeComdFunc is a type for a function that can create a cmd.
+type makeComdFunc func(ctx context.Context, stdin io.Reader, stderr io.Writer, name string, args ...string) cmd
 
-func makeCommand(ctx context.Context, stdin io.Reader, stderr io.Writer, name string, args ...string) command {
+// makeCmd is an implementation of makeComdFunc.
+func makeCmd(ctx context.Context, stdin io.Reader, stderr io.Writer, name string, args ...string) cmd {
 	cmd := exec.CommandContext(ctx, name, args...)
 	cmd.Stdin = stdin
 	cmd.Stderr = stderr
 	return cmd
 }
 
-type commandExitError interface {
-	ExitCode() int
+// comdExitError is an interface for os/exec.ExitError.
+type comdExitError interface {
 	Error() string
+	ExitCode() int
 }

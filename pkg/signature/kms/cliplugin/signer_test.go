@@ -46,7 +46,7 @@ var (
 	testHashFunction       = crypto.SHA512
 )
 
-type testCommand struct {
+type testCmd struct {
 	output []byte
 	err    error
 }
@@ -63,7 +63,7 @@ func (e testExitError) Error() string {
 	return "test exit error"
 }
 
-func (c testCommand) Output() ([]byte, error) {
+func (c testCmd) Output() ([]byte, error) {
 	return c.output, c.err
 }
 
@@ -82,7 +82,7 @@ HrgLLNu5Gj06Y2S8vvR3MBWbChpOIKGh1YrDoa4lt/XfjaNcHq7vcuYXwg==
 	os.Exit(exitCode)
 }
 
-// TestInvokePlugin ensures invokePlugin returns an error in the correct situations by mocking the Command function.
+// TestInvokePlugin ensures invokePlugin returns an error in the correct situations by mocking the Cmd function.
 func TestInvokePlugin(t *testing.T) {
 	testStdinBytes := []byte("my-stdin")
 	testMethodArgs := &common.MethodArgs{
@@ -119,12 +119,12 @@ func TestInvokePlugin(t *testing.T) {
 	tests := []struct {
 		name                  string
 		cmdOutputBytes        []byte
-		commandOutputErr      error
+		cmdOutputErr          error
 		resp                  *common.PluginResp
 		err                   error
 		errorMessageSubstring string
 	}{
-		// command and plugin error handling
+		// cmd and plugin error handling
 		{
 			name:           "success",
 			cmdOutputBytes: goodOutput,
@@ -136,28 +136,28 @@ func TestInvokePlugin(t *testing.T) {
 			resp:           goodResp,
 		},
 		{
-			name:             "success: continue if command exits non-zero",
-			cmdOutputBytes:   goodOutput,
-			commandOutputErr: &testExitError{exitCode: 1},
-			resp:             goodResp,
+			name:           "success: continue if command exits non-zero",
+			cmdOutputBytes: goodOutput,
+			cmdOutputErr:   &testExitError{exitCode: 1},
+			resp:           goodResp,
 		},
 		{
-			name:             "failure: command eror, even if command exits 0",
-			cmdOutputBytes:   goodOutput,
-			commandOutputErr: &testExitError{exitCode: 0},
-			err:              ErrorExecutingPlugin,
+			name:           "failure: command eror, even if command exits 0",
+			cmdOutputBytes: goodOutput,
+			cmdOutputErr:   &testExitError{exitCode: 0},
+			err:            ErrorExecutingPlugin,
 		},
 		{
-			name:             "failure: ExitError.ExitStatus() is -1",
-			cmdOutputBytes:   goodOutput,
-			commandOutputErr: &testExitError{exitCode: -1},
-			err:              ErrorExecutingPlugin,
+			name:           "failure: ExitError.ExitStatus() is -1",
+			cmdOutputBytes: goodOutput,
+			cmdOutputErr:   &testExitError{exitCode: -1},
+			err:            ErrorExecutingPlugin,
 		},
 		{
-			name:             "failure: any other exec error",
-			cmdOutputBytes:   goodOutput,
-			commandOutputErr: errors.New("exec-error"),
-			err:              ErrorExecutingPlugin,
+			name:           "failure: any other exec error",
+			cmdOutputBytes: goodOutput,
+			cmdOutputErr:   errors.New("exec-error"),
+			err:            ErrorExecutingPlugin,
 		},
 		{
 			name:                  "error: plugin program error",
@@ -178,8 +178,8 @@ func TestInvokePlugin(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			// mock the behavior of Command.
-			makeCommandFunc := func(ctx context.Context, stdin io.Reader, stderr io.Writer, name string, args ...string) command {
+			// mock the behavior of Cmd, simulating a plugin program.
+			makeCmdFunc := func(ctx context.Context, stdin io.Reader, stderr io.Writer, name string, args ...string) cmd {
 				if diff := cmp.Diff(testExecutable, name); diff != "" {
 					t.Errorf("unexpected executable name (-want +got):\n%s", diff)
 				}
@@ -197,13 +197,13 @@ func TestInvokePlugin(t *testing.T) {
 				} else if diff := cmp.Diff(testPluginArgs, pluginArgs); diff != "" {
 					t.Errorf("parsing plugin args (-want +got):\n%s", diff)
 				}
-				return testCommand{
+				return testCmd{
 					output: tc.cmdOutputBytes,
-					err:    tc.commandOutputErr,
+					err:    tc.cmdOutputErr,
 				}
 			}
-			// client with our mocked Command
-			testPluginClient := newPluginClient(testExecutable, testInitOptions, makeCommandFunc)
+			// client with our mocked Cmd
+			testPluginClient := newPluginClient(testExecutable, testInitOptions, makeCmdFunc)
 			// invokePlugin
 			testContext := context.TODO()
 			testStdin := bytes.NewBuffer(testStdinBytes)
@@ -251,13 +251,13 @@ func (s testSignerVerifierImpl) CreateKey(ctx context.Context, algorithm string)
 }
 
 // TestPluginClient tests each of PluginClient's methods for correct encoding and decoding between a simulated plugin program,
-// by mocking the Command function and using TestSignerVerifierImpl to both check and return expected values.
+// by mocking the Cmd function and using TestSignerVerifierImpl to both check and return expected values.
 func TestPluginClient(t *testing.T) {
 	t.Parallel()
 
-	// Mock the behavior of Command to simulates a real plugin program by
+	// Mock the behavior of Cmd to simulates a real plugin program by
 	// calling the helper handler functions `GetPluginArgs()` and `Dispatch()`, passing along the stdin stdout, and args.
-	makeCommandFunc := func(ctx context.Context, stdin io.Reader, stderr io.Writer, name string, args ...string) command {
+	makeCmdFunc := func(ctx context.Context, stdin io.Reader, stderr io.Writer, name string, args ...string) cmd {
 		// Use the helpfer functions in the handler package.
 		osArgs := append([]string{name}, args...)
 		pluginArgs, err := handler.GetPluginArgs(osArgs)
@@ -271,7 +271,7 @@ func TestPluginClient(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		return testCommand{
+		return testCmd{
 			output: stdout.Bytes(),
 			err:    err,
 		}
@@ -279,7 +279,7 @@ func TestPluginClient(t *testing.T) {
 	testPluginClient := newPluginClient(
 		testExecutable,
 		&common.InitOptions{},
-		makeCommandFunc,
+		makeCmdFunc,
 	)
 	testContext, _ := context.WithDeadline(context.TODO(), testContextDeadline)
 	var testErr error = nil
