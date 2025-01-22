@@ -124,7 +124,6 @@ func TestInvokePlugin(t *testing.T) {
 		err                   error
 		errorMessageSubstring string
 	}{
-		// cmd and plugin error handling
 		{
 			name:           "success",
 			cmdOutputBytes: goodOutput,
@@ -223,7 +222,7 @@ func TestInvokePlugin(t *testing.T) {
 }
 
 // testSignerVerifierImpl is a mock implementation that asserts that the
-// expected values are both sent and received through the encoding and decoding processes
+// expected values are both sent and received through the encoding and decoding processes.
 type testSignerVerifierImpl struct {
 	// TODO: remove this embedding after all methods are implemented.
 	kms.SignerVerifier
@@ -256,9 +255,9 @@ func TestPluginClient(t *testing.T) {
 	t.Parallel()
 
 	// Mock the behavior of Cmd to simulates a real plugin program by
-	// calling the helper handler functions `GetPluginArgs()` and `Dispatch()`, passing along the stdin stdout, and args.
+	// calling the helper handler functions `GetPluginArgs()` and `Dispatch()`, passing along the stdin, stdout, and args.
 	makeCmdFunc := func(ctx context.Context, stdin io.Reader, stderr io.Writer, name string, args ...string) cmd {
-		// Use the helpfer functions in the handler package.
+		// Use the helper functions in the handler package.
 		osArgs := append([]string{name}, args...)
 		pluginArgs, err := handler.GetPluginArgs(osArgs)
 		if err != nil {
