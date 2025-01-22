@@ -27,10 +27,10 @@ type cmd interface {
 	Output() ([]byte, error)
 }
 
-// makeComdFunc is a type for a function that can create a cmd.
-type makeComdFunc func(ctx context.Context, stdin io.Reader, stderr io.Writer, name string, args ...string) cmd
+// makeCmdFunc is a type for a function that can create a cmd.
+type makeCmdFunc func(ctx context.Context, stdin io.Reader, stderr io.Writer, name string, args ...string) cmd
 
-// makeCmd is an implementation of makeComdFunc.
+// makeCmd is an implementation of makeCmdFunc.
 func makeCmd(ctx context.Context, stdin io.Reader, stderr io.Writer, name string, args ...string) cmd {
 	cmd := exec.CommandContext(ctx, name, args...)
 	cmd.Stdin = stdin
@@ -38,8 +38,8 @@ func makeCmd(ctx context.Context, stdin io.Reader, stderr io.Writer, name string
 	return cmd
 }
 
-// comdExitError is an interface for os/exec.ExitError.
-type comdExitError interface {
+// cmdExitError is an interface for os/exec.ExitError.
+type cmdExitError interface {
 	Error() string
 	ExitCode() int
 }
