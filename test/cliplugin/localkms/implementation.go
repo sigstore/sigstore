@@ -22,6 +22,7 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -58,6 +59,19 @@ func (i LocalSignerVerifier) CreateKey(ctx context.Context, algorithm string) (c
 		return nil, fmt.Errorf("algorithm %s not supported", algorithm)
 	}
 
+	path := i.keyResourceID
+
+	if _, err := os.Stat(path); err == nil { // file exists
+		privateKey, err := loadRSAPrivateKey(path)
+		if err != nil {
+			return nil, err
+		}
+		return &privateKey.PublicKey, nil
+	} else if !errors.Is(err, os.ErrNotExist) { // any error other than ErrNotExist
+		return nil, err
+	}
+	// proceed with creating the key
+
 	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
 		return nil, fmt.Errorf("error generating private key: %w", err)
@@ -68,7 +82,6 @@ func (i LocalSignerVerifier) CreateKey(ctx context.Context, algorithm string) (c
 		Bytes: x509.MarshalPKCS1PrivateKey(privateKey),
 	}
 
-	path := i.keyResourceID
 	privateKeyFile, err := os.Create(path)
 	if err != nil {
 		return nil, fmt.Errorf("error creating private key file: %w", err)
