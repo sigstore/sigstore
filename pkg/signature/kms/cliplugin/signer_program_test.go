@@ -136,8 +136,6 @@ func TestDefaultAlgorithm(t *testing.T) {
 // TestCreateKey invokes CreateKey against the compiled plugin program.
 // Since implementations can vary, it merely checks that some public key is returned.
 func TestCreateKey(t *testing.T) {
-	t.Parallel()
-
 	pluginClient := getPluginClient(t)
 	ctx := context.Background()
 	defaultAlgorithm := pluginClient.DefaultAlgorithm()
@@ -186,8 +184,6 @@ func TestCreateKey(t *testing.T) {
 // with combinations of empty or non-empty messages, and digests.
 // Since implementations can vary, it merely checks that non-empty signature is returned.
 func TestSignMessage(t *testing.T) {
-	t.Parallel()
-
 	pluginClient := getPluginClient(t)
 
 	testMessageBytes := []byte("any message")
