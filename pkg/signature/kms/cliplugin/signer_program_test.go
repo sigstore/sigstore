@@ -21,6 +21,7 @@
 package cliplugin
 
 import (
+	"bytes"
 	"context"
 	"crypto"
 	"flag"
@@ -29,7 +30,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"github.com/sigstore/sigstore/pkg/signature/kms"
+	"github.com/sigstore/sigstore/pkg/signature/kms/cliplugin/common"
 )
 
 // This file tests the PluginClient against a pre-built plugin programs.
@@ -43,13 +44,78 @@ var (
 )
 
 // getPluginClient parses the build flags for the KeyResourceID and returns a PluginClient.
-func getPluginClient(t *testing.T) kms.SignerVerifier {
+func getPluginClient(t *testing.T) *PluginClient {
 	t.Helper()
-	pluginClient, err := LoadSignerVerifier(context.TODO(), *inputKeyResourceID, testHashFunc)
+	signerVerifier, err := LoadSignerVerifier(context.TODO(), *inputKeyResourceID, testHashFunc)
 	if err != nil {
 		t.Fatal(err)
 	}
+	pluginClient := signerVerifier.(*PluginClient)
 	return pluginClient
+}
+
+// TestInvokePluginPreBuilt ensures that ctx deadline is respected by Cmd, and that errors are correctly handled.
+func TestInvokePluginPreBuilt(t *testing.T) {
+	t.Parallel()
+
+	pluginClient := getPluginClient(t)
+	noDeadlineContext := context.TODO()
+	duration := time.Minute * 3
+	futureDeadlineContext, _ := context.WithDeadline(noDeadlineContext, time.Now().Add(duration))
+	expiredDeadlineContext, _ := context.WithDeadline(noDeadlineContext, time.Now().Add(-duration))
+	canceledContext, cancel := context.WithCancel(noDeadlineContext)
+	cancel()
+
+	tests := []struct {
+		name       string
+		ctx        context.Context
+		methodName string
+		err        error
+	}{
+		{
+			name:       "success: no deadline",
+			ctx:        noDeadlineContext,
+			methodName: common.DefaultAlgorithmMethodName,
+			err:        nil,
+		},
+		{
+			name:       "success: future deadline",
+			ctx:        futureDeadlineContext,
+			methodName: common.DefaultAlgorithmMethodName,
+			err:        nil,
+		},
+		{
+			name:       "failure: expired deadline",
+			ctx:        expiredDeadlineContext,
+			methodName: common.DefaultAlgorithmMethodName,
+			err:        ErrorExecutingPlugin,
+		},
+		{
+			name:       "failure: canceled context",
+			ctx:        canceledContext,
+			methodName: common.DefaultAlgorithmMethodName,
+			err:        ErrorExecutingPlugin,
+		},
+		{
+			name: "failure: unknown method",
+			ctx:  noDeadlineContext,
+			err:  ErrorPluginReturnError,
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			stdin := bytes.NewReader([]byte(``))
+			methodArgs := &common.MethodArgs{
+				MethodName: tc.methodName,
+			}
+			_, err := pluginClient.invokePlugin(tc.ctx, stdin, methodArgs)
+			if diff := cmp.Diff(tc.err, err, cmpopts.EquateErrors()); diff != "" {
+				t.Errorf("unexpected error (-want +got): \n%s", diff)
+			}
+		})
+	}
 }
 
 // TestDefaultAlgorithm invokes DefaultAlgorithm against the compiled plugin program.
@@ -65,59 +131,28 @@ func TestDefaultAlgorithm(t *testing.T) {
 }
 
 // TestCreateKey invokes CreateKey against the compiled plugin program.
-// Since implementations can vary, it merely checks that some public key is returned,
-// and that the ctx argument's deadline is respected.
+// Since implementations can vary, it merely checks that some public key is returned.
 func TestCreateKey(t *testing.T) {
 	t.Parallel()
 
 	pluginClient := getPluginClient(t)
-
+	ctx := context.Background()
 	defaultAlgorithm := pluginClient.DefaultAlgorithm()
 
-	noDeadlineContext := context.TODO()
-	duration := time.Minute * 3
-	futureDeadlineContext, _ := context.WithDeadline(noDeadlineContext, time.Now().Add(duration))
-	expiredDeadlineContext, _ := context.WithDeadline(noDeadlineContext, time.Now().Add(-duration))
-	canceledContext, cancel := context.WithCancel(noDeadlineContext)
-	cancel()
-
-	// TODO: test cases with varying context deadline really should be test cases against invokePlugin(),
-	// not CreateKey(). But this would require some monkey-patching against the Command used.
 	tests := []struct {
 		name      string
-		ctx       context.Context
 		algorithm string
 		err       error
 	}{
 		{
-			name:      "success: default algorithm, no deadline",
-			ctx:       noDeadlineContext,
+			name:      "success: default algorithm",
 			algorithm: defaultAlgorithm,
 			err:       nil,
 		},
 		{
-			name:      "failure: unsupported algorithm, no deadline",
-			ctx:       noDeadlineContext,
+			name:      "failure: unsupported algorithm",
 			algorithm: "any-algorithm",
 			err:       ErrorPluginReturnError,
-		},
-		{
-			name:      "success: default algorithm, future deadline",
-			ctx:       futureDeadlineContext,
-			algorithm: defaultAlgorithm,
-			err:       nil,
-		},
-		{
-			name:      "failuire: default algorithm, expired deadline",
-			ctx:       expiredDeadlineContext,
-			algorithm: defaultAlgorithm,
-			err:       ErrorExecutingPlugin,
-		},
-		{
-			name:      "failuire: default algorithm, canceled context",
-			ctx:       canceledContext,
-			algorithm: defaultAlgorithm,
-			err:       ErrorExecutingPlugin,
 		},
 	}
 
@@ -125,7 +160,7 @@ func TestCreateKey(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			publicKey, err := pluginClient.CreateKey(tc.ctx, tc.algorithm)
+			publicKey, err := pluginClient.CreateKey(ctx, tc.algorithm)
 
 			if diff := cmp.Diff(tc.err, err, cmpopts.EquateErrors()); diff != "" {
 				t.Errorf("unexpected error (-want +got): \n%s", diff)
@@ -143,3 +178,5 @@ func TestCreateKey(t *testing.T) {
 		})
 	}
 }
+
+// TODO: Additonal tests for the remaining methods to be implemented

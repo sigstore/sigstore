@@ -60,7 +60,7 @@ func LoadSignerVerifier(ctx context.Context, inputKeyResourceID string, hashFunc
 	if deadline, ok := ctx.Deadline(); ok {
 		initOptions.CtxDeadline = &deadline
 	}
-	pluginClient := newPluginClient(executable, initOptions)
+	pluginClient := newPluginClient(executable, initOptions, makeCmd)
 	return pluginClient, nil
 }
 
