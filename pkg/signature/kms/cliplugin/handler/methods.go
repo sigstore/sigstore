@@ -13,8 +13,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package handler implements helper functions for plugins written in go.
-// It parses arguments  and return values to and from the supplied `SignerVerifier` implementation.
+// Package handler implements helper functions for plugins written in go. It will extract
+// values from PluginArgs and pass them the real SignerVerifier implementation, and then package
+// responses into PluginResp.
 package handler
 
 import (
@@ -39,7 +40,7 @@ func DefaultAlgorithm(stdin io.Reader, args *common.DefaultAlgorithmArgs, impl k
 
 // CreateKey parses arguments and return values to and from the impl.
 func CreateKey(stdin io.Reader, args *common.CreateKeyArgs, impl kms.SignerVerifier) (*common.CreateKeyResp, error) {
-	ctx := context.TODO()
+	ctx := context.Background()
 	if args.CtxDeadline != nil {
 		var cancel context.CancelFunc
 		ctx, cancel = context.WithDeadline(ctx, *args.CtxDeadline)
@@ -55,6 +56,19 @@ func CreateKey(stdin io.Reader, args *common.CreateKeyArgs, impl kms.SignerVerif
 	}
 	resp := &common.CreateKeyResp{
 		PublicKeyPEM: publicKeyPEM,
+	}
+	return resp, nil
+}
+
+// SignMessage parses arguments and return values to and from the impl.
+func SignMessage(stdin io.Reader, args *common.SignMessageArgs, impl kms.SignerVerifier) (*common.SignMessageResp, error) {
+	opts := unpackSignOptions(args.SignOptions)
+	signature, err := impl.SignMessage(stdin, opts...)
+	if err != nil {
+		return nil, err
+	}
+	resp := &common.SignMessageResp{
+		Signature: signature,
 	}
 	return resp, nil
 }

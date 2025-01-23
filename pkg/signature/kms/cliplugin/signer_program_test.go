@@ -25,12 +25,15 @@ import (
 	"context"
 	"crypto"
 	"flag"
+	"io"
 	"testing"
 	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/sigstore/sigstore/pkg/signature"
 	"github.com/sigstore/sigstore/pkg/signature/kms/cliplugin/common"
+	"github.com/sigstore/sigstore/pkg/signature/options"
 )
 
 // This file tests the PluginClient against a pre-built plugin programs.
@@ -46,7 +49,7 @@ var (
 // getPluginClient parses the build flags for the KeyResourceID and returns a PluginClient.
 func getPluginClient(t *testing.T) *PluginClient {
 	t.Helper()
-	signerVerifier, err := LoadSignerVerifier(context.TODO(), *inputKeyResourceID, testHashFunc)
+	signerVerifier, err := LoadSignerVerifier(context.Background(), *inputKeyResourceID, testHashFunc)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -59,7 +62,7 @@ func TestInvokePluginPreBuilt(t *testing.T) {
 	t.Parallel()
 
 	pluginClient := getPluginClient(t)
-	noDeadlineContext := context.TODO()
+	noDeadlineContext := context.Background()
 	duration := time.Minute * 3
 	futureDeadlineContext, _ := context.WithDeadline(noDeadlineContext, time.Now().Add(duration))
 	expiredDeadlineContext, _ := context.WithDeadline(noDeadlineContext, time.Now().Add(-duration))
@@ -179,4 +182,72 @@ func TestCreateKey(t *testing.T) {
 	}
 }
 
-// TODO: Additonal tests for the remaining methods to be implemented
+// TestCreateKey invokes SignMessage against the compiled plugin program,
+// with combinations of empty or non-empty messages, and digests.
+// Since implementations can vary, it merely checks that non-empty signature is returned.
+func TestSignMessage(t *testing.T) {
+	t.Parallel()
+
+	pluginClient := getPluginClient(t)
+
+	testMessageBytes := []byte("any message")
+	hasher := testHashFunc.New()
+	if _, err := hasher.Write(testMessageBytes); err != nil {
+		t.Fatal(err)
+	}
+	testDigest := hasher.Sum(nil)
+	testEmptyBytes := []byte(``)
+	testBadDigest := []byte("bad digest")
+
+	ctx := context.Background()
+	defaultAlgorithm := pluginClient.DefaultAlgorithm()
+	_, err := pluginClient.CreateKey(ctx, defaultAlgorithm)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	tests := []struct {
+		name    string
+		message io.Reader
+		digest  *[]byte
+		err     error
+	}{
+		{
+			name:    "message only, no digest",
+			message: bytes.NewReader(testMessageBytes),
+		},
+		{
+			name:    "digest only, empty message",
+			message: bytes.NewReader(testEmptyBytes),
+			digest:  &testDigest,
+		},
+		{
+			name:    "message and digest",
+			message: bytes.NewReader(testMessageBytes),
+			digest:  &testDigest,
+		},
+		{
+			name:    "failure: bad digest, empty message",
+			message: bytes.NewReader(testEmptyBytes),
+			digest:  &testBadDigest,
+			err:     ErrorPluginReturnError,
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			opts := []signature.SignOption{}
+			if tc.digest != nil {
+				opts = append(opts, options.WithDigest(*tc.digest))
+			}
+			signature, err := pluginClient.SignMessage(tc.message, opts...)
+			if diff := cmp.Diff(tc.err, err, cmpopts.EquateErrors()); diff != "" {
+				t.Errorf("unexpected error (-want +got): \n%s", diff)
+			}
+			if err == nil && len(signature) == 0 {
+				t.Error("expected non-empty signature")
+			}
+		})
+	}
+}

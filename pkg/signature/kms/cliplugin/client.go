@@ -64,6 +64,7 @@ func LoadSignerVerifier(ctx context.Context, inputKeyResourceID string, hashFunc
 	return pluginClient, nil
 }
 
+// getPluginExecutableAndKeyResourceID parses the inputKeyResourceID into the plugin executable and the actual keyResourceID.
 func getPluginExecutableAndKeyResourceID(inputKeyResourceID string) (string, string, error) {
 	parts := strings.SplitN(inputKeyResourceID, "://", 2)
 	if len(parts) != 2 {

@@ -23,8 +23,11 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"io"
+	"log/slog"
 	"os"
 
+	"github.com/sigstore/sigstore/pkg/signature"
 	"github.com/sigstore/sigstore/pkg/signature/kms"
 )
 
@@ -80,4 +83,62 @@ func (i LocalSignerVerifier) CreateKey(ctx context.Context, algorithm string) (c
 
 	publicKey := &privateKey.PublicKey
 	return publicKey, nil
+}
+
+// SignMessage signs the message with the KeyResourceID.
+func (i LocalSignerVerifier) SignMessage(message io.Reader, opts ...signature.SignOption) ([]byte, error) {
+	privateKey, err := loadRSAPrivateKey(i.keyResourceID)
+	if err != nil {
+		return nil, err
+	}
+
+	var digest []byte
+	var signerOpts crypto.SignerOpts = i.hashFunc
+	for _, opt := range opts {
+		opt.ApplyDigest(&digest)
+		opt.ApplyCryptoSignerOpts(&signerOpts)
+	}
+
+	if len(digest) == 0 {
+		digest, err = computeDigest(&message, signerOpts.HashFunc())
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	slog.Info("SignMessage", "digest", digest, "digestLen", len(digest))
+
+	signature, err := rsa.SignPKCS1v15(rand.Reader, privateKey, signerOpts.HashFunc(), digest)
+	if err != nil {
+		return nil, fmt.Errorf("error signing data: %w", err)
+	}
+	return signature, nil
+}
+
+// loadRSAPrivateKey loads the private key from the path.
+func loadRSAPrivateKey(path string) (*rsa.PrivateKey, error) {
+	privateKeyBytes, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	privateKeyBlock, _ := pem.Decode(privateKeyBytes)
+	if privateKeyBlock == nil || privateKeyBlock.Type != "RSA PRIVATE KEY" {
+		return nil, fmt.Errorf("invalid private key PEM block")
+	}
+
+	privateKey, err := x509.ParsePKCS1PrivateKey(privateKeyBlock.Bytes)
+	if err != nil {
+		return nil, err
+	}
+
+	return privateKey, nil
+}
+
+// computeDigest computes the message digest with the hash function.
+func computeDigest(message *io.Reader, hashFunc crypto.Hash) ([]byte, error) {
+	hasher := hashFunc.New()
+	if _, err := io.Copy(hasher, *message); err != nil {
+		return nil, err
+	}
+	return hasher.Sum(nil), nil
 }

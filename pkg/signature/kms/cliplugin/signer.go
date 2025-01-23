@@ -27,6 +27,7 @@ import (
 	"os"
 
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
+	"github.com/sigstore/sigstore/pkg/signature"
 	"github.com/sigstore/sigstore/pkg/signature/kms"
 	"github.com/sigstore/sigstore/pkg/signature/kms/cliplugin/common"
 )
@@ -40,17 +41,17 @@ var (
 // PluginClient implements kms.SignerVerifier with calls to our plugin program.
 type PluginClient struct {
 	kms.SignerVerifier
-	executable      string
-	initOptions     common.InitOptions
-	makeCommandFunc makeCmdFunc
+	executable  string
+	initOptions common.InitOptions
+	makeCmdFunc makeCmdFunc
 }
 
 // newPluginClient creates a new PluginClient.
-func newPluginClient(executable string, initOptions *common.InitOptions, makeCommand makeCmdFunc) *PluginClient {
+func newPluginClient(executable string, initOptions *common.InitOptions, makeCmd makeCmdFunc) *PluginClient {
 	pluginClient := &PluginClient{
-		executable:      executable,
-		initOptions:     *initOptions,
-		makeCommandFunc: makeCommand,
+		executable:  executable,
+		initOptions: *initOptions,
+		makeCmdFunc: makeCmd,
 	}
 	return pluginClient
 }
@@ -65,7 +66,7 @@ func (c PluginClient) invokePlugin(ctx context.Context, stdin io.Reader, methodA
 	if err != nil {
 		return nil, err
 	}
-	cmd := c.makeCommandFunc(ctx, stdin, os.Stderr, c.executable, common.ProtocolVersion, string(argsEnc))
+	cmd := c.makeCmdFunc(ctx, stdin, os.Stderr, c.executable, common.ProtocolVersion, string(argsEnc))
 	// We won't look at the program's non-zero exit code, but we will respect any other
 	// error, and cases when exec.ExitError.ExitCode() is 0 or -1:
 	//   * (0) the program finished successfuly or
@@ -90,18 +91,20 @@ func (c PluginClient) invokePlugin(ctx context.Context, stdin io.Reader, methodA
 
 // TODO: Additonal methods to be implemented
 
+// DefaultAlgorithm calls and returns the plugin's implementation of DefaultAlgorithm().
 func (c PluginClient) DefaultAlgorithm() string {
 	args := &common.MethodArgs{
 		MethodName:       common.DefaultAlgorithmMethodName,
 		DefaultAlgorithm: &common.DefaultAlgorithmArgs{},
 	}
-	resp, err := c.invokePlugin(context.TODO(), nil, args)
+	resp, err := c.invokePlugin(context.Background(), nil, args)
 	if err != nil {
 		log.Fatal(err)
 	}
 	return resp.DefaultAlgorithm.DefaultAlgorithm
 }
 
+// CreateKey calls and returns the plugin's implementation of CreateKey().
 func (c PluginClient) CreateKey(ctx context.Context, algorithm string) (crypto.PublicKey, error) {
 	args := &common.MethodArgs{
 		MethodName: common.CreateKeyMethodName,
@@ -121,4 +124,27 @@ func (c PluginClient) CreateKey(ctx context.Context, algorithm string) (crypto.P
 		return nil, err
 	}
 	return publicKey, nil
+}
+
+// SignMessage calls and returns the plugin's implementation of SignMessage().
+// If the opts contain a deadline, then it will be used with the Cmd.
+func (c PluginClient) SignMessage(message io.Reader, opts ...signature.SignOption) ([]byte, error) {
+	args := &common.MethodArgs{
+		MethodName: common.SignMessageMethodName,
+		SignMessage: &common.SignMessageArgs{
+			SignOptions: packSignOptions(opts),
+		},
+	}
+	ctx := context.Background()
+	if deadline := args.SignMessage.SignOptions.RPCOptions.CtxDeadline; deadline != nil {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithDeadline(ctx, *deadline)
+		defer cancel()
+	}
+	resp, err := c.invokePlugin(ctx, message, args)
+	if err != nil {
+		return nil, err
+	}
+	signature := resp.SignMessage.Signature
+	return signature, nil
 }
