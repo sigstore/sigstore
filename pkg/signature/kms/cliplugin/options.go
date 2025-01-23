@@ -76,7 +76,9 @@ func packSignOptions(opts []signature.SignOption) *common.SignOptions {
 		messageOpts = append(messageOpts, opt)
 	}
 	return &common.SignOptions{
-		RPCOptions:     packRPCOptions(rpcOpts),
-		MessageOptions: packMessageOptions(messageOpts),
+		RPCMessageOptions: &common.RPCMessageOptions{
+			RPCOptions:     packRPCOptions(rpcOpts),
+			MessageOptions: packMessageOptions(messageOpts),
+		},
 	}
 }

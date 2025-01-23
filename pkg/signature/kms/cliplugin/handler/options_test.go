@@ -45,8 +45,10 @@ var (
 	}
 
 	testSignOptions = &common.SignOptions{
-		RPCOptions:     testRPCOptions,
-		MessageOptions: testMessageOptions,
+		RPCMessageOptions: &common.RPCMessageOptions{
+			RPCOptions:     testRPCOptions,
+			MessageOptions: testMessageOptions,
+		},
 	}
 )
 

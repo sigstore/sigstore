@@ -35,16 +35,18 @@ const (
 
 // PluginArgs contains all the initialization and method arguments to be sent to the plugin as a CLI argument.
 type PluginArgs struct {
-	*MethodArgs
 	InitOptions *InitOptions `json:"initOptions"`
+	*MethodArgs
 }
 
 // InitOptions contains the initial arguments when calling cliplugin.LoadSignerVerifier().
 type InitOptions struct {
-	CtxDeadline     *time.Time  `json:"ctxDeadline,omitempty"`
-	ProtocolVersion string      `json:"protocolVersion"`
-	KeyResourceID   string      `json:"keyResourceID"`
-	HashFunc        crypto.Hash `json:"hashFunc"`
+	// CtxDeadline serializes to RFC 3339. See https://pkg.go.dev/time@go1.23.5#Time.MarshalJSON. e.g, 2025-04-01T02:47:00Z.
+	CtxDeadline     *time.Time `json:"ctxDeadline,omitempty"`
+	ProtocolVersion string     `json:"protocolVersion"`
+	KeyResourceID   string     `json:"keyResourceID"`
+	// HashFunc will serialize to ints according to https://pkg.go.dev/crypto@go1.23.5#Hash. e.g., crypto.SHA256 serializes to 5.
+	HashFunc crypto.Hash `json:"hashFunc"`
 	// TODO: extracted values from signature.RPCOption from LoadSignerVerifier().
 }
 
@@ -80,12 +82,14 @@ type DefaultAlgorithmResp struct {
 
 // CreateKeyArgs contains the serialized arguments for `CreateKeyArgs()`.
 type CreateKeyArgs struct {
+	// CtxDeadline serializes to RFC 3339. See https://pkg.go.dev/time@go1.23.5#Time.MarshalJSON. e.g, 2025-04-01T02:47:00Z.
 	CtxDeadline *time.Time `json:"ctxDeadline,omitempty"`
 	Algorithm   string     `json:"algorithm"`
 }
 
 // CreateKeyResp contains the serialized response for `CreateKeyResp()`.
 type CreateKeyResp struct {
+	// PublicKeyPEM is a base64 encoding of the Public Key PEM bytes. e.g, []byte("mypem") serializes to "bXlwZW0=".
 	PublicKeyPEM []byte `json:"publicKeyPEM"`
 }
 
@@ -96,5 +100,6 @@ type SignMessageArgs struct {
 
 // SignMessageResp contains the serialized response for `SignMessage()`.
 type SignMessageResp struct {
+	// Signature is a base64 encoding of the Public Key PEM bytes. e.g, []byte("any-signature") serializes to "W55LXNpZ25hdHVyZQ==".
 	Signature []byte `json:"signature"`
 }
