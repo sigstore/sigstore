@@ -87,7 +87,6 @@ We have an example plugin in [test/cliplugin/localkms](../../../../test/cliplugi
     export PATH="$PATH:`pwd`"
     echo "my-data" > blob.txt
     cosign-cli sign-blob --tlog-upload=false --key localkms://`pwd`/key.pem blob.txt
-    cat cosign.pub
     ```
 
 TODO: implement more methods
