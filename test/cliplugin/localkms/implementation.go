@@ -125,6 +125,39 @@ func (i LocalSignerVerifier) SignMessage(message io.Reader, opts ...signature.Si
 	return signature, nil
 }
 
+// VerifySignature verifies the signature.
+func (i LocalSignerVerifier) VerifySignature(signature io.Reader, message io.Reader, opts ...signature.VerifyOption) error {
+	privateKey, err := loadRSAPrivateKey(i.keyResourceID)
+	if err != nil {
+		return err
+	}
+	publicKey := privateKey.PublicKey
+
+	var digest []byte
+	var signerOpts crypto.SignerOpts = i.hashFunc
+	for _, opt := range opts {
+		opt.ApplyDigest(&digest)
+		opt.ApplyCryptoSignerOpts(&signerOpts)
+	}
+
+	if len(digest) == 0 {
+		digest, err = computeDigest(&message, signerOpts.HashFunc())
+		if err != nil {
+			return err
+		}
+	}
+
+	sig, err := io.ReadAll(signature)
+	if err != nil {
+		return fmt.Errorf("error reading signature: %w", err)
+	}
+
+	if err := rsa.VerifyPKCS1v15(&publicKey, signerOpts.HashFunc(), digest, sig); err != nil {
+		return fmt.Errorf("error verifying signature: %w", err)
+	}
+	return nil
+}
+
 // loadRSAPrivateKey loads the private key from the path.
 func loadRSAPrivateKey(path string) (*rsa.PrivateKey, error) {
 	privateKeyBytes, err := os.ReadFile(path)
