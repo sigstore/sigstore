@@ -55,16 +55,14 @@ func TestPluginArgsJSON(t *testing.T) {
 			},
 			SignMessage: &SignMessageArgs{
 				SignOptions: &SignOptions{
-					RPCMessageOptions: &RPCMessageOptions{
-						RPCOptions: &RPCOptions{
-							CtxDeadline:        &testContextDeadline,
-							KeyVersion:         &testKeyVersion,
-							RemoteVerification: &testRemoteVerification,
-						},
-						MessageOptions: &MessageOptions{
-							Digest:   &testDigest,
-							HashFunc: &testHashFunc,
-						},
+					RPCOptions: RPCOptions{
+						CtxDeadline:        &testContextDeadline,
+						KeyVersion:         &testKeyVersion,
+						RemoteVerification: &testRemoteVerification,
+					},
+					MessageOptions: MessageOptions{
+						Digest:   &testDigest,
+						HashFunc: &testHashFunc,
 					},
 				},
 			},
@@ -92,11 +90,15 @@ func TestPluginArgsJSON(t *testing.T) {
 	},
 	"signMessage": {
 		"signOptions": {
-			"ctxDeadline": "2025-04-01T02:47:00Z",
-			"keyVersion": "my-key-version",
-			"remoteVerification": true,
-			"digest": "YW55RGlnZXN0",
-			"hashFunc": 17
+			"rpcOptions": {
+				"ctxDeadline": "2025-04-01T02:47:00Z",
+				"keyVersion": "my-key-version",
+				"remoteVerification": true
+			},
+			"messageOptions": {
+				"digest": "YW55RGlnZXN0",
+				"hashFunc": 17
+			}
 		}
 	}
 }`, "\n")

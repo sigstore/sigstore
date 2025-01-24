@@ -46,10 +46,8 @@ var (
 	}
 
 	testSignOptions = &common.SignOptions{
-		RPCMessageOptions: &common.RPCMessageOptions{
-			RPCOptions:     testRPCOptions,
-			MessageOptions: testMessageOptions,
-		},
+		RPCOptions:     *testRPCOptions,
+		MessageOptions: *testMessageOptions,
 	}
 )
 
@@ -173,16 +171,14 @@ func TestPackSignOption(t *testing.T) {
 
 	// we use another common.SignOption{} so we can conveniently compare all values with a single cmp.Diff().
 	wantedSignOptions := &common.SignOptions{
-		RPCMessageOptions: &common.RPCMessageOptions{
-			RPCOptions: &common.RPCOptions{
-				CtxDeadline:        &testContextDeadline,
-				KeyVersion:         &testKeyVersion,
-				RemoteVerification: &testRemoteVerification,
-			},
-			MessageOptions: &common.MessageOptions{
-				Digest:   &testDigest,
-				HashFunc: &testHashFunc,
-			},
+		RPCOptions: common.RPCOptions{
+			CtxDeadline:        &testContextDeadline,
+			KeyVersion:         &testKeyVersion,
+			RemoteVerification: &testRemoteVerification,
+		},
+		MessageOptions: common.MessageOptions{
+			Digest:   &testDigest,
+			HashFunc: &testHashFunc,
 		},
 	}
 	if diff := cmp.Diff(wantedSignOptions, signOptions); diff != "" {

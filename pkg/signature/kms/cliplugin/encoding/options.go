@@ -106,20 +106,18 @@ func PackSignOptions(opts []signature.SignOption) *common.SignOptions {
 		messageOpts = append(messageOpts, opt)
 	}
 	return &common.SignOptions{
-		RPCMessageOptions: &common.RPCMessageOptions{
-			RPCOptions:     PackRPCOptions(rpcOpts),
-			MessageOptions: PackMessageOptions(messageOpts),
-		},
+		RPCOptions:     *PackRPCOptions(rpcOpts),
+		MessageOptions: *PackMessageOptions(messageOpts),
 	}
 }
 
 // UnpackSignOptions builds the []]signature.SignOption from common.SignOptions.
 func UnpackSignOptions(commonOpts *common.SignOptions) []signature.SignOption {
 	opts := []signature.SignOption{}
-	for _, opt := range UnpackRPCOptions(commonOpts.RPCOptions) {
+	for _, opt := range UnpackRPCOptions(&commonOpts.RPCOptions) {
 		opts = append(opts, opt.(signature.SignOption))
 	}
-	for _, opt := range UnpackMessageOptions(commonOpts.MessageOptions) {
+	for _, opt := range UnpackMessageOptions(&commonOpts.MessageOptions) {
 		opts = append(opts, opt.(signature.SignOption))
 	}
 	return opts

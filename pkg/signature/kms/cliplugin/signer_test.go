@@ -269,16 +269,14 @@ func (s testSignerVerifierImpl) SignMessage(message io.Reader, opts ...signature
 	signOptions := encoding.PackSignOptions(opts)
 	// we use a common.SignOptions{} so that we can use one cmp.Diff() call to check all the expected values.
 	wantedSignOptions := &common.SignOptions{
-		RPCMessageOptions: &common.RPCMessageOptions{
-			RPCOptions: &common.RPCOptions{
-				CtxDeadline:        &testContextDeadline,
-				KeyVersion:         &testKeyVersion,
-				RemoteVerification: &testRemoteVerification,
-			},
-			MessageOptions: &common.MessageOptions{
-				Digest:   &testDigest,
-				HashFunc: &testHashFunction,
-			},
+		RPCOptions: common.RPCOptions{
+			CtxDeadline:        &testContextDeadline,
+			KeyVersion:         &testKeyVersion,
+			RemoteVerification: &testRemoteVerification,
+		},
+		MessageOptions: common.MessageOptions{
+			Digest:   &testDigest,
+			HashFunc: &testHashFunction,
 		},
 	}
 	if diff := cmp.Diff(wantedSignOptions, signOptions); diff != "" {

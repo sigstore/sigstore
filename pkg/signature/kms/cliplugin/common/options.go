@@ -23,13 +23,8 @@ import (
 
 // SignOptions contains the values for signature.SignOption.
 type SignOptions struct {
-	*RPCMessageOptions
-}
-
-// RPCMessageOptions contains both RPCOptions and MessageOptions.
-type RPCMessageOptions struct {
-	*RPCOptions
-	*MessageOptions
+	RPCOptions     RPCOptions     `json:"rpcOptions"`
+	MessageOptions MessageOptions `json:"messageOptions"`
 }
 
 // RPCOptions contains the values for signature.RPCOption.
