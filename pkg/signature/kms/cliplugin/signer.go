@@ -30,6 +30,7 @@ import (
 	"github.com/sigstore/sigstore/pkg/signature"
 	"github.com/sigstore/sigstore/pkg/signature/kms"
 	"github.com/sigstore/sigstore/pkg/signature/kms/cliplugin/common"
+	"github.com/sigstore/sigstore/pkg/signature/kms/cliplugin/encoding"
 )
 
 var (
@@ -132,7 +133,7 @@ func (c PluginClient) SignMessage(message io.Reader, opts ...signature.SignOptio
 	args := &common.MethodArgs{
 		MethodName: common.SignMessageMethodName,
 		SignMessage: &common.SignMessageArgs{
-			SignOptions: packSignOptions(opts),
+			SignOptions: encoding.PackSignOptions(opts),
 		},
 	}
 	ctx := context.Background()

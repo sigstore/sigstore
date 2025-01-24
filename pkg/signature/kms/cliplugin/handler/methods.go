@@ -25,6 +25,7 @@ import (
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
 	"github.com/sigstore/sigstore/pkg/signature/kms"
 	"github.com/sigstore/sigstore/pkg/signature/kms/cliplugin/common"
+	"github.com/sigstore/sigstore/pkg/signature/kms/cliplugin/encoding"
 )
 
 // TODO: Additonal methods to be implemented
@@ -62,7 +63,7 @@ func CreateKey(stdin io.Reader, args *common.CreateKeyArgs, impl kms.SignerVerif
 
 // SignMessage parses arguments and return values to and from the impl.
 func SignMessage(stdin io.Reader, args *common.SignMessageArgs, impl kms.SignerVerifier) (*common.SignMessageResp, error) {
-	opts := unpackSignOptions(args.SignOptions)
+	opts := encoding.UnpackSignOptions(args.SignOptions)
 	signature, err := impl.SignMessage(stdin, opts...)
 	if err != nil {
 		return nil, err

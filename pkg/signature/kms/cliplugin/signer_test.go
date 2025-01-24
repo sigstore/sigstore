@@ -34,6 +34,7 @@ import (
 	"github.com/sigstore/sigstore/pkg/signature"
 	"github.com/sigstore/sigstore/pkg/signature/kms"
 	"github.com/sigstore/sigstore/pkg/signature/kms/cliplugin/common"
+	"github.com/sigstore/sigstore/pkg/signature/kms/cliplugin/encoding"
 	"github.com/sigstore/sigstore/pkg/signature/kms/cliplugin/handler"
 	"github.com/sigstore/sigstore/pkg/signature/options"
 )
@@ -265,7 +266,7 @@ func (s testSignerVerifierImpl) SignMessage(message io.Reader, opts ...signature
 	if diff := cmp.Diff(testMessageBytes, messageBytes); diff != "" {
 		s.t.Errorf("unexpected message (-want +got):\n%s", diff)
 	}
-	signOptions := packSignOptions(opts)
+	signOptions := encoding.PackSignOptions(opts)
 	// we use a common.SignOptions{} so that we can use one cmp.Diff() call to check all the expected values.
 	wantedSignOptions := &common.SignOptions{
 		RPCMessageOptions: &common.RPCMessageOptions{
