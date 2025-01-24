@@ -30,7 +30,7 @@ The main program will invoke the program with these specifications:
 * stdout
   * JSON of method return values.
 
-See [./common/interface.go](./common/interface.go) for the full JSON schema.
+See [./common/interface.go](./common/interface.go) and [./common/interface_test.go](./common/interface_test.go)] for the full JSON schema.
 
 The plugin program must first exit before sigstore begins parsing responses.
 
@@ -66,17 +66,27 @@ We have an example plugin in [test/cliplugin/localkms](../../../../test/cliplugi
 
 1. Compile cosign and the plugin
 
-    ```
+    ```shell
     go build -C cosign/cmd/cosign -o `pwd`/cosign-cli
     go build -C sigstore/test/cliplugin/localkms -o `pwd`/sigstore-kms-localkms
     ```
 
-2. Generate an RSA key
+2. Sign some data
 
-    ```
+    With our example, you need to first create the key.
+
+    ```shell
     export PATH="$PATH:`pwd`"
     cosign-cli generate-key-pair --kms localkms://`pwd`/key.pem
     cat cosign.pub
+    ```
+
+    Sign some data.
+
+    ```shell
+    export PATH="$PATH:`pwd`"
+    echo "my-data" > blob.txt
+    cosign-cli sign-blob --tlog-upload=false --key localkms://`pwd`/key.pem blob.txt
     ```
 
 TODO: implement more methods
@@ -86,14 +96,14 @@ TODO: implement more methods
 Unit tests against an example plugin program are in [./signer_program_test.go](./signer_program_test.go).
 Compile the plugin and invoke unit tests with
 
-```
+```shell
 make test-signer-program
 ```
 
 Or invoke the unit tests with your own pre-compiled plugin program like
 
 
-```
+```shell
 export PATH=$PATH:[folder containing plugin program]
 go test -C ./pkg/signature/kms/cliplugin -v -tags=signer_program ./... -key-resource-id [my-kms]://[my key ref]
 ```

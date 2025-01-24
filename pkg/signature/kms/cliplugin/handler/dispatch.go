@@ -13,7 +13,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package handler implements helper functions for plugins written in go.
+// Package handler implements helper functions for plugins written in go. It will extract
+// values from PluginArgs and pass them the real SignerVerifier implementation, and then package
+// responses into PluginResp.
 package handler
 
 import (
@@ -72,6 +74,8 @@ func Dispatch(stdout io.Writer, stdin io.Reader, pluginArgs *common.PluginArgs, 
 		resp.DefaultAlgorithm, err = DefaultAlgorithm(stdin, pluginArgs.DefaultAlgorithm, impl)
 	case common.CreateKeyMethodName:
 		resp.CreateKey, err = CreateKey(stdin, pluginArgs.CreateKey, impl)
+	case common.SignMessageMethodName:
+		resp.SignMessage, err = SignMessage(stdin, pluginArgs.SignMessage, impl)
 	// TODO: Additonal methods to be implemented
 	default:
 		err = fmt.Errorf("%w: %s", ErrorUnsupportedMethod, pluginArgs.MethodName)

@@ -23,14 +23,15 @@ import (
 
 // SignOptions contains the values for signature.SignOption.
 type SignOptions struct {
-	*RPCOptions
-	*MessageOptions
+	RPCOptions     RPCOptions     `json:"rpcOptions"`
+	MessageOptions MessageOptions `json:"messageOptions"`
 }
 
 // RPCOptions contains the values for signature.RPCOption.
 // We do not use RPCOptions.RPCAuth to avoid sending secrets over CLI to the plugin program.
 // The plugin program should instead read secrets with env variables.
 type RPCOptions struct {
+	// CtxDeadline serializes to RFC 3339. See https://pkg.go.dev/time@go1.23.5#Time.MarshalJSON. e.g, 2025-04-01T02:47:00Z.
 	CtxDeadline        *time.Time `json:"ctxDeadline,omitempty"`
 	KeyVersion         *string    `json:"keyVersion,omitempty"`
 	RemoteVerification *bool      `json:"remoteVerification,omitempty"`
@@ -38,6 +39,8 @@ type RPCOptions struct {
 
 // MessageOptions contains the values for signature.MessageOption.
 type MessageOptions struct {
-	Digest   *[]byte      `json:"digest,omitempty"`
+	// Digest is a base64 encoding of the digest bytes. e.g, []byte("anyDigest") serializes to "YW55RGlnZXN0".
+	Digest *[]byte `json:"digest,omitempty"`
+	// HashFunc will serialize to ints according to https://pkg.go.dev/crypto@go1.23.5#Hash. e.g., crypto.SHA256 serializes to 5.
 	HashFunc *crypto.Hash `json:"hashFunc,omitempty"`
 }

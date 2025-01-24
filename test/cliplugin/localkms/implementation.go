@@ -22,9 +22,12 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
+	"errors"
 	"fmt"
+	"io"
 	"os"
 
+	"github.com/sigstore/sigstore/pkg/signature"
 	"github.com/sigstore/sigstore/pkg/signature/kms"
 )
 
@@ -55,6 +58,19 @@ func (i LocalSignerVerifier) CreateKey(ctx context.Context, algorithm string) (c
 		return nil, fmt.Errorf("algorithm %s not supported", algorithm)
 	}
 
+	path := i.keyResourceID
+
+	if _, err := os.Stat(path); err == nil { // file exists
+		privateKey, err := loadRSAPrivateKey(path)
+		if err != nil {
+			return nil, err
+		}
+		return &privateKey.PublicKey, nil
+	} else if !errors.Is(err, os.ErrNotExist) { // any error other than ErrNotExist
+		return nil, err
+	}
+	// proceed with creating the key
+
 	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
 		return nil, fmt.Errorf("error generating private key: %w", err)
@@ -65,7 +81,6 @@ func (i LocalSignerVerifier) CreateKey(ctx context.Context, algorithm string) (c
 		Bytes: x509.MarshalPKCS1PrivateKey(privateKey),
 	}
 
-	path := i.keyResourceID
 	privateKeyFile, err := os.Create(path)
 	if err != nil {
 		return nil, fmt.Errorf("error creating private key file: %w", err)
@@ -80,4 +95,60 @@ func (i LocalSignerVerifier) CreateKey(ctx context.Context, algorithm string) (c
 
 	publicKey := &privateKey.PublicKey
 	return publicKey, nil
+}
+
+// SignMessage signs the message with the KeyResourceID.
+func (i LocalSignerVerifier) SignMessage(message io.Reader, opts ...signature.SignOption) ([]byte, error) {
+	privateKey, err := loadRSAPrivateKey(i.keyResourceID)
+	if err != nil {
+		return nil, err
+	}
+
+	var digest []byte
+	var signerOpts crypto.SignerOpts = i.hashFunc
+	for _, opt := range opts {
+		opt.ApplyDigest(&digest)
+		opt.ApplyCryptoSignerOpts(&signerOpts)
+	}
+
+	if len(digest) == 0 {
+		digest, err = computeDigest(&message, signerOpts.HashFunc())
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	signature, err := rsa.SignPKCS1v15(rand.Reader, privateKey, signerOpts.HashFunc(), digest)
+	if err != nil {
+		return nil, fmt.Errorf("error signing data: %w", err)
+	}
+	return signature, nil
+}
+
+// loadRSAPrivateKey loads the private key from the path.
+func loadRSAPrivateKey(path string) (*rsa.PrivateKey, error) {
+	privateKeyBytes, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	privateKeyBlock, _ := pem.Decode(privateKeyBytes)
+	if privateKeyBlock == nil || privateKeyBlock.Type != "RSA PRIVATE KEY" {
+		return nil, fmt.Errorf("invalid private key PEM block")
+	}
+
+	privateKey, err := x509.ParsePKCS1PrivateKey(privateKeyBlock.Bytes)
+	if err != nil {
+		return nil, err
+	}
+
+	return privateKey, nil
+}
+
+// computeDigest computes the message digest with the hash function.
+func computeDigest(message *io.Reader, hashFunc crypto.Hash) ([]byte, error) {
+	hasher := hashFunc.New()
+	if _, err := io.Copy(hasher, *message); err != nil {
+		return nil, err
+	}
+	return hasher.Sum(nil), nil
 }

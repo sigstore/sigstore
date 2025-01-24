@@ -31,9 +31,12 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
+	"github.com/sigstore/sigstore/pkg/signature"
 	"github.com/sigstore/sigstore/pkg/signature/kms"
 	"github.com/sigstore/sigstore/pkg/signature/kms/cliplugin/common"
+	"github.com/sigstore/sigstore/pkg/signature/kms/cliplugin/encoding"
 	"github.com/sigstore/sigstore/pkg/signature/kms/cliplugin/handler"
+	"github.com/sigstore/sigstore/pkg/signature/options"
 )
 
 var (
@@ -43,7 +46,12 @@ var (
 	testContextDeadline    = time.Date(2025, 4, 1, 2, 47, 0, 0, time.UTC)
 	testDefaultAlgorithm   = "alg1"
 	testPublicKey          crypto.PublicKey
+	testMessageBytes       = []byte(`my-message`)
+	testSignature          = []byte(`my-signature`)
 	testHashFunction       = crypto.SHA512
+	testKeyVersion         = "my-key-version"
+	testRemoteVerification = true
+	testDigest             = []byte("my-digest")
 )
 
 type testCmd struct {
@@ -204,7 +212,7 @@ func TestInvokePlugin(t *testing.T) {
 			// client with our mocked Cmd
 			testPluginClient := newPluginClient(testExecutable, testInitOptions, makeCmdFunc)
 			// invokePlugin
-			testContext := context.TODO()
+			testContext := context.Background()
 			testStdin := bytes.NewBuffer(testStdinBytes)
 			resp, err := testPluginClient.invokePlugin(testContext, testStdin, testMethodArgs)
 			// compare results
@@ -249,8 +257,36 @@ func (s testSignerVerifierImpl) CreateKey(ctx context.Context, algorithm string)
 	return testPublicKey, nil
 }
 
+// SignMessage checsk the expected message and opts, and returns the epxtected signature.
+func (s testSignerVerifierImpl) SignMessage(message io.Reader, opts ...signature.SignOption) ([]byte, error) {
+	messageBytes, err := io.ReadAll(message)
+	if err != nil {
+		return nil, err
+	}
+	if diff := cmp.Diff(testMessageBytes, messageBytes); diff != "" {
+		s.t.Errorf("unexpected message (-want +got):\n%s", diff)
+	}
+	signOptions := encoding.PackSignOptions(opts)
+	// we use a common.SignOptions{} so that we can use one cmp.Diff() call to check all the expected values.
+	wantedSignOptions := &common.SignOptions{
+		RPCOptions: common.RPCOptions{
+			CtxDeadline:        &testContextDeadline,
+			KeyVersion:         &testKeyVersion,
+			RemoteVerification: &testRemoteVerification,
+		},
+		MessageOptions: common.MessageOptions{
+			Digest:   &testDigest,
+			HashFunc: &testHashFunction,
+		},
+	}
+	if diff := cmp.Diff(wantedSignOptions, signOptions); diff != "" {
+		s.t.Errorf("unexpected sign options (-want +got):\n%s", diff)
+	}
+	return testSignature, nil
+}
+
 // TestPluginClient tests each of PluginClient's methods for correct encoding and decoding between a simulated plugin program,
-// by mocking the Cmd function and using TestSignerVerifierImpl to both check and return expected values.
+// by mocking the makeCmdFunc function and using TestSignerVerifierImpl to both check and return expected values.
 func TestPluginClient(t *testing.T) {
 	t.Parallel()
 
@@ -280,7 +316,7 @@ func TestPluginClient(t *testing.T) {
 		&common.InitOptions{},
 		makeCmdFunc,
 	)
-	testContext, _ := context.WithDeadline(context.TODO(), testContextDeadline)
+	testContext, _ := context.WithDeadline(context.Background(), testContextDeadline)
 	var testErr error = nil
 
 	t.Run("DefaultAlgorithm", func(t *testing.T) {
@@ -298,6 +334,27 @@ func TestPluginClient(t *testing.T) {
 		publicKey, err := testPluginClient.CreateKey(testContext, testDefaultAlgorithm)
 		if diff := cmp.Diff(testPublicKey, publicKey); diff != "" {
 			t.Errorf("public key mismatch (-want +got):\n%s", diff)
+		}
+		if diff := cmp.Diff(testErr, err); diff != "" {
+			t.Errorf("eerror mismatch (-want +got):\n%s", diff)
+		}
+	})
+
+	t.Run("SignMessage", func(t *testing.T) {
+		t.Parallel()
+
+		testContext, _ := context.WithDeadline(context.Background(), testContextDeadline)
+		testOpts := []signature.SignOption{
+			options.WithContext(testContext),
+			options.WithKeyVersion(testKeyVersion),
+			options.WithRemoteVerification(testRemoteVerification),
+			options.WithDigest(testDigest),
+			options.WithCryptoSignerOpts(testHashFunction),
+		}
+		signature, err := testPluginClient.SignMessage(bytes.NewReader(testMessageBytes), testOpts...)
+
+		if diff := cmp.Diff(testSignature, signature); diff != "" {
+			t.Errorf("signature mismatch (-want +got):\n%s", diff)
 		}
 		if diff := cmp.Diff(testErr, err); diff != "" {
 			t.Errorf("error mismatch (-want +got):\n%s", diff)
