@@ -27,10 +27,12 @@ import (
 	"flag"
 	"io"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/sigstore/sigstore/pkg/signature"
+	"github.com/sigstore/sigstore/pkg/signature/kms/cliplugin/common"
 	"github.com/sigstore/sigstore/pkg/signature/options"
 )
 
@@ -56,129 +58,129 @@ func getPluginClient(t *testing.T) *PluginClient {
 }
 
 // TestInvokePluginPreBuilt ensures that ctx deadline is respected by Cmd, and that errors are correctly handled.
-// func TestInvokePluginPreBuilt(t *testing.T) {
-// 	t.Parallel()
+func TestInvokePluginPreBuilt(t *testing.T) {
+	t.Parallel()
 
-// 	pluginClient := getPluginClient(t)
-// 	noDeadlineContext := context.Background()
-// 	duration := time.Minute * 3
-// 	futureDeadlineContext, _ := context.WithDeadline(noDeadlineContext, time.Now().Add(duration))
-// 	expiredDeadlineContext, _ := context.WithDeadline(noDeadlineContext, time.Now().Add(-duration))
-// 	canceledContext, cancel := context.WithCancel(noDeadlineContext)
-// 	cancel()
+	pluginClient := getPluginClient(t)
+	noDeadlineContext := context.Background()
+	duration := time.Minute * 3
+	futureDeadlineContext, _ := context.WithDeadline(noDeadlineContext, time.Now().Add(duration))
+	expiredDeadlineContext, _ := context.WithDeadline(noDeadlineContext, time.Now().Add(-duration))
+	canceledContext, cancel := context.WithCancel(noDeadlineContext)
+	cancel()
 
-// 	tests := []struct {
-// 		name       string
-// 		ctx        context.Context
-// 		methodName string
-// 		err        error
-// 	}{
-// 		{
-// 			name:       "success: no deadline",
-// 			ctx:        noDeadlineContext,
-// 			methodName: common.DefaultAlgorithmMethodName,
-// 			err:        nil,
-// 		},
-// 		{
-// 			name:       "success: future deadline",
-// 			ctx:        futureDeadlineContext,
-// 			methodName: common.DefaultAlgorithmMethodName,
-// 			err:        nil,
-// 		},
-// 		{
-// 			name:       "failure: expired deadline",
-// 			ctx:        expiredDeadlineContext,
-// 			methodName: common.DefaultAlgorithmMethodName,
-// 			err:        ErrorExecutingPlugin,
-// 		},
-// 		{
-// 			name:       "failure: canceled context",
-// 			ctx:        canceledContext,
-// 			methodName: common.DefaultAlgorithmMethodName,
-// 			err:        ErrorExecutingPlugin,
-// 		},
-// 		{
-// 			name: "failure: unknown method",
-// 			ctx:  noDeadlineContext,
-// 			err:  ErrorPluginReturnError,
-// 		},
-// 	}
-// 	for _, tc := range tests {
-// 		t.Run(tc.name, func(t *testing.T) {
-// 			t.Parallel()
+	tests := []struct {
+		name       string
+		ctx        context.Context
+		methodName string
+		err        error
+	}{
+		{
+			name:       "success: no deadline",
+			ctx:        noDeadlineContext,
+			methodName: common.DefaultAlgorithmMethodName,
+			err:        nil,
+		},
+		{
+			name:       "success: future deadline",
+			ctx:        futureDeadlineContext,
+			methodName: common.DefaultAlgorithmMethodName,
+			err:        nil,
+		},
+		{
+			name:       "failure: expired deadline",
+			ctx:        expiredDeadlineContext,
+			methodName: common.DefaultAlgorithmMethodName,
+			err:        ErrorExecutingPlugin,
+		},
+		{
+			name:       "failure: canceled context",
+			ctx:        canceledContext,
+			methodName: common.DefaultAlgorithmMethodName,
+			err:        ErrorExecutingPlugin,
+		},
+		{
+			name: "failure: unknown method",
+			ctx:  noDeadlineContext,
+			err:  ErrorPluginReturnError,
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 
-// 			stdin := bytes.NewReader([]byte(``))
-// 			methodArgs := &common.MethodArgs{
-// 				MethodName: tc.methodName,
-// 			}
-// 			_, err := pluginClient.invokePlugin(tc.ctx, stdin, methodArgs)
-// 			if diff := cmp.Diff(tc.err, err, cmpopts.EquateErrors()); diff != "" {
-// 				t.Errorf("unexpected error (-want +got): \n%s", diff)
-// 			}
-// 		})
-// 	}
-// }
+			stdin := bytes.NewReader([]byte(``))
+			methodArgs := &common.MethodArgs{
+				MethodName: tc.methodName,
+			}
+			_, err := pluginClient.invokePlugin(tc.ctx, stdin, methodArgs)
+			if diff := cmp.Diff(tc.err, err, cmpopts.EquateErrors()); diff != "" {
+				t.Errorf("unexpected error (-want +got): \n%s", diff)
+			}
+		})
+	}
+}
 
-// // TestDefaultAlgorithm invokes DefaultAlgorithm against the compiled plugin program.
-// // Since implementations can vary, it merely checks that some non-empty value is returned.
-// func TestDefaultAlgorithm(t *testing.T) {
-// 	t.Parallel()
+// TestDefaultAlgorithm invokes DefaultAlgorithm against the compiled plugin program.
+// Since implementations can vary, it merely checks that some non-empty value is returned.
+func TestDefaultAlgorithm(t *testing.T) {
+	t.Parallel()
 
-// 	pluginClient := getPluginClient(t)
+	pluginClient := getPluginClient(t)
 
-// 	if defaultAlgorithm := pluginClient.DefaultAlgorithm(); defaultAlgorithm == "" {
-// 		t.Error("expected non-empty default algorithm")
-// 	}
-// }
+	if defaultAlgorithm := pluginClient.DefaultAlgorithm(); defaultAlgorithm == "" {
+		t.Error("expected non-empty default algorithm")
+	}
+}
 
-// // TestCreateKey invokes CreateKey against the compiled plugin program.
-// // Since implementations can vary, it merely checks that some public key is returned.
-// func TestCreateKey(t *testing.T) {
-// 	t.Parallel()
+// TestCreateKey invokes CreateKey against the compiled plugin program.
+// Since implementations can vary, it merely checks that some public key is returned.
+func TestCreateKey(t *testing.T) {
+	t.Parallel()
 
-// 	pluginClient := getPluginClient(t)
-// 	ctx := context.Background()
-// 	defaultAlgorithm := pluginClient.DefaultAlgorithm()
+	pluginClient := getPluginClient(t)
+	ctx := context.Background()
+	defaultAlgorithm := pluginClient.DefaultAlgorithm()
 
-// 	tests := []struct {
-// 		name      string
-// 		algorithm string
-// 		err       error
-// 	}{
-// 		{
-// 			name:      "success: default algorithm",
-// 			algorithm: defaultAlgorithm,
-// 			err:       nil,
-// 		},
-// 		{
-// 			name:      "failure: unsupported algorithm",
-// 			algorithm: "any-algorithm",
-// 			err:       ErrorPluginReturnError,
-// 		},
-// 	}
+	tests := []struct {
+		name      string
+		algorithm string
+		err       error
+	}{
+		{
+			name:      "success: default algorithm",
+			algorithm: defaultAlgorithm,
+			err:       nil,
+		},
+		{
+			name:      "failure: unsupported algorithm",
+			algorithm: "any-algorithm",
+			err:       ErrorPluginReturnError,
+		},
+	}
 
-// 	for _, tc := range tests {
-// 		t.Run(tc.name, func(t *testing.T) {
-// 			t.Parallel()
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 
-// 			publicKey, err := pluginClient.CreateKey(ctx, tc.algorithm)
+			publicKey, err := pluginClient.CreateKey(ctx, tc.algorithm)
 
-// 			if diff := cmp.Diff(tc.err, err, cmpopts.EquateErrors()); diff != "" {
-// 				t.Errorf("unexpected error (-want +got): \n%s", diff)
-// 			}
+			if diff := cmp.Diff(tc.err, err, cmpopts.EquateErrors()); diff != "" {
+				t.Errorf("unexpected error (-want +got): \n%s", diff)
+			}
 
-// 			if err != nil {
-// 				if diff := cmp.Diff(nil, publicKey, cmpopts.EquateComparable()); diff != "" {
-// 					t.Errorf("expected nil publicKey (-want +got): \n%s", diff)
-// 				}
-// 			} else {
-// 				if publicKey == nil {
-// 					t.Error("unexpected non-nil publicKey")
-// 				}
-// 			}
-// 		})
-// 	}
-// }
+			if err != nil {
+				if diff := cmp.Diff(nil, publicKey, cmpopts.EquateComparable()); diff != "" {
+					t.Errorf("expected nil publicKey (-want +got): \n%s", diff)
+				}
+			} else {
+				if publicKey == nil {
+					t.Error("unexpected non-nil publicKey")
+				}
+			}
+		})
+	}
+}
 
 // TestCreateKey invokes SignMessage against the compiled plugin program,
 // with combinations of empty or non-empty messages, and digests.
@@ -193,9 +195,9 @@ func TestSignMessage(t *testing.T) {
 	if _, err := hasher.Write(testMessageBytes); err != nil {
 		t.Fatal(err)
 	}
-	// testDigest := hasher.Sum(nil)
-	// testEmptyBytes := []byte(``)
-	// testBadDigest := []byte("bad digest")
+	testDigest := hasher.Sum(nil)
+	testEmptyBytes := []byte(``)
+	testBadDigest := []byte("bad digest")
 
 	ctx := context.Background()
 	defaultAlgorithm := pluginClient.DefaultAlgorithm()
@@ -214,22 +216,22 @@ func TestSignMessage(t *testing.T) {
 			name:    "message only, no digest",
 			message: bytes.NewReader(testMessageBytes),
 		},
-		// {
-		// 	name:    "digest only, empty message",
-		// 	message: bytes.NewReader(testEmptyBytes),
-		// 	digest:  &testDigest,
-		// },
-		// {
-		// 	name:    "message and digest",
-		// 	message: bytes.NewReader(testMessageBytes),
-		// 	digest:  &testDigest,
-		// },
-		// {
-		// 	name:    "failure: bad digest, empty message",
-		// 	message: bytes.NewReader(testEmptyBytes),
-		// 	digest:  &testBadDigest,
-		// 	err:     ErrorPluginReturnError,
-		// },
+		{
+			name:    "digest only, empty message",
+			message: bytes.NewReader(testEmptyBytes),
+			digest:  &testDigest,
+		},
+		{
+			name:    "message and digest",
+			message: bytes.NewReader(testMessageBytes),
+			digest:  &testDigest,
+		},
+		{
+			name:    "failure: bad digest, empty message",
+			message: bytes.NewReader(testEmptyBytes),
+			digest:  &testBadDigest,
+			err:     ErrorPluginReturnError,
+		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
