@@ -73,7 +73,7 @@ We have an example plugin in [test/cliplugin/localkms](../../../../test/cliplugi
 
 2. Sign some data
 
-    With our example, you need to first creat the key.
+    With our example, you need to first create the key.
 
     ```shell
     export PATH="$PATH:`pwd`"
