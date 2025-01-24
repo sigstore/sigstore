@@ -49,6 +49,10 @@ var (
 		RPCOptions:     *testRPCOptions,
 		MessageOptions: *testMessageOptions,
 	}
+	testVerifyOptions = &common.VerifyOptions{
+		RPCOptions:     *testRPCOptions,
+		MessageOptions: *testMessageOptions,
+	}
 )
 
 // TestPackRPCOptions ensures that values are extracted from []signature.RPCOption.
@@ -153,7 +157,7 @@ func TestUnpackMessageOptions(t *testing.T) {
 	}
 }
 
-// TestGetMessageOptions ensures that values are extracted from []signature.MessageOption.
+// TestPackSignOption ensures that values are extracted from []signature.MessageOption.
 func TestPackSignOption(t *testing.T) {
 	t.Parallel()
 
@@ -193,6 +197,81 @@ func TestUnpackSignOptions(t *testing.T) {
 	opts := UnpackSignOptions(testSignOptions)
 
 	// extract values from the []signature.SignOption with the usual methods.
+	ctx := context.Background()
+	var keyVersion string
+	var remoteVerification bool
+	var digest []byte
+	var signerOpts crypto.SignerOpts
+	for _, opt := range opts {
+		opt.ApplyContext(&ctx)
+		opt.ApplyKeyVersion(&keyVersion)
+		opt.ApplyRemoteVerification(&remoteVerification)
+		opt.ApplyDigest(&digest)
+		opt.ApplyCryptoSignerOpts(&signerOpts)
+	}
+
+	// test equality.
+	deadline, ok := ctx.Deadline()
+	if !ok {
+		t.Error("expected a context deadline")
+	}
+	if diff := cmp.Diff(testContextDeadline, deadline); diff != "" {
+		t.Errorf("unexpected deadline (-want +got): \n%s", diff)
+	}
+	if diff := cmp.Diff(testKeyVersion, keyVersion); diff != "" {
+		t.Errorf("unexpected keyVersion (-want +got): \n%s", diff)
+	}
+	if diff := cmp.Diff(testRemoteVerification, remoteVerification); diff != "" {
+		t.Errorf("unexpected remoteVerification (-want +got): \n%s", diff)
+	}
+	if diff := cmp.Diff(testDigest, digest); diff != "" {
+		t.Errorf("unexpected digest (-want +got): \n%s", diff)
+	}
+	if diff := cmp.Diff(testHashFunc, signerOpts.HashFunc()); diff != "" {
+		t.Errorf("unexpected hashFunc (-want +got): \n%s", diff)
+	}
+}
+
+// TestPackVerifyOption ensures that values are extracted from []signature.MessageOption.
+func TestPackVerifyOption(t *testing.T) {
+	t.Parallel()
+
+	// test values.
+	testContext, _ := context.WithDeadline(context.Background(), testContextDeadline)
+	opts := []signature.VerifyOption{
+		options.WithContext(testContext),
+		options.WithRemoteVerification(testRemoteVerification),
+		options.WithKeyVersion(testKeyVersion),
+		options.WithDigest(testDigest),
+		options.WithCryptoSignerOpts(testHashFunc),
+	}
+
+	verifyOptions := PackVerifyOptions(opts)
+
+	// we use another common.VerifyOptions{} so we can conveniently compare all values with a single cmp.Diff().
+	wantedSignOptions := &common.VerifyOptions{
+		RPCOptions: common.RPCOptions{
+			CtxDeadline:        &testContextDeadline,
+			KeyVersion:         &testKeyVersion,
+			RemoteVerification: &testRemoteVerification,
+		},
+		MessageOptions: common.MessageOptions{
+			Digest:   &testDigest,
+			HashFunc: &testHashFunc,
+		},
+	}
+	if diff := cmp.Diff(wantedSignOptions, verifyOptions); diff != "" {
+		t.Errorf("unexpected resp (-want +got):\n%s", diff)
+	}
+}
+
+// TestUnpackVerifyOptions ensures we can extract all of []signature.VerifyOption.
+func TestUnpackVerifyOptions(t *testing.T) {
+	t.Parallel()
+
+	opts := UnpackVerifyOptions(testVerifyOptions)
+
+	// extract values from the []signature.VerifyOption with the usual methods.
 	ctx := context.Background()
 	var keyVersion string
 	var remoteVerification bool

@@ -27,6 +27,12 @@ type SignOptions struct {
 	MessageOptions MessageOptions `json:"messageOptions"`
 }
 
+// VerifyOptions contains the values for signature.VerifyOption.
+type VerifyOptions struct {
+	RPCOptions     RPCOptions     `json:"rpcOptions"`
+	MessageOptions MessageOptions `json:"messageOptions"`
+}
+
 // RPCOptions contains the values for signature.RPCOption.
 // We do not use RPCOptions.RPCAuth to avoid sending secrets over CLI to the plugin program.
 // The plugin program should instead read secrets with env variables.

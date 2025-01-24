@@ -123,3 +123,31 @@ func UnpackSignOptions(commonOpts *common.SignOptions) []signature.SignOption {
 	}
 	return opts
 }
+
+// PackVerifyOptions extracts properties of all of opts into struct ready for serializing,
+func PackVerifyOptions(opts []signature.VerifyOption) *common.VerifyOptions {
+	rpcOpts := []signature.RPCOption{}
+	for _, opt := range opts {
+		rpcOpts = append(rpcOpts, opt)
+	}
+	messageOpts := []signature.MessageOption{}
+	for _, opt := range opts {
+		messageOpts = append(messageOpts, opt)
+	}
+	return &common.VerifyOptions{
+		RPCOptions:     *PackRPCOptions(rpcOpts),
+		MessageOptions: *PackMessageOptions(messageOpts),
+	}
+}
+
+// UnpackVerifyOptions builds the []]signature.VerifyOption from common.VerifyOptions.
+func UnpackVerifyOptions(commonOpts *common.VerifyOptions) []signature.VerifyOption {
+	opts := []signature.VerifyOption{}
+	for _, opt := range UnpackRPCOptions(&commonOpts.RPCOptions) {
+		opts = append(opts, opt.(signature.VerifyOption))
+	}
+	for _, opt := range UnpackMessageOptions(&commonOpts.MessageOptions) {
+		opts = append(opts, opt.(signature.VerifyOption))
+	}
+	return opts
+}

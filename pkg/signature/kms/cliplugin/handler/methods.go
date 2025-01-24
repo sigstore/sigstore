@@ -19,6 +19,7 @@
 package handler
 
 import (
+	"bytes"
 	"context"
 	"io"
 
@@ -71,5 +72,16 @@ func SignMessage(stdin io.Reader, args *common.SignMessageArgs, impl kms.SignerV
 	resp := &common.SignMessageResp{
 		Signature: signature,
 	}
+	return resp, nil
+}
+
+// VerifySignature parses arguments and return values to and from the impl.
+func VerifySignature(stdin io.Reader, args *common.VerifySignatureArgs, impl kms.SignerVerifier) (*common.VerifySignaturResp, error) {
+	opts := encoding.UnpackVerifyOptions(args.VerifyOptions)
+	err := impl.VerifySignature(bytes.NewReader(args.Signature), stdin, opts...)
+	if err != nil {
+		return nil, err
+	}
+	resp := &common.VerifySignaturResp{}
 	return resp, nil
 }
