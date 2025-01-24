@@ -25,7 +25,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log/slog"
 	"os"
 
 	"github.com/sigstore/sigstore/pkg/signature"
@@ -118,8 +117,6 @@ func (i LocalSignerVerifier) SignMessage(message io.Reader, opts ...signature.Si
 			return nil, err
 		}
 	}
-
-	slog.Info("SignMessage", "digest", digest, "digestLen", len(digest))
 
 	signature, err := rsa.SignPKCS1v15(rand.Reader, privateKey, signerOpts.HashFunc(), digest)
 	if err != nil {
