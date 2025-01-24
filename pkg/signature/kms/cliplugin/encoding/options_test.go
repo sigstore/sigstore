@@ -82,7 +82,6 @@ func TestPackRPCOptions(t *testing.T) {
 func TestUnpackRPCOptions(t *testing.T) {
 	t.Parallel()
 
-	// call unpackRPCOptions().
 	opts := UnpackRPCOptions(testRPCOptions)
 
 	// extract values from the []signature.RPCOption with the usual methods.
@@ -137,7 +136,6 @@ func TestPackMessageOptions(t *testing.T) {
 func TestUnpackMessageOptions(t *testing.T) {
 	t.Parallel()
 
-	// call getMessageOptions().
 	opts := UnpackMessageOptions(testMessageOptions)
 
 	// extract values from the []signature.RPCOption with the usual methods.
@@ -192,11 +190,10 @@ func TestPackSignOption(t *testing.T) {
 	}
 }
 
-// TestUnpackSignOptopns ensures we can extract all of []signature.SignOption.
-func TestUnpackSignOptopns(t *testing.T) {
+// TestUnpackSignOptions ensures we can extract all of []signature.SignOption.
+func TestUnpackSignOptions(t *testing.T) {
 	t.Parallel()
 
-	// call getSignOptions().
 	opts := UnpackSignOptions(testSignOptions)
 
 	// extract values from the []signature.SignOption with the usual methods.
