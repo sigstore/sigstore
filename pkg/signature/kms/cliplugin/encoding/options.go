@@ -95,7 +95,7 @@ func UnpackMessageOptions(commonOpts *common.MessageOptions) []signature.Message
 	return opts
 }
 
-// getMessageOptions extracts properties of all of opts into struct ready for serializing,
+// PackSignOptions extracts properties of all of opts into struct ready for serializing,
 func PackSignOptions(opts []signature.SignOption) *common.SignOptions {
 	rpcOpts := []signature.RPCOption{}
 	for _, opt := range opts {
