@@ -37,6 +37,8 @@ var (
 
 // TestPluginArgsJSON ensures that the JSON serialization of PluginArgs is the expected form.
 func TestPluginArgsJSON(t *testing.T) {
+	// Although a normal invocation would only have a single method's arguments filled,
+	// we fill them here for simpler testing.
 	testPluginArgs := &PluginArgs{
 		InitOptions: &InitOptions{
 			CtxDeadline:     &testContextDeadline,
@@ -106,6 +108,8 @@ func TestPluginArgsJSON(t *testing.T) {
 // TestPluginRespJSON ensures that the JSON serialization of PluginResp is the expected form.
 
 func TestPluginRespJSON(t *testing.T) {
+	// Although a normal invocation would only have a single method's response filled,
+	// we fill them here for simpler testing.
 	testPluginResp := &PluginResp{
 		ErrorMessage:     "any error message",
 		DefaultAlgorithm: &DefaultAlgorithmResp{DefaultAlgorithm: "any-algo"},

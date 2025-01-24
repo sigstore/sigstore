@@ -30,7 +30,7 @@ The main program will invoke the program with these specifications:
 * stdout
   * JSON of method return values.
 
-See [./common/interface.go](./common/interface.go) for the full JSON schema.
+See [./common/interface.go](./common/interface.go) and [./common/interface_test.go](./common/interface_test.go)] for the full JSON schema.
 
 The plugin program must first exit before sigstore begins parsing responses.
 
