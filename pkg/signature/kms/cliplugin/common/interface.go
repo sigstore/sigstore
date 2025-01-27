@@ -31,6 +31,7 @@ const (
 	DefaultAlgorithmMethodName    = "defaultAlgorithm"
 	SupportedAlgorithmsMethodName = "supportedAlgorithms"
 	CreateKeyMethodName           = "createKey"
+	PublicKeyMethodName           = "publicKey"
 	SignMessageMethodName         = "signMessage"
 	VerifySignatureMethodName     = "verifySignature"
 	// TODO: Additonal methods to be implemented
@@ -62,6 +63,7 @@ type MethodArgs struct {
 	DefaultAlgorithm    *DefaultAlgorithmArgs    `json:"defaultAlgorithm,omitempty"`
 	SupportedAlgorithms *SupportedAlgorithmsArgs `json:"supportedAlgorithms,omitempty"`
 	CreateKey           *CreateKeyArgs           `json:"createKey,omitempty"`
+	PublicKey           *PublicKeyArgs           `json:"publicKey,omitempty"`
 	SignMessage         *SignMessageArgs         `json:"signMessage,omitempty"`
 	VerifySignature     *VerifySignatureArgs     `json:"verifySignature,omitempty"`
 	// TODO: Additonal methods to be implemented
@@ -73,6 +75,7 @@ type PluginResp struct {
 	DefaultAlgorithm    *DefaultAlgorithmResp    `json:"defaultAlgorithm,omitempty"`
 	SupportedAlgorithms *SupportedAlgorithmsResp `json:"supportedAlgorithms,omitempty"`
 	CreateKey           *CreateKeyResp           `json:"createKey,omitempty"`
+	PublicKey           *PublicKeyResp           `json:"publicKey,omitempty"`
 	SignMessage         *SignMessageResp         `json:"signMessage,omitempty"`
 	VerifySignature     *VerifySignaturResp      `json:"verifySignature,omitempty"`
 	// TODO: Additonal methods to be implemented
@@ -105,6 +108,17 @@ type CreateKeyArgs struct {
 
 // CreateKeyResp contains the serialized response for `CreateKeyResp()`.
 type CreateKeyResp struct {
+	// PublicKeyPEM is a base64 encoding of the Public Key PEM bytes. e.g, []byte("mypem") serializes to "bXlwZW0=".
+	PublicKeyPEM []byte `json:"publicKeyPEM"`
+}
+
+// PublicKeyArgs contains the serialized response for `PublicKey()`.
+type PublicKeyArgs struct {
+	PublicKeyOptions *PublicKeyOptions `json:"publicKeyOptions"`
+}
+
+// PublicKeyResp contains the serialized response for `PublicKey()`.
+type PublicKeyResp struct {
 	// PublicKeyPEM is a base64 encoding of the Public Key PEM bytes. e.g, []byte("mypem") serializes to "bXlwZW0=".
 	PublicKeyPEM []byte `json:"publicKeyPEM"`
 }

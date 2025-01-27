@@ -57,6 +57,15 @@ func TestPluginArgsJSON(t *testing.T) {
 				CtxDeadline: &testContextDeadline,
 				Algorithm:   testAlgorithm,
 			},
+			PublicKey: &PublicKeyArgs{
+				PublicKeyOptions: &PublicKeyOptions{
+					RPCOptions: RPCOptions{
+						CtxDeadline:        &testContextDeadline,
+						KeyVersion:         &testKeyVersion,
+						RemoteVerification: &testRemoteVerification,
+					},
+				},
+			},
 			SignMessage: &SignMessageArgs{
 				SignOptions: &SignOptions{
 					RPCOptions: RPCOptions{
@@ -107,6 +116,15 @@ func TestPluginArgsJSON(t *testing.T) {
 		"ctxDeadline": "2025-04-01T02:47:00Z",
 		"algorithm": "anyAlgorithm"
 	},
+	"publicKey": {
+		"publicKeyOptions": {
+			"rpcOptions": {
+				"ctxDeadline": "2025-04-01T02:47:00Z",
+				"keyVersion": "my-key-version",
+				"remoteVerification": true
+			}
+		}
+	},
 	"signMessage": {
 		"signOptions": {
 			"rpcOptions": {
@@ -152,6 +170,7 @@ func TestPluginRespJSON(t *testing.T) {
 			SupportedAlgorithms: []string{testAlgorithm, "anotherAlgorithm"},
 		},
 		CreateKey:   &CreateKeyResp{PublicKeyPEM: testPEM},
+		PublicKey:   &PublicKeyResp{PublicKeyPEM: testPEM},
 		SignMessage: &SignMessageResp{Signature: testSignature},
 	}
 	gotJSONBytes, err := json.MarshalIndent(testPluginResp, "", "	")
@@ -173,6 +192,9 @@ func TestPluginRespJSON(t *testing.T) {
 		]
 	},
 	"createKey": {
+		"publicKeyPEM": "bXlwZW0="
+	},
+	"publicKey": {
 		"publicKeyPEM": "bXlwZW0="
 	},
 	"signMessage": {

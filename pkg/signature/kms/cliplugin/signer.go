@@ -140,6 +140,11 @@ func (c PluginClient) CreateKey(ctx context.Context, algorithm string) (crypto.P
 	return publicKey, nil
 }
 
+func (c PluginClient) PublicKey(opts ...signature.PublicKeyOption) (crypto.PublicKey, error) {
+	// TODO: implement
+	return nil, nil
+}
+
 // SignMessage calls and returns the plugin's implementation of SignMessage().
 // If the opts contain a deadline, then it will be used with the Cmd.
 func (c PluginClient) SignMessage(message io.Reader, opts ...signature.SignOption) ([]byte, error) {
