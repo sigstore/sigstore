@@ -40,6 +40,8 @@ import (
 // `go test -tags=signer_program -count=1 ./... -key-resource-id [my-kms]://[my-key-ref]`
 // See ./README.md for plugin program usage.
 
+// We don't have a TestCryptoSigner since PluginClient.CryptoSigner()'s returned object is meant to be a wrapper around PluginClient.
+
 var (
 	inputKeyResourceID = flag.String("key-resource-id", "", "key resource ID for the KMS, defaults to 'testkms://testkey'")
 	testHashFunc       = crypto.SHA512

@@ -34,7 +34,8 @@ const (
 	PublicKeyMethodName           = "publicKey"
 	SignMessageMethodName         = "signMessage"
 	VerifySignatureMethodName     = "verifySignature"
-	// TODO: Additonal methods to be implemented
+	// CryptoSigner is not to be added to the protocol.
+	// PluginClient.CryptoSigner() will instead return a wrapper around the plugin.
 )
 
 // PluginArgs contains all the initialization and method arguments to be sent to the plugin as a CLI argument.
@@ -50,8 +51,8 @@ type InitOptions struct {
 	ProtocolVersion string     `json:"protocolVersion"`
 	KeyResourceID   string     `json:"keyResourceID"`
 	// HashFunc will serialize to ints according to https://pkg.go.dev/crypto@go1.23.5#Hash. e.g., crypto.SHA256 serializes to 5.
-	HashFunc crypto.Hash `json:"hashFunc"`
-	// TODO: extracted values from signature.RPCOption from LoadSignerVerifier().
+	HashFunc   crypto.Hash `json:"hashFunc"`
+	RPCOptions RPCOptions  `json:"rpcOptions"`
 }
 
 // MethodArgs contains the method arguments. MethodName must be specified,

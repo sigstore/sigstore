@@ -17,6 +17,7 @@
 package cliplugin
 
 import (
+	"bytes"
 	"context"
 	"crypto"
 	"encoding/json"
@@ -28,9 +29,9 @@ import (
 
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
 	"github.com/sigstore/sigstore/pkg/signature"
-	"github.com/sigstore/sigstore/pkg/signature/kms"
 	"github.com/sigstore/sigstore/pkg/signature/kms/cliplugin/common"
 	"github.com/sigstore/sigstore/pkg/signature/kms/cliplugin/encoding"
+	"github.com/sigstore/sigstore/pkg/signature/options"
 )
 
 var (
@@ -41,7 +42,6 @@ var (
 
 // PluginClient implements kms.SignerVerifier with calls to our plugin program.
 type PluginClient struct {
-	kms.SignerVerifier
 	executable  string
 	initOptions common.InitOptions
 	makeCmdFunc makeCmdFunc
@@ -213,4 +213,44 @@ func (c PluginClient) VerifySignature(signature io.Reader, message io.Reader, op
 		return err
 	}
 	return nil
+}
+
+// CryptoSigner is a wrapper around PluginClient.
+type CryptoSigner struct {
+	client  *PluginClient
+	ctx     context.Context
+	errFunc func(error)
+}
+
+// CryptoSigner returns a wrapper around PluginClient.
+func (c PluginClient) CryptoSigner(ctx context.Context, errFunc func(error)) (crypto.Signer, crypto.SignerOpts, error) {
+	return &CryptoSigner{
+		client:  &c,
+		ctx:     ctx,
+		errFunc: errFunc,
+	}, c.initOptions.HashFunc, nil
+}
+
+// Sign is a wrapper around PluginClient.SignMessage(). The first argument for a rand source is not used.
+func (c CryptoSigner) Sign(_ io.Reader, digest []byte, cryptoSignerOpts crypto.SignerOpts) (sig []byte, err error) {
+	emptyMessage := bytes.NewReader([]byte(""))
+	opts := []signature.SignOption{
+		options.WithCryptoSignerOpts(cryptoSignerOpts.HashFunc()),
+		options.WithDigest(digest),
+		// the client's initializing ctx should not be used in calls to its methods.
+	}
+	sig, err = c.client.SignMessage(emptyMessage, opts...)
+	if err != nil && c.errFunc != nil {
+		c.errFunc(err)
+	}
+	return sig, err
+}
+
+func (c CryptoSigner) Public() crypto.PublicKey {
+	publicKey, err := c.client.PublicKey()
+	if err != nil && c.errFunc != nil {
+		c.errFunc(err)
+		// we don't panic here.
+	}
+	return publicKey
 }

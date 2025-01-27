@@ -32,7 +32,6 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
 	"github.com/sigstore/sigstore/pkg/signature"
-	"github.com/sigstore/sigstore/pkg/signature/kms"
 	"github.com/sigstore/sigstore/pkg/signature/kms/cliplugin/common"
 	"github.com/sigstore/sigstore/pkg/signature/kms/cliplugin/encoding"
 	"github.com/sigstore/sigstore/pkg/signature/kms/cliplugin/handler"
@@ -233,8 +232,6 @@ func TestInvokePlugin(t *testing.T) {
 // testSignerVerifierImpl is a mock implementation that asserts that the
 // expected values are both sent and received through the encoding and decoding processes.
 type testSignerVerifierImpl struct {
-	// TODO: remove this embedding after all methods are implemented.
-	kms.SignerVerifier
 	t *testing.T
 }
 
@@ -342,6 +339,13 @@ func (s testSignerVerifierImpl) VerifySignature(signature io.Reader, message io.
 	return nil
 }
 
+// CryptoSigner only ensures that it is never called, since PluginClient.CryptoSigner()'s
+// returned object is meant to be a wrapper around PluginClient.
+func (s testSignerVerifierImpl) CryptoSigner(ctx context.Context, errFunc func(error)) (crypto.Signer, crypto.SignerOpts, error) {
+	s.t.Errorf("testSignerVerifierImpl.CryptoSigner() should never be called")
+	return nil, nil, errors.New("CryptoSigner() is not implemented")
+}
+
 // TestPluginClient tests each of PluginClient's methods for correct encoding and decoding between a simulated plugin program,
 // by mocking the makeCmdFunc function and using TestSignerVerifierImpl to both check and return expected values.
 func TestPluginClient(t *testing.T) {
@@ -420,7 +424,7 @@ func TestPluginClient(t *testing.T) {
 			t.Errorf("public key mismatch (-want +got):\n%s", diff)
 		}
 		if diff := cmp.Diff(testErr, err); diff != "" {
-			t.Errorf("eerror mismatch (-want +got):\n%s", diff)
+			t.Errorf("error mismatch (-want +got):\n%s", diff)
 		}
 	})
 
@@ -457,6 +461,20 @@ func TestPluginClient(t *testing.T) {
 			options.WithCryptoSignerOpts(testHashFunction),
 		}
 		err := testPluginClient.VerifySignature(bytes.NewReader(testSignatureBytes), bytes.NewReader(testMessageBytes), testOpts...)
+
+		if diff := cmp.Diff(testErr, err); diff != "" {
+			t.Errorf("error mismatch (-want +got):\n%s", diff)
+		}
+	})
+
+	t.Run("CryptoSigner", func(t *testing.T) {
+		t.Parallel()
+
+		// Here, we just make sure that our testSignerVerifierImpl.CryptoSigner() method is not called,
+		// since PluginClient.CryptoSigner()'s returned object is meant to be a wrapper around PluginClient.
+		testErrFunc := func(err error) {}
+		testContext, _ := context.WithDeadline(context.Background(), testContextDeadline)
+		_, _, err := testPluginClient.CryptoSigner(testContext, testErrFunc)
 
 		if diff := cmp.Diff(testErr, err); diff != "" {
 			t.Errorf("error mismatch (-want +got):\n%s", diff)

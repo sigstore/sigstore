@@ -30,7 +30,7 @@ The main program will invoke the program with these specifications:
 * stdout
   * JSON of method return values.
 
-See [./common/interface.go](./common/interface.go) and [./common/interface_test.go](./common/interface_test.go)] for the full JSON schema.
+See [./common/interface.go](./common/interface.go) and [./common/interface_test.go](./common/interface_test.go) for the full JSON schema.
 
 The plugin program must first exit before sigstore begins parsing responses.
 
@@ -43,6 +43,8 @@ Plugin authors may return errors with `PluginResp.ErrorMessage`, but the plugin'
 ### Implementation
 
 Plugin authors must implement the `kms.SignerVerifier` interface methods in their chosen language. Each method will invoke your program once, and the response will be parsed from stdout.
+
+`PluginClient.CryptoSigner()` will return object that is a wrapper around `PluginClient`, so plugin authors need not do a full implementation of `SignerVerifier()`.
 
 Exit status is ignored. Your program's stderr will be redirected to the main program, and errors you wish to return must be serialized in `PluginResp.ErrorMessage` in stdout.
 

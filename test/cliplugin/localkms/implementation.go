@@ -30,7 +30,6 @@ import (
 	"slices"
 
 	"github.com/sigstore/sigstore/pkg/signature"
-	"github.com/sigstore/sigstore/pkg/signature/kms"
 )
 
 const (
@@ -43,9 +42,9 @@ var (
 
 // TODO: respect the context deadlines
 
-// LocalSignerVerifier creates and verifies digital signatures with a key saved at KeyResourceID.
+// LocalSignerVerifier creates and verifies digital signatures with a key saved at KeyResourceID,
+// and implements kms.SignerVerifier.
 type LocalSignerVerifier struct {
-	kms.SignerVerifier
 	keyResourceID string
 	hashFunc      crypto.Hash
 }
@@ -204,4 +203,9 @@ func computeDigest(message *io.Reader, hashFunc crypto.Hash) ([]byte, error) {
 		return nil, err
 	}
 	return hasher.Sum(nil), nil
+}
+
+// CryptoSigner need not be fully implemented by plugins.
+func (i LocalSignerVerifier) CryptoSigner(ctx context.Context, errFunc func(error)) (crypto.Signer, crypto.SignerOpts, error) {
+	panic("CryptoSigner() not implemented")
 }
