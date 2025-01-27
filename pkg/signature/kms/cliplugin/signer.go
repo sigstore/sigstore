@@ -138,6 +138,8 @@ func (c PluginClient) CreateKey(ctx context.Context, algorithm string) (crypto.P
 	return publicKey, nil
 }
 
+// PublicKey calls and returns the plugin's implementation of PublicKey().
+// If the opts contain a deadline, then it will be used with the Cmd.
 func (c PluginClient) PublicKey(opts ...signature.PublicKeyOption) (crypto.PublicKey, error) {
 	args := &common.MethodArgs{
 		MethodName: common.PublicKeyMethodName,
