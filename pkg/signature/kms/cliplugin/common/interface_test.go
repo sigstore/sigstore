@@ -148,7 +148,7 @@ func TestPluginRespJSON(t *testing.T) {
 		DefaultAlgorithm: &DefaultAlgorithmResp{DefaultAlgorithm: testAlgorithm},
 		CreateKey:        &CreateKeyResp{PublicKeyPEM: testPEM},
 		SignMessage:      &SignMessageResp{Signature: testSignature},
-		VerifySignature:  &VerifySignaturResp{},
+		VerifySignature:  &VerifySignatureResp{},
 	}
 	gotJSONBytes, err := json.MarshalIndent(testPluginResp, "", "	")
 	if err != nil {
