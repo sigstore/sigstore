@@ -102,12 +102,12 @@ func SignMessage(stdin io.Reader, args *common.SignMessageArgs, impl kms.SignerV
 }
 
 // VerifySignature parses arguments and return values to and from the impl.
-func VerifySignature(stdin io.Reader, args *common.VerifySignatureArgs, impl kms.SignerVerifier) (*common.VerifySignaturResp, error) {
+func VerifySignature(stdin io.Reader, args *common.VerifySignatureArgs, impl kms.SignerVerifier) (*common.VerifySignatureResp, error) {
 	opts := encoding.UnpackVerifyOptions(args.VerifyOptions)
 	err := impl.VerifySignature(bytes.NewReader(args.Signature), stdin, opts...)
 	if err != nil {
 		return nil, err
 	}
-	resp := &common.VerifySignaturResp{}
+	resp := &common.VerifySignatureResp{}
 	return resp, nil
 }

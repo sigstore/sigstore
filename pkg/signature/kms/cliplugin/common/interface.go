@@ -77,7 +77,7 @@ type PluginResp struct {
 	CreateKey           *CreateKeyResp           `json:"createKey,omitempty"`
 	PublicKey           *PublicKeyResp           `json:"publicKey,omitempty"`
 	SignMessage         *SignMessageResp         `json:"signMessage,omitempty"`
-	VerifySignature     *VerifySignaturResp      `json:"verifySignature,omitempty"`
+	VerifySignature     *VerifySignatureResp     `json:"verifySignature,omitempty"`
 	// TODO: Additonal methods to be implemented
 }
 
@@ -141,6 +141,6 @@ type VerifySignatureArgs struct {
 	VerifyOptions *VerifyOptions `json:"verifyOptions"`
 }
 
-// VerifySignaturResp contains the serialized response for `VerifySignature()`.
-type VerifySignaturResp struct {
+// VerifySignatureResp contains the serialized response for `VerifySignature()`.
+type VerifySignatureResp struct {
 }

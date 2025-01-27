@@ -172,7 +172,7 @@ func TestPluginRespJSON(t *testing.T) {
 		CreateKey:       &CreateKeyResp{PublicKeyPEM: testPEM},
 		PublicKey:       &PublicKeyResp{PublicKeyPEM: testPEM},
 		SignMessage:     &SignMessageResp{Signature: testSignature},
-		VerifySignature: &VerifySignaturResp{},
+		VerifySignature: &VerifySignatureResp{},
 	}
 	gotJSONBytes, err := json.MarshalIndent(testPluginResp, "", "	")
 	if err != nil {
