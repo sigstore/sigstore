@@ -16,6 +16,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"crypto"
 	"crypto/rand"
@@ -76,21 +77,23 @@ func (i LocalSignerVerifier) CreateKey(ctx context.Context, algorithm string) (c
 		return nil, fmt.Errorf("error generating private key: %w", err)
 	}
 
+	// wirte to the path
 	privateKeyPEM := &pem.Block{
 		Type:  "RSA PRIVATE KEY",
 		Bytes: x509.MarshalPKCS1PrivateKey(privateKey),
 	}
 
-	privateKeyFile, err := os.Create(path)
-	if err != nil {
-		return nil, fmt.Errorf("error creating private key file: %w", err)
-	}
-	defer privateKeyFile.Close()
-
-	// os.WriteFile(path, privateKeyBytes, 0600)
-
-	if err := pem.Encode(privateKeyFile, privateKeyPEM); err != nil {
+	privateKeyPEMBuffer := new(bytes.Buffer)
+	if err := pem.Encode(privateKeyPEMBuffer, privateKeyPEM); err != nil {
 		return nil, fmt.Errorf("error encoding private key: %w", err)
+	}
+
+	if err := pem.Encode(privateKeyPEMBuffer, privateKeyPEM); err != nil {
+		return nil, fmt.Errorf("error encoding private key: %w", err)
+	}
+
+	if err := os.WriteFile(path, privateKeyPEMBuffer.Bytes(), 0400); err != nil {
+		return nil, fmt.Errorf("error creating private key file: %w", err)
 	}
 
 	publicKey := &privateKey.PublicKey

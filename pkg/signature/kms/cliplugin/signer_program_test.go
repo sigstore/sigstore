@@ -135,8 +135,6 @@ func TestDefaultAlgorithm(t *testing.T) {
 // TestCreateKey invokes CreateKey against the compiled plugin program.
 // Since implementations can vary, it merely checks that some public key is returned.
 func TestCreateKey(t *testing.T) {
-	t.Parallel()
-
 	pluginClient := getPluginClient(t)
 	ctx := context.Background()
 	defaultAlgorithm := pluginClient.DefaultAlgorithm()
