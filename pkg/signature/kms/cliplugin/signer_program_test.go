@@ -191,6 +191,28 @@ func TestCreateKey(t *testing.T) {
 	}
 }
 
+// TestPublicKey invokes CreateKey against the compiled plugin program.
+// Since implementations can vary, it merely checks that some public key is returned.
+func TestPublicKey(t *testing.T) {
+	pluginClient := getPluginClient(t)
+	ctx := context.Background()
+	defaultAlgorithm := pluginClient.DefaultAlgorithm()
+	var wantedErr error = nil
+
+	_, err := pluginClient.CreateKey(ctx, defaultAlgorithm)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	publicKey, err := pluginClient.PublicKey()
+	if publicKey == nil {
+		t.Error("unexpected non-nil publicKey")
+	}
+	if diff := cmp.Diff(wantedErr, err, cmpopts.EquateErrors()); diff != "" {
+		t.Errorf("unexpected error (-want +got): \n%s", diff)
+	}
+}
+
 // TestCreateKey invokes SignMessage against the compiled plugin program,
 // with combinations of empty or non-empty messages, and digests.
 // Since implementations can vary, it merely checks that non-empty signature is returned,

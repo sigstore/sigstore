@@ -71,6 +71,23 @@ func CreateKey(stdin io.Reader, args *common.CreateKeyArgs, impl kms.SignerVerif
 	return resp, nil
 }
 
+// PublicKey parses arguments and return values to and from the impl.
+func PublicKey(stdin io.Reader, args *common.PublicKeyArgs, impl kms.SignerVerifier) (*common.PublicKeyResp, error) {
+	opts := encoding.UnpackPublicKeyOptions(args.PublicKeyOptions)
+	publicKey, err := impl.PublicKey(opts...)
+	if err != nil {
+		return nil, err
+	}
+	publicKeyPEM, err := cryptoutils.MarshalPublicKeyToPEM(publicKey)
+	if err != nil {
+		return nil, err
+	}
+	resp := &common.PublicKeyResp{
+		PublicKeyPEM: publicKeyPEM,
+	}
+	return resp, nil
+}
+
 // SignMessage parses arguments and return values to and from the impl.
 func SignMessage(stdin io.Reader, args *common.SignMessageArgs, impl kms.SignerVerifier) (*common.SignMessageResp, error) {
 	opts := encoding.UnpackSignOptions(args.SignOptions)

@@ -263,6 +263,22 @@ func (s testSignerVerifierImpl) CreateKey(ctx context.Context, algorithm string)
 	return testPublicKey, nil
 }
 
+// PublicKey checks the expected context opts, and returns the expected public key.
+func (s testSignerVerifierImpl) PublicKey(opts ...signature.PublicKeyOption) (crypto.PublicKey, error) {
+	publicKeyOptions := encoding.PackPublicKeyOptions(opts)
+	wantedPublicKeyOptions := &common.PublicKeyOptions{
+		RPCOptions: common.RPCOptions{
+			CtxDeadline:        &testContextDeadline,
+			KeyVersion:         &testKeyVersion,
+			RemoteVerification: &testRemoteVerification,
+		},
+	}
+	if diff := cmp.Diff(wantedPublicKeyOptions, publicKeyOptions); diff != "" {
+		s.t.Errorf("unexpected public key options (-want +got):\n%s", diff)
+	}
+	return testPublicKey, nil
+}
+
 // SignMessage checsk the expected message and opts, and returns the epxtected signature.
 func (s testSignerVerifierImpl) SignMessage(message io.Reader, opts ...signature.SignOption) ([]byte, error) {
 	messageBytes, err := io.ReadAll(message)
@@ -382,6 +398,24 @@ func TestPluginClient(t *testing.T) {
 		t.Parallel()
 
 		publicKey, err := testPluginClient.CreateKey(testContext, testDefaultAlgorithm)
+		if diff := cmp.Diff(testPublicKey, publicKey); diff != "" {
+			t.Errorf("public key mismatch (-want +got):\n%s", diff)
+		}
+		if diff := cmp.Diff(testErr, err); diff != "" {
+			t.Errorf("eerror mismatch (-want +got):\n%s", diff)
+		}
+	})
+
+	t.Run("PublicKey", func(t *testing.T) {
+		t.Parallel()
+
+		testContext, _ := context.WithDeadline(context.Background(), testContextDeadline)
+		testOpts := []signature.PublicKeyOption{
+			options.WithContext(testContext),
+			options.WithKeyVersion(testKeyVersion),
+			options.WithRemoteVerification(testRemoteVerification),
+		}
+		publicKey, err := testPluginClient.PublicKey(testOpts...)
 		if diff := cmp.Diff(testPublicKey, publicKey); diff != "" {
 			t.Errorf("public key mismatch (-want +got):\n%s", diff)
 		}

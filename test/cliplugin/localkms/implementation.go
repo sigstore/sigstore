@@ -41,6 +41,8 @@ var (
 	supportedAlgorithms = []string{defaultAlgorithm}
 )
 
+// TODO: respect the context deadlines
+
 // LocalSignerVerifier creates and verifies digital signatures with a key saved at KeyResourceID.
 type LocalSignerVerifier struct {
 	kms.SignerVerifier
@@ -104,6 +106,15 @@ func (i LocalSignerVerifier) CreateKey(ctx context.Context, algorithm string) (c
 
 	publicKey := &privateKey.PublicKey
 	return publicKey, nil
+}
+
+// PublicKey returns the public key.
+func (i LocalSignerVerifier) PublicKey(opts ...signature.PublicKeyOption) (crypto.PublicKey, error) {
+	privateKey, err := loadRSAPrivateKey(i.keyResourceID)
+	if err != nil {
+		return nil, err
+	}
+	return &privateKey.PublicKey, nil
 }
 
 // SignMessage signs the message with the KeyResourceID.

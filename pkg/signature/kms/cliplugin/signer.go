@@ -141,8 +141,27 @@ func (c PluginClient) CreateKey(ctx context.Context, algorithm string) (crypto.P
 }
 
 func (c PluginClient) PublicKey(opts ...signature.PublicKeyOption) (crypto.PublicKey, error) {
-	// TODO: implement
-	return nil, nil
+	args := &common.MethodArgs{
+		MethodName: common.PublicKeyMethodName,
+		PublicKey: &common.PublicKeyArgs{
+			PublicKeyOptions: encoding.PackPublicKeyOptions(opts),
+		},
+	}
+	ctx := context.Background()
+	if deadline := args.PublicKey.PublicKeyOptions.RPCOptions.CtxDeadline; deadline != nil {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithDeadline(ctx, *deadline)
+		defer cancel()
+	}
+	resp, err := c.invokePlugin(ctx, nil, args)
+	if err != nil {
+		return nil, err
+	}
+	publicKey, err := cryptoutils.UnmarshalPEMToPublicKey(resp.PublicKey.PublicKeyPEM)
+	if err != nil {
+		return nil, err
+	}
+	return publicKey, nil
 }
 
 // SignMessage calls and returns the plugin's implementation of SignMessage().
