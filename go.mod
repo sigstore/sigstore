@@ -1,6 +1,7 @@
 module github.com/sigstore/sigstore
 
 go 1.22.0
+toolchain go1.23.5
 
 require (
 	github.com/coreos/go-oidc/v3 v3.12.0
@@ -8,7 +9,7 @@ require (
 	github.com/go-rod/rod v0.116.2
 	github.com/go-test/deep v1.1.1
 	github.com/google/go-cmp v0.6.0
-	github.com/google/go-containerregistry v0.20.2
+	github.com/google/go-containerregistry v0.20.3
 	github.com/letsencrypt/boulder v0.0.0-20240620165639-de9c06129bec
 	github.com/pkg/browser v0.0.0-20210911075715-681adbf594b8
 	github.com/secure-systems-lab/go-securesystemslib v0.9.0
@@ -35,6 +36,6 @@ require (
 	github.com/ysmood/gson v0.7.3 // indirect
 	github.com/ysmood/leakless v0.9.0 // indirect
 	golang.org/x/sys v0.29.0 // indirect
-	google.golang.org/protobuf v1.34.2 // indirect
+	google.golang.org/protobuf v1.36.3 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
