@@ -38,8 +38,6 @@ var (
 	ErrorInputKeyResourceID = errors.New("parsing input key resource id")
 )
 
-// TODO: original contexts should be used with invokePlugin, so that the caller's cancel funcs are respected.
-
 // init registers the plugin system as a provider. It does not search for plugin programs.
 // Users must import this package, e.g.,  `import _ "github.com/sigstore/sigstore/pkg/signature/kms/cliplugin"`
 func init() {
@@ -50,6 +48,9 @@ func init() {
 
 // LoadSignerVerifier creates a PluginClient with these InitOptions.
 func LoadSignerVerifier(ctx context.Context, inputKeyResourceID string, hashFunc crypto.Hash, opts ...signature.RPCOption) (kms.SignerVerifier, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	executable, keyResourceID, err := getPluginExecutableAndKeyResourceID(inputKeyResourceID)
 	if err != nil {
 		return nil, err

@@ -139,7 +139,7 @@ func (c PluginClient) CreateKey(ctx context.Context, algorithm string) (crypto.P
 }
 
 // PublicKey calls and returns the plugin's implementation of PublicKey().
-// If the opts contain a deadline, then it will be used with the Cmd.
+// If the opts contain a context, then it will be used with the Cmd.
 func (c PluginClient) PublicKey(opts ...signature.PublicKeyOption) (crypto.PublicKey, error) {
 	args := &common.MethodArgs{
 		MethodName: common.PublicKeyMethodName,
@@ -148,10 +148,8 @@ func (c PluginClient) PublicKey(opts ...signature.PublicKeyOption) (crypto.Publi
 		},
 	}
 	ctx := context.Background()
-	if deadline := args.PublicKey.PublicKeyOptions.RPCOptions.CtxDeadline; deadline != nil {
-		var cancel context.CancelFunc
-		ctx, cancel = context.WithDeadline(ctx, *deadline)
-		defer cancel()
+	for _, opt := range opts {
+		opt.ApplyContext(&ctx)
 	}
 	resp, err := c.invokePlugin(ctx, nil, args)
 	if err != nil {
@@ -165,7 +163,7 @@ func (c PluginClient) PublicKey(opts ...signature.PublicKeyOption) (crypto.Publi
 }
 
 // SignMessage calls and returns the plugin's implementation of SignMessage().
-// If the opts contain a deadline, then it will be used with the Cmd.
+// If the opts contain a context, then it will be used with the Cmd.
 func (c PluginClient) SignMessage(message io.Reader, opts ...signature.SignOption) ([]byte, error) {
 	args := &common.MethodArgs{
 		MethodName: common.SignMessageMethodName,
@@ -174,10 +172,8 @@ func (c PluginClient) SignMessage(message io.Reader, opts ...signature.SignOptio
 		},
 	}
 	ctx := context.Background()
-	if deadline := args.SignMessage.SignOptions.RPCOptions.CtxDeadline; deadline != nil {
-		var cancel context.CancelFunc
-		ctx, cancel = context.WithDeadline(ctx, *deadline)
-		defer cancel()
+	for _, opt := range opts {
+		opt.ApplyContext(&ctx)
 	}
 	resp, err := c.invokePlugin(ctx, message, args)
 	if err != nil {
@@ -188,7 +184,7 @@ func (c PluginClient) SignMessage(message io.Reader, opts ...signature.SignOptio
 }
 
 // VerifySignature calls and returns the plugin's implementation of VerifySignature().
-// If the opts contain a deadline, then it will be used with the Cmd.
+// If the opts contain a context, then it will be used with the Cmd.
 func (c PluginClient) VerifySignature(signature io.Reader, message io.Reader, opts ...signature.VerifyOption) error {
 	// signatures won't be larger than 1MB, so it's fine to read the entire content into memory.
 	signatureBytes, err := io.ReadAll(signature)
@@ -203,10 +199,8 @@ func (c PluginClient) VerifySignature(signature io.Reader, message io.Reader, op
 		},
 	}
 	ctx := context.Background()
-	if deadline := args.VerifySignature.VerifyOptions.RPCOptions.CtxDeadline; deadline != nil {
-		var cancel context.CancelFunc
-		ctx, cancel = context.WithDeadline(ctx, *deadline)
-		defer cancel()
+	for _, opt := range opts {
+		opt.ApplyContext(&ctx)
 	}
 	_, err = c.invokePlugin(ctx, message, args)
 	if err != nil {
