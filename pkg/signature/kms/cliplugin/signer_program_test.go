@@ -132,6 +132,18 @@ func TestDefaultAlgorithm(t *testing.T) {
 	}
 }
 
+// TestSupportedAlgorithms invokes DefaultAlgorithm against the compiled plugin program.
+// Since implementations can vary, it merely checks that some non-empty value is returned.
+func TestSupportedAlgorithms(t *testing.T) {
+	t.Parallel()
+
+	pluginClient := getPluginClient(t)
+
+	if supportedAlgorithms := pluginClient.SupportedAlgorithms(); len(supportedAlgorithms) == 0 {
+		t.Error("expected non-empty supported algorithms")
+	}
+}
+
 // TestCreateKey invokes CreateKey against the compiled plugin program.
 // Since implementations can vary, it merely checks that some public key is returned.
 func TestCreateKey(t *testing.T) {

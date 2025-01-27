@@ -26,11 +26,13 @@ const (
 	// Breaking changes to the PluginClient and this schema necessarily mean major version bumps of
 	// this ProtocolVersion and the sigstore version.
 	// Plugin authors may choose to be backwards compatible with older versions.
-	ProtocolVersion            = "1"
-	DefaultAlgorithmMethodName = "defaultAlgorithm"
-	CreateKeyMethodName        = "createKey"
-	SignMessageMethodName      = "signMessage"
-	VerifySignatureMethodName  = "verifySignature"
+	// TODO: change this to be semver compatible, like v1, or v1.0.0.
+	ProtocolVersion               = "1"
+	DefaultAlgorithmMethodName    = "defaultAlgorithm"
+	SupportedAlgorithmsMethodName = "supportedAlgorithms"
+	CreateKeyMethodName           = "createKey"
+	SignMessageMethodName         = "signMessage"
+	VerifySignatureMethodName     = "verifySignature"
 	// TODO: Additonal methods to be implemented
 )
 
@@ -56,21 +58,23 @@ type InitOptions struct {
 // Arguments that are io.Readers, like `message` in `SignMessage()` will be sent over stdin.
 type MethodArgs struct {
 	// MethodName specifies which method is intended to be called.
-	MethodName       string                `json:"methodName"`
-	DefaultAlgorithm *DefaultAlgorithmArgs `json:"defaultAlgorithm,omitempty"`
-	CreateKey        *CreateKeyArgs        `json:"createKey,omitempty"`
-	SignMessage      *SignMessageArgs      `json:"signMessage,omitempty"`
-	VerifySignature  *VerifySignatureArgs  `json:"verifySignature,omitempty"`
+	MethodName          string                   `json:"methodName"`
+	DefaultAlgorithm    *DefaultAlgorithmArgs    `json:"defaultAlgorithm,omitempty"`
+	SupportedAlgorithms *SupportedAlgorithmsArgs `json:"supportedAlgorithms,omitempty"`
+	CreateKey           *CreateKeyArgs           `json:"createKey,omitempty"`
+	SignMessage         *SignMessageArgs         `json:"signMessage,omitempty"`
+	VerifySignature     *VerifySignatureArgs     `json:"verifySignature,omitempty"`
 	// TODO: Additonal methods to be implemented
 }
 
 // PluginResp contains the serialized plugin method return values.
 type PluginResp struct {
-	ErrorMessage     string                `json:"errorMessage,omitempty"`
-	DefaultAlgorithm *DefaultAlgorithmResp `json:"defaultAlgorithm,omitempty"`
-	CreateKey        *CreateKeyResp        `json:"createKey,omitempty"`
-	SignMessage      *SignMessageResp      `json:"signMessage,omitempty"`
-	VerifySignature  *VerifySignaturResp   `json:"verifySignature,omitempty"`
+	ErrorMessage        string                   `json:"errorMessage,omitempty"`
+	DefaultAlgorithm    *DefaultAlgorithmResp    `json:"defaultAlgorithm,omitempty"`
+	SupportedAlgorithms *SupportedAlgorithmsResp `json:"supportedAlgorithms,omitempty"`
+	CreateKey           *CreateKeyResp           `json:"createKey,omitempty"`
+	SignMessage         *SignMessageResp         `json:"signMessage,omitempty"`
+	VerifySignature     *VerifySignaturResp      `json:"verifySignature,omitempty"`
 	// TODO: Additonal methods to be implemented
 }
 
@@ -81,6 +85,15 @@ type DefaultAlgorithmArgs struct {
 // DefaultAlgorithmResp contains the serialized response for `DefaultAlgorithm()`.
 type DefaultAlgorithmResp struct {
 	DefaultAlgorithm string `json:"defaultAlgorithm"`
+}
+
+// SupportedAlgorithmsArgs contains the serialized arguments for `SupportedAlgorithms()`.
+type SupportedAlgorithmsArgs struct {
+}
+
+// SupportedAlgorithmsResp contains the serialized response for `SupportedAlgorithms()`.
+type SupportedAlgorithmsResp struct {
+	SupportedAlgorithms []string `json:"supportedAlgorithms"`
 }
 
 // CreateKeyArgs contains the serialized arguments for `CreateKeyArgs()`.

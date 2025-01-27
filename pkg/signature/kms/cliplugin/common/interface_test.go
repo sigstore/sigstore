@@ -50,8 +50,9 @@ func TestPluginArgsJSON(t *testing.T) {
 			HashFunc:        testHashFunc,
 		},
 		MethodArgs: &MethodArgs{
-			MethodName:       "anyMethod",
-			DefaultAlgorithm: &DefaultAlgorithmArgs{},
+			MethodName:          "anyMethod",
+			DefaultAlgorithm:    &DefaultAlgorithmArgs{},
+			SupportedAlgorithms: &SupportedAlgorithmsArgs{},
 			CreateKey: &CreateKeyArgs{
 				CtxDeadline: &testContextDeadline,
 				Algorithm:   testAlgorithm,
@@ -101,6 +102,7 @@ func TestPluginArgsJSON(t *testing.T) {
 	},
 	"methodName": "anyMethod",
 	"defaultAlgorithm": {},
+	"supportedAlgorithms": {},
 	"createKey": {
 		"ctxDeadline": "2025-04-01T02:47:00Z",
 		"algorithm": "anyAlgorithm"
@@ -146,8 +148,11 @@ func TestPluginRespJSON(t *testing.T) {
 	testPluginResp := &PluginResp{
 		ErrorMessage:     "any error message",
 		DefaultAlgorithm: &DefaultAlgorithmResp{DefaultAlgorithm: testAlgorithm},
-		CreateKey:        &CreateKeyResp{PublicKeyPEM: testPEM},
-		SignMessage:      &SignMessageResp{Signature: testSignature},
+		SupportedAlgorithms: &SupportedAlgorithmsResp{
+			SupportedAlgorithms: []string{testAlgorithm, "anotherAlgorithm"},
+		},
+		CreateKey:   &CreateKeyResp{PublicKeyPEM: testPEM},
+		SignMessage: &SignMessageResp{Signature: testSignature},
 	}
 	gotJSONBytes, err := json.MarshalIndent(testPluginResp, "", "	")
 	if err != nil {
@@ -160,6 +165,12 @@ func TestPluginRespJSON(t *testing.T) {
 	"errorMessage": "any error message",
 	"defaultAlgorithm": {
 		"defaultAlgorithm": "anyAlgorithm"
+	},
+	"supportedAlgorithms": {
+		"supportedAlgorithms": [
+			"anyAlgorithm",
+			"anotherAlgorithm"
+		]
 	},
 	"createKey": {
 		"publicKeyPEM": "bXlwZW0="

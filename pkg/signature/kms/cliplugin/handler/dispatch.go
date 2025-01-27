@@ -72,6 +72,8 @@ func Dispatch(stdout io.Writer, stdin io.Reader, pluginArgs *common.PluginArgs, 
 	switch pluginArgs.MethodName {
 	case common.DefaultAlgorithmMethodName:
 		resp.DefaultAlgorithm, err = DefaultAlgorithm(stdin, pluginArgs.DefaultAlgorithm, impl)
+	case common.SupportedAlgorithmsMethodName:
+		resp.SupportedAlgorithms, err = SupportedAlgorithms(stdin, pluginArgs.SupportedAlgorithms, impl)
 	case common.CreateKeyMethodName:
 		resp.CreateKey, err = CreateKey(stdin, pluginArgs.CreateKey, impl)
 	case common.SignMessageMethodName:

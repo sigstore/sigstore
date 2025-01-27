@@ -27,6 +27,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"slices"
 
 	"github.com/sigstore/sigstore/pkg/signature"
 	"github.com/sigstore/sigstore/pkg/signature/kms"
@@ -36,6 +37,10 @@ const (
 	defaultAlgorithm = "rsa-2048"
 )
 
+var (
+	supportedAlgorithms = []string{defaultAlgorithm}
+)
+
 // LocalSignerVerifier creates and verifies digital signatures with a key saved at KeyResourceID.
 type LocalSignerVerifier struct {
 	kms.SignerVerifier
@@ -43,19 +48,20 @@ type LocalSignerVerifier struct {
 	hashFunc      crypto.Hash
 }
 
-// DefaultAlgorithm returns the default algorithm for the signer
+// DefaultAlgorithm returns the default algorithm for the signer.
 func (i LocalSignerVerifier) DefaultAlgorithm() string {
 	return defaultAlgorithm
+}
+
+// SupportedAlgorithms returns the supported algorithms for the signer.
+func (i LocalSignerVerifier) SupportedAlgorithms() []string {
+	return supportedAlgorithms
 }
 
 // CreateKey returns a new public key, and saves the private key to the path at KeyResourceID.
 // Don't do this in your own real implementation!
 func (i LocalSignerVerifier) CreateKey(ctx context.Context, algorithm string) (crypto.PublicKey, error) {
-	// TODO: implement SupportedAlgorithms()
-	// if !slices.Contains(i.SupportedAlgorithms(), algorithm) {
-	// 	return nil, fmt.Errorf("algorithm %s not supported", algorithm)
-	// }
-	if algorithm != i.DefaultAlgorithm() {
+	if !slices.Contains(i.SupportedAlgorithms(), algorithm) {
 		return nil, fmt.Errorf("algorithm %s not supported", algorithm)
 	}
 

@@ -105,6 +105,19 @@ func (c PluginClient) DefaultAlgorithm() string {
 	return resp.DefaultAlgorithm.DefaultAlgorithm
 }
 
+// SupportedAlgorithms calls and returns the plugin's implementation of SupportedAlgorithms().
+func (c PluginClient) SupportedAlgorithms() []string {
+	args := &common.MethodArgs{
+		MethodName:          common.SupportedAlgorithmsMethodName,
+		SupportedAlgorithms: &common.SupportedAlgorithmsArgs{},
+	}
+	resp, err := c.invokePlugin(context.Background(), nil, args)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return resp.SupportedAlgorithms.SupportedAlgorithms
+}
+
 // CreateKey calls and returns the plugin's implementation of CreateKey().
 func (c PluginClient) CreateKey(ctx context.Context, algorithm string) (crypto.PublicKey, error) {
 	args := &common.MethodArgs{

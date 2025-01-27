@@ -40,6 +40,15 @@ func DefaultAlgorithm(stdin io.Reader, args *common.DefaultAlgorithmArgs, impl k
 	return resp, nil
 }
 
+// func SupportedAlgorithms parses arguments and return values to and from the impl.
+func SupportedAlgorithms(stdin io.Reader, args *common.SupportedAlgorithmsArgs, impl kms.SignerVerifier) (*common.SupportedAlgorithmsResp, error) {
+	supportedAlgorithms := impl.SupportedAlgorithms()
+	resp := &common.SupportedAlgorithmsResp{
+		SupportedAlgorithms: supportedAlgorithms,
+	}
+	return resp, nil
+}
+
 // CreateKey parses arguments and return values to and from the impl.
 func CreateKey(stdin io.Reader, args *common.CreateKeyArgs, impl kms.SignerVerifier) (*common.CreateKeyResp, error) {
 	ctx := context.Background()

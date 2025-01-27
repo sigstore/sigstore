@@ -40,18 +40,19 @@ import (
 )
 
 var (
-	testExecutable         = "sigstore-kms-test"
-	testPluginErrorMessage = "404: not found"
-	testKeyResourceID      = "testkms://testkey"
-	testContextDeadline    = time.Date(2025, 4, 1, 2, 47, 0, 0, time.UTC)
-	testDefaultAlgorithm   = "alg1"
-	testPublicKey          crypto.PublicKey
-	testMessageBytes       = []byte(`my-message`)
-	testSignatureBytes     = []byte(`my-signature`)
-	testHashFunction       = crypto.SHA512
-	testKeyVersion         = "my-key-version"
-	testRemoteVerification = true
-	testDigest             = []byte("my-digest")
+	testExecutable          = "sigstore-kms-test"
+	testPluginErrorMessage  = "404: not found"
+	testKeyResourceID       = "testkms://testkey"
+	testContextDeadline     = time.Date(2025, 4, 1, 2, 47, 0, 0, time.UTC)
+	testDefaultAlgorithm    = "alg1"
+	testSupportedAlgorithms = []string{testDefaultAlgorithm, "alg2"}
+	testPublicKey           crypto.PublicKey
+	testMessageBytes        = []byte(`my-message`)
+	testSignatureBytes      = []byte(`my-signature`)
+	testHashFunction        = crypto.SHA512
+	testKeyVersion          = "my-key-version"
+	testRemoteVerification  = true
+	testDigest              = []byte("my-digest")
 )
 
 type testCmd struct {
@@ -242,6 +243,11 @@ func (s testSignerVerifierImpl) DefaultAlgorithm() string {
 	return testDefaultAlgorithm
 }
 
+// SupportedAlgorithms accepts no arguments, but returns an expected value.
+func (s testSignerVerifierImpl) SupportedAlgorithms() []string {
+	return testSupportedAlgorithms
+}
+
 // CreateKey checks the expected context deadline and algorithm, and returns the expected public key.
 func (s testSignerVerifierImpl) CreateKey(ctx context.Context, algorithm string) (crypto.PublicKey, error) {
 	if diff := cmp.Diff(testDefaultAlgorithm, algorithm); diff != "" {
@@ -360,6 +366,15 @@ func TestPluginClient(t *testing.T) {
 		defaultAlgorithm := testPluginClient.DefaultAlgorithm()
 		if diff := cmp.Diff(testDefaultAlgorithm, defaultAlgorithm); diff != "" {
 			t.Errorf("default algorithm mismatch (-want +got):\n%s", diff)
+		}
+	})
+
+	t.Run("SupportedAlgorithms", func(t *testing.T) {
+		t.Parallel()
+
+		supportedAlgorithms := testPluginClient.SupportedAlgorithms()
+		if diff := cmp.Diff(testSupportedAlgorithms, supportedAlgorithms); diff != "" {
+			t.Errorf("supported algorithms mismatch (-want +got):\n%s", diff)
 		}
 	})
 
