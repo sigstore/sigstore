@@ -58,8 +58,7 @@ func LoadSignerVerifier(ctx context.Context, inputKeyResourceID string, hashFunc
 		ProtocolVersion: common.ProtocolVersion,
 		KeyResourceID:   keyResourceID,
 		HashFunc:        hashFunc,
-		RPCOptions:      *encoding.PackRPCOptions(opts),
-		// TODO: include extracted values from opts
+		RPCOptions:      encoding.PackRPCOptions(opts),
 	}
 	if deadline, ok := ctx.Deadline(); ok {
 		initOptions.CtxDeadline = &deadline

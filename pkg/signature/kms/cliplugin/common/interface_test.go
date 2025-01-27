@@ -48,7 +48,7 @@ func TestPluginArgsJSON(t *testing.T) {
 			ProtocolVersion: ProtocolVersion,
 			KeyResourceID:   testKeyResourceID,
 			HashFunc:        testHashFunc,
-			RPCOptions: RPCOptions{
+			RPCOptions: &RPCOptions{
 				CtxDeadline:        &testContextDeadline,
 				KeyVersion:         &testKeyVersion,
 				RemoteVerification: &testRemoteVerification,
