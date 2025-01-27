@@ -91,8 +91,6 @@ We have an example plugin in [test/cliplugin/localkms](../../../../test/cliplugi
     cosign-cli sign-blob --tlog-upload=false --key localkms://`pwd`/key.pem blob.txt
     ```
 
-TODO: implement more methods
-
 ### Testing
 
 Unit tests against an example plugin program are in [./signer_program_test.go](./signer_program_test.go).

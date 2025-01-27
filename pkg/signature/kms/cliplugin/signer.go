@@ -90,8 +90,6 @@ func (c PluginClient) invokePlugin(ctx context.Context, stdin io.Reader, methodA
 	return &resp, nil
 }
 
-// TODO: Additonal methods to be implemented
-
 // DefaultAlgorithm calls and returns the plugin's implementation of DefaultAlgorithm().
 func (c PluginClient) DefaultAlgorithm() string {
 	args := &common.MethodArgs{
