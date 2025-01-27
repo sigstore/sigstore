@@ -26,6 +26,7 @@ import (
 	"github.com/sigstore/sigstore/pkg/signature"
 	"github.com/sigstore/sigstore/pkg/signature/kms"
 	"github.com/sigstore/sigstore/pkg/signature/kms/cliplugin/common"
+	"github.com/sigstore/sigstore/pkg/signature/kms/cliplugin/encoding"
 )
 
 const (
@@ -57,6 +58,7 @@ func LoadSignerVerifier(ctx context.Context, inputKeyResourceID string, hashFunc
 		ProtocolVersion: common.ProtocolVersion,
 		KeyResourceID:   keyResourceID,
 		HashFunc:        hashFunc,
+		RPCOptions:      *encoding.PackRPCOptions(opts),
 		// TODO: include extracted values from opts
 	}
 	if deadline, ok := ctx.Deadline(); ok {
