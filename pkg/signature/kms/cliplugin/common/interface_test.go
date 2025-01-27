@@ -169,9 +169,10 @@ func TestPluginRespJSON(t *testing.T) {
 		SupportedAlgorithms: &SupportedAlgorithmsResp{
 			SupportedAlgorithms: []string{testAlgorithm, "anotherAlgorithm"},
 		},
-		CreateKey:   &CreateKeyResp{PublicKeyPEM: testPEM},
-		PublicKey:   &PublicKeyResp{PublicKeyPEM: testPEM},
-		SignMessage: &SignMessageResp{Signature: testSignature},
+		CreateKey:       &CreateKeyResp{PublicKeyPEM: testPEM},
+		PublicKey:       &PublicKeyResp{PublicKeyPEM: testPEM},
+		SignMessage:     &SignMessageResp{Signature: testSignature},
+		VerifySignature: &VerifySignaturResp{},
 	}
 	gotJSONBytes, err := json.MarshalIndent(testPluginResp, "", "	")
 	if err != nil {
@@ -199,7 +200,8 @@ func TestPluginRespJSON(t *testing.T) {
 	},
 	"signMessage": {
 		"signature": "YW55LXNpZ25hdHVyZQ=="
-	}
+	},
+	"verifySignature": {}
 }`, "\n")
 	if diff := cmp.Diff(wantedJSONLines, gotJSONLines); diff != "" {
 		t.Errorf("unexpected JSON (-want +got): \n%s", diff)
