@@ -67,7 +67,6 @@ type MethodArgs struct {
 	PublicKey           *PublicKeyArgs           `json:"publicKey,omitempty"`
 	SignMessage         *SignMessageArgs         `json:"signMessage,omitempty"`
 	VerifySignature     *VerifySignatureArgs     `json:"verifySignature,omitempty"`
-	// TODO: Additonal methods to be implemented
 }
 
 // PluginResp contains the serialized plugin method return values.
@@ -79,7 +78,6 @@ type PluginResp struct {
 	PublicKey           *PublicKeyResp           `json:"publicKey,omitempty"`
 	SignMessage         *SignMessageResp         `json:"signMessage,omitempty"`
 	VerifySignature     *VerifySignatureResp     `json:"verifySignature,omitempty"`
-	// TODO: Additonal methods to be implemented
 }
 
 // DefaultAlgorithmArgs contains the serialized arguments for `DefaultAlgorithm()`.

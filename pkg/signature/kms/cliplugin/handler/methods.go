@@ -29,8 +29,6 @@ import (
 	"github.com/sigstore/sigstore/pkg/signature/kms/cliplugin/encoding"
 )
 
-// TODO: Additonal methods to be implemented
-
 // DefaultAlgorithm parses arguments and return values to and from the impl.
 func DefaultAlgorithm(stdin io.Reader, args *common.DefaultAlgorithmArgs, impl kms.SignerVerifier) (*common.DefaultAlgorithmResp, error) {
 	defaultAlgorithm := impl.DefaultAlgorithm()
