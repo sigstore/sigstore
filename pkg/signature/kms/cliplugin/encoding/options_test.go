@@ -157,7 +157,7 @@ func TestUnpackMessageOptions(t *testing.T) {
 	}
 }
 
-// TestPackSignOptions ensures that values are extracted from []signature.MessageOption.
+// TestPackSignOptions ensures that values are extracted from []signature.SignOption.
 func TestPackSignOptions(t *testing.T) {
 	t.Parallel()
 
@@ -232,8 +232,8 @@ func TestUnpackSignOptions(t *testing.T) {
 	}
 }
 
-// TestPackVerifyOption ensures that values are extracted from []signature.MessageOption.
-func TestPackVerifyOption(t *testing.T) {
+// TestPackVerifyOptions ensures that values are extracted from []signature.VerifyOption.
+func TestPackVerifyOptions(t *testing.T) {
 	t.Parallel()
 
 	// test values.

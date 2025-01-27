@@ -28,11 +28,14 @@ import (
 
 var (
 	testContextDeadline    = time.Date(2025, 4, 1, 2, 47, 0, 0, time.UTC)
+	testAlgorithm          = "anyAlgorithm"
+	testPEM                = []byte("mypem")
 	testKeyResourceID      = "testkms://testkey"
 	testHashFunc           = crypto.BLAKE2b_256
 	testDigest             = []byte("anyDigest")
 	testKeyVersion         = "my-key-version"
 	testRemoteVerification = true
+	testSignature          = []byte("any-signature")
 )
 
 // TestPluginArgsJSON ensures that the JSON serialization of PluginArgs is the expected form.
@@ -51,10 +54,24 @@ func TestPluginArgsJSON(t *testing.T) {
 			DefaultAlgorithm: &DefaultAlgorithmArgs{},
 			CreateKey: &CreateKeyArgs{
 				CtxDeadline: &testContextDeadline,
-				Algorithm:   "anyAlgorithm",
+				Algorithm:   testAlgorithm,
 			},
 			SignMessage: &SignMessageArgs{
 				SignOptions: &SignOptions{
+					RPCOptions: RPCOptions{
+						CtxDeadline:        &testContextDeadline,
+						KeyVersion:         &testKeyVersion,
+						RemoteVerification: &testRemoteVerification,
+					},
+					MessageOptions: MessageOptions{
+						Digest:   &testDigest,
+						HashFunc: &testHashFunc,
+					},
+				},
+			},
+			VerifySignature: &VerifySignatureArgs{
+				Signature: testSignature,
+				VerifyOptions: &VerifyOptions{
 					RPCOptions: RPCOptions{
 						CtxDeadline:        &testContextDeadline,
 						KeyVersion:         &testKeyVersion,
@@ -100,6 +117,20 @@ func TestPluginArgsJSON(t *testing.T) {
 				"hashFunc": 17
 			}
 		}
+	},
+	"verifySignature": {
+		"signature": "YW55LXNpZ25hdHVyZQ==",
+		"verifyOptions": {
+			"rpcOptions": {
+				"ctxDeadline": "2025-04-01T02:47:00Z",
+				"keyVersion": "my-key-version",
+				"remoteVerification": true
+			},
+			"messageOptions": {
+				"digest": "YW55RGlnZXN0",
+				"hashFunc": 17
+			}
+		}
 	}
 }`, "\n")
 	if diff := cmp.Diff(wantedJSONLines, gotJSONLines); diff != "" {
@@ -114,9 +145,9 @@ func TestPluginRespJSON(t *testing.T) {
 	// we fill them here for simpler testing.
 	testPluginResp := &PluginResp{
 		ErrorMessage:     "any error message",
-		DefaultAlgorithm: &DefaultAlgorithmResp{DefaultAlgorithm: "any-algo"},
-		CreateKey:        &CreateKeyResp{PublicKeyPEM: []byte("mypem")},
-		SignMessage:      &SignMessageResp{Signature: []byte("any-signature")},
+		DefaultAlgorithm: &DefaultAlgorithmResp{DefaultAlgorithm: testAlgorithm},
+		CreateKey:        &CreateKeyResp{PublicKeyPEM: testPEM},
+		SignMessage:      &SignMessageResp{Signature: testSignature},
 	}
 	gotJSONBytes, err := json.MarshalIndent(testPluginResp, "", "	")
 	if err != nil {
@@ -128,7 +159,7 @@ func TestPluginRespJSON(t *testing.T) {
 	wantedJSONLines := strings.Split(`{
 	"errorMessage": "any error message",
 	"defaultAlgorithm": {
-		"defaultAlgorithm": "any-algo"
+		"defaultAlgorithm": "anyAlgorithm"
 	},
 	"createKey": {
 		"publicKeyPEM": "bXlwZW0="

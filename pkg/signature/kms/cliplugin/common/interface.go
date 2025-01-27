@@ -109,6 +109,7 @@ type SignMessageResp struct {
 
 // VerifySignatureArgs contains the serialized arguments for `VerifySignature()`.
 type VerifySignatureArgs struct {
+	// Signature is a base64 encoding of the signature bytes. e.g, []byte("any-signature") serializes to "W55LXNpZ25hdHVyZQ==".
 	Signature     []byte         `json:"signature"`
 	VerifyOptions *VerifyOptions `json:"verifyOptions"`
 }
