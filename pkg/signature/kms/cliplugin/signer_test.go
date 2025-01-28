@@ -358,6 +358,8 @@ func (s testSignerVerifierImpl) CryptoSigner(ctx context.Context, errFunc func(e
 
 // TestPluginClient tests each of PluginClient's methods for correct encoding and decoding between a simulated plugin program,
 // by mocking the makeCmdFunc function and using TestSignerVerifierImpl to both check and return expected values.
+// We also check that when the methods are passed already-done contexts, they handle the contexts and error early, without
+// ever passing data to the plugin. Here, our mock Cmd.Output() will check the context, just like the original exec.Cmd would.
 func TestPluginClient(t *testing.T) {
 	t.Parallel()
 
