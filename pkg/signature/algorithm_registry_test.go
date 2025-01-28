@@ -28,7 +28,7 @@ import (
 )
 
 func TestGetAlgorithmDetails(t *testing.T) {
-	details, err := GetAlgorithmDetails(v1.PublicKeyDetails_PKIX_ECDSA_P256_SHA_256)
+	details, err := getAlgorithmDetails(v1.PublicKeyDetails_PKIX_ECDSA_P256_SHA_256)
 	if err != nil {
 		t.Errorf("unexpected error getting algorithm details: %v", err)
 	}

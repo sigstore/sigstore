@@ -180,9 +180,9 @@ type AlgorithmRegistryConfig struct {
 	permittedAlgorithms []AlgorithmDetails
 }
 
-// GetAlgorithmDetails retrieves a set of details for a given v1.PublicKeyDetails flag that allows users to
+// getAlgorithmDetails retrieves a set of details for a given v1.PublicKeyDetails flag that allows users to
 // introspect the public key algorithm, hash algorithm and more.
-func GetAlgorithmDetails(knownSignatureAlgorithm v1.PublicKeyDetails) (AlgorithmDetails, error) {
+func getAlgorithmDetails(knownSignatureAlgorithm v1.PublicKeyDetails) (AlgorithmDetails, error) {
 	for _, detail := range algorithmDetails {
 		if detail.knownAlgorithm == knownSignatureAlgorithm {
 			return &detail, nil
@@ -195,7 +195,7 @@ func GetAlgorithmDetails(knownSignatureAlgorithm v1.PublicKeyDetails) (Algorithm
 func NewAlgorithmRegistryConfig(algorithmConfig []v1.PublicKeyDetails) (*AlgorithmRegistryConfig, error) {
 	permittedAlgorithms := make([]AlgorithmDetails, 0, len(algorithmDetails))
 	for _, algorithm := range algorithmConfig {
-		a, err := GetAlgorithmDetails(algorithm)
+		a, err := getAlgorithmDetails(algorithm)
 		if err != nil {
 			return nil, err
 		}
@@ -216,33 +216,6 @@ func (registryConfig AlgorithmRegistryConfig) IsAlgorithmPermitted(key crypto.Pu
 		}
 	}
 	return false, nil
-}
-
-// GetAlgorithmDetails retrieves a set of details for a given v1.PublicKeyDetails flag that allows users to
-// introspect the public key algorithm, hash algorithm and more. Only the algorithms that are permitted by the registry
-// are returned.
-func (registryConfig AlgorithmRegistryConfig) GetAlgorithmDetails(signatureAlgorithm v1.PublicKeyDetails) (AlgorithmDetails, error) {
-	for _, detail := range registryConfig.permittedAlgorithms {
-		if detail.GetSignatureAlgorithm() == signatureAlgorithm {
-			return detail, nil
-		}
-	}
-	return nil, fmt.Errorf("could not find permitted algorithm details for known signature algorithm: %s", signatureAlgorithm)
-}
-
-// ListPermittedAlgorithms returns a list of permitted algorithms for a given registry config.
-func (registryConfig AlgorithmRegistryConfig) ListPermittedAlgorithms() []v1.PublicKeyDetails {
-	permittedAlgorithms := make([]v1.PublicKeyDetails, 0, len(registryConfig.permittedAlgorithms))
-	for _, algorithm := range registryConfig.permittedAlgorithms {
-		permittedAlgorithms = append(permittedAlgorithms, algorithm.GetSignatureAlgorithm())
-	}
-	return permittedAlgorithms
-}
-
-// HasAlgorithmDetails checks whether a given v1.PublicKeyDetails flag is permitted by the registry.
-func (registryConfig AlgorithmRegistryConfig) HasAlgorithmDetails(signatureAlgorithm v1.PublicKeyDetails) bool {
-	_, err := registryConfig.GetAlgorithmDetails(signatureAlgorithm)
-	return err == nil
 }
 
 // FormatSignatureAlgorithmFlag formats a v1.PublicKeyDetails to a string that conforms to the naming conventions
