@@ -77,7 +77,7 @@ func (i LocalSignerVerifier) CreateKey(ctx context.Context, algorithm string) (c
 		return nil, fmt.Errorf("error generating private key: %w", err)
 	}
 
-	// wirte to the path
+	// wirite to the path
 	privateKeyPEM := &pem.Block{
 		Type:  "RSA PRIVATE KEY",
 		Bytes: x509.MarshalPKCS1PrivateKey(privateKey),
