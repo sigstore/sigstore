@@ -56,9 +56,7 @@ var (
 )
 
 type testCmd struct {
-	ctx    context.Context
-	output []byte
-	err    error
+	outputFunc func() ([]byte, error)
 }
 
 type testExitError struct {
@@ -74,10 +72,7 @@ func (e testExitError) Error() string {
 }
 
 func (c testCmd) Output() ([]byte, error) {
-	if err := c.ctx.Err(); err != nil {
-		return nil, err
-	}
-	return c.output, c.err
+	return c.outputFunc()
 }
 
 func TestMain(m *testing.M) {
@@ -192,30 +187,36 @@ func TestInvokePlugin(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			// mock the behavior of Cmd, simulating a plugin program.
 			makeCmdFunc := func(ctx context.Context, stdin io.Reader, stderr io.Writer, name string, args ...string) cmd {
-				if err := ctx.Err(); err != nil {
-					t.Error(err)
-				}
-				if diff := cmp.Diff(testExecutable, name); diff != "" {
-					t.Errorf("unexpected executable name (-want +got):\n%s", diff)
-				}
-				if diff := cmp.Diff(common.ProtocolVersion, args[0]); diff != "" {
-					t.Errorf("unexpected protocol version (-want +got):\n%s", diff)
-				}
-				if stdinBytes, err := io.ReadAll(stdin); err != nil {
-					t.Errorf("reading stdin: %v", err)
-				} else if diff := cmp.Diff(testStdinBytes, stdinBytes); diff != "" {
-					t.Errorf("unexpected stdin bytes (-want +got):\n%s", diff)
-				}
-				osArgs := append([]string{name}, args...)
-				if pluginArgs, err := handler.GetPluginArgs(osArgs); err != nil {
-					t.Error(err)
-				} else if diff := cmp.Diff(testPluginArgs, pluginArgs); diff != "" {
-					t.Errorf("parsing plugin args (-want +got):\n%s", diff)
+				outputFunc := func() ([]byte, error) {
+					if err := ctx.Err(); err != nil {
+						return nil, err
+					}
+
+					if err := ctx.Err(); err != nil {
+						t.Error(err)
+					}
+					if diff := cmp.Diff(testExecutable, name); diff != "" {
+						t.Errorf("unexpected executable name (-want +got):\n%s", diff)
+					}
+					if diff := cmp.Diff(common.ProtocolVersion, args[0]); diff != "" {
+						t.Errorf("unexpected protocol version (-want +got):\n%s", diff)
+					}
+					if stdinBytes, err := io.ReadAll(stdin); err != nil {
+						t.Errorf("reading stdin: %v", err)
+					} else if diff := cmp.Diff(testStdinBytes, stdinBytes); diff != "" {
+						t.Errorf("unexpected stdin bytes (-want +got):\n%s", diff)
+					}
+					osArgs := append([]string{name}, args...)
+					if pluginArgs, err := handler.GetPluginArgs(osArgs); err != nil {
+						t.Error(err)
+					} else if diff := cmp.Diff(testPluginArgs, pluginArgs); diff != "" {
+						t.Errorf("parsing plugin args (-want +got):\n%s", diff)
+					}
+
+					return tc.cmdOutputBytes, tc.cmdOutputErr
 				}
 				return testCmd{
-					ctx:    ctx,
-					output: tc.cmdOutputBytes,
-					err:    tc.cmdOutputErr,
+					outputFunc: outputFunc,
 				}
 			}
 			// client with our mocked Cmd
@@ -355,14 +356,6 @@ func (s testSignerVerifierImpl) CryptoSigner(ctx context.Context, errFunc func(e
 	return nil, nil, errors.New("CryptoSigner() is not implemented")
 }
 
-type testCmd2 struct {
-	outputFunc func() ([]byte, error)
-}
-
-func (c testCmd2) Output() ([]byte, error) {
-	return c.outputFunc()
-}
-
 // TestPluginClient tests each of PluginClient's methods for correct encoding and decoding between a simulated plugin program,
 // by mocking the makeCmdFunc function and using TestSignerVerifierImpl to both check and return expected values.
 func TestPluginClient(t *testing.T) {
@@ -391,7 +384,7 @@ func TestPluginClient(t *testing.T) {
 
 			return stdout.Bytes(), err
 		}
-		return testCmd2{
+		return testCmd{
 			outputFunc: outputFunc,
 		}
 	}
