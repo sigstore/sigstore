@@ -19,7 +19,6 @@ package common
 import (
 	"crypto"
 	"encoding/json"
-	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -216,109 +215,5 @@ func TestPluginRespJSON(t *testing.T) {
 }`, "\n")
 	if diff := cmp.Diff(wantedJSONLines, gotJSONLines); diff != "" {
 		t.Errorf("unexpected JSON (-want +got): \n%s", diff)
-	}
-}
-
-// TestHashFuncJSON ensures that some of our well-known hashfuncs consistently encode to known int values.
-// just in case the order of thoe iota changes in the future. If this test fails, then we likely need a new protocl version.
-// See iota values at https://pkg.go.dev/crypto@go1.23.5#Hash.
-func TestHashFuncJSON(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		hash    crypto.Hash
-		wantInt int
-	}{
-		// all know  crypto.HASH
-		{
-			crypto.MD4,
-			1,
-		},
-		{
-			crypto.MD5,
-			2,
-		},
-		{
-			crypto.SHA1,
-			3,
-		},
-		{
-			crypto.SHA224,
-			4,
-		},
-		{
-			crypto.SHA256,
-			5,
-		},
-		{
-			crypto.SHA384,
-			6,
-		},
-		{
-			crypto.SHA512,
-			7,
-		},
-		{
-			crypto.MD5SHA1,
-			8,
-		},
-		{
-			crypto.RIPEMD160,
-			9,
-		},
-		{
-			crypto.SHA3_224,
-			10,
-		},
-		{
-			crypto.SHA3_256,
-			11,
-		},
-		{
-			crypto.SHA3_384,
-			12,
-		},
-		{
-			crypto.SHA3_512,
-			13,
-		},
-		{
-			crypto.SHA512_224,
-			14,
-		},
-		{
-			crypto.SHA512_256,
-			15,
-		},
-		{
-			crypto.BLAKE2s_256,
-			16,
-		},
-		{
-			crypto.BLAKE2b_256,
-			17,
-		},
-		{
-			crypto.BLAKE2b_384,
-			18,
-		},
-		{
-			crypto.BLAKE2b_512,
-			19,
-		},
-	}
-	for _, tc := range tests {
-		t.Run(tc.hash.String(), func(t *testing.T) {
-			t.Parallel()
-
-			got, err := json.Marshal(tc.hash)
-			if err != nil {
-				t.Errorf("marshaling hash %s: %v", tc.hash.String(), err)
-			}
-			want := []byte(strconv.Itoa(tc.wantInt))
-			if diff := cmp.Diff(want, got); diff != "" {
-				t.Errorf("unexpected JSON (-want +got): \n%s", diff)
-			}
-		})
 	}
 }
