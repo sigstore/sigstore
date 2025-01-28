@@ -42,7 +42,8 @@ var (
 	testExecutable          = "sigstore-kms-test"
 	testPluginErrorMessage  = "404: not found"
 	testKeyResourceID       = "testkms://testkey"
-	testContextDeadline     = time.Date(2025, 4, 1, 2, 47, 0, 0, time.UTC)
+	testContextDuration     = 7 * time.Minute
+	testContextDeadline     = time.Now().Add(testContextDuration)
 	testDefaultAlgorithm    = "alg1"
 	testSupportedAlgorithms = []string{testDefaultAlgorithm, "alg2"}
 	testPublicKey           crypto.PublicKey
@@ -55,6 +56,7 @@ var (
 )
 
 type testCmd struct {
+	ctx    context.Context
 	output []byte
 	err    error
 }
@@ -72,6 +74,9 @@ func (e testExitError) Error() string {
 }
 
 func (c testCmd) Output() ([]byte, error) {
+	if err := c.ctx.Err(); err != nil {
+		return nil, err
+	}
 	return c.output, c.err
 }
 
@@ -187,6 +192,9 @@ func TestInvokePlugin(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			// mock the behavior of Cmd, simulating a plugin program.
 			makeCmdFunc := func(ctx context.Context, stdin io.Reader, stderr io.Writer, name string, args ...string) cmd {
+				if err := ctx.Err(); err != nil {
+					t.Error(err)
+				}
 				if diff := cmp.Diff(testExecutable, name); diff != "" {
 					t.Errorf("unexpected executable name (-want +got):\n%s", diff)
 				}
@@ -205,6 +213,7 @@ func TestInvokePlugin(t *testing.T) {
 					t.Errorf("parsing plugin args (-want +got):\n%s", diff)
 				}
 				return testCmd{
+					ctx:    ctx,
 					output: tc.cmdOutputBytes,
 					err:    tc.cmdOutputErr,
 				}
@@ -346,6 +355,14 @@ func (s testSignerVerifierImpl) CryptoSigner(ctx context.Context, errFunc func(e
 	return nil, nil, errors.New("CryptoSigner() is not implemented")
 }
 
+type testCmd2 struct {
+	outputFunc func() ([]byte, error)
+}
+
+func (c testCmd2) Output() ([]byte, error) {
+	return c.outputFunc()
+}
+
 // TestPluginClient tests each of PluginClient's methods for correct encoding and decoding between a simulated plugin program,
 // by mocking the makeCmdFunc function and using TestSignerVerifierImpl to both check and return expected values.
 func TestPluginClient(t *testing.T) {
@@ -354,31 +371,37 @@ func TestPluginClient(t *testing.T) {
 	// Mock the behavior of Cmd to simulates a real plugin program by
 	// calling the helper handler functions `GetPluginArgs()` and `Dispatch()`, passing along the stdin, stdout, and args.
 	makeCmdFunc := func(ctx context.Context, stdin io.Reader, stderr io.Writer, name string, args ...string) cmd {
-		// Use the helper functions in the handler package.
-		osArgs := append([]string{name}, args...)
-		pluginArgs, err := handler.GetPluginArgs(osArgs)
-		if err != nil {
-			t.Error(err)
+		outputFunc := func() ([]byte, error) {
+			if err := ctx.Err(); err != nil {
+				return nil, err
+			}
+
+			osArgs := append([]string{name}, args...)
+			pluginArgs, err := handler.GetPluginArgs(osArgs)
+			if err != nil {
+				t.Error(err)
+			}
+			var stdout bytes.Buffer
+			_, err = handler.Dispatch(&stdout, stdin, pluginArgs, testSignerVerifierImpl{
+				t: t,
+			})
+			if err != nil {
+				t.Error(err)
+			}
+
+			return stdout.Bytes(), err
 		}
-		var stdout bytes.Buffer
-		_, err = handler.Dispatch(&stdout, stdin, pluginArgs, testSignerVerifierImpl{
-			t: t,
-		})
-		if err != nil {
-			t.Error(err)
-		}
-		return testCmd{
-			output: stdout.Bytes(),
-			err:    err,
+		return testCmd2{
+			outputFunc: outputFunc,
 		}
 	}
+
 	testPluginClient := newPluginClient(
 		testExecutable,
 		&common.InitOptions{},
 		makeCmdFunc,
 	)
-	testContext, _ := context.WithDeadline(context.Background(), testContextDeadline)
-	var testErr error = nil
+	var testNilErr error = nil
 
 	t.Run("DefaultAlgorithm", func(t *testing.T) {
 		t.Parallel()
@@ -401,37 +424,52 @@ func TestPluginClient(t *testing.T) {
 	t.Run("CreateKey", func(t *testing.T) {
 		t.Parallel()
 
+		testContext, cancel := context.WithDeadline(context.Background(), testContextDeadline)
+
 		publicKey, err := testPluginClient.CreateKey(testContext, testDefaultAlgorithm)
 		if diff := cmp.Diff(testPublicKey, publicKey); diff != "" {
 			t.Errorf("public key mismatch (-want +got):\n%s", diff)
 		}
-		if diff := cmp.Diff(testErr, err); diff != "" {
-			t.Errorf("eerror mismatch (-want +got):\n%s", diff)
+		if diff := cmp.Diff(testNilErr, err); diff != "" {
+			t.Errorf("error mismatch (-want +got):\n%s", diff)
+		}
+
+		cancel()
+		_, err = testPluginClient.CreateKey(testContext, testDefaultAlgorithm)
+		if !errors.Is(err, context.Canceled) {
+			t.Errorf("expected context.Canceled error, got %v", err)
 		}
 	})
 
 	t.Run("PublicKey", func(t *testing.T) {
 		t.Parallel()
 
-		testContext, _ := context.WithDeadline(context.Background(), testContextDeadline)
+		testContext, cancel := context.WithDeadline(context.Background(), testContextDeadline)
 		testOpts := []signature.PublicKeyOption{
 			options.WithContext(testContext),
 			options.WithKeyVersion(testKeyVersion),
 			options.WithRemoteVerification(testRemoteVerification),
 		}
+
 		publicKey, err := testPluginClient.PublicKey(testOpts...)
 		if diff := cmp.Diff(testPublicKey, publicKey); diff != "" {
 			t.Errorf("public key mismatch (-want +got):\n%s", diff)
 		}
-		if diff := cmp.Diff(testErr, err); diff != "" {
+		if diff := cmp.Diff(testNilErr, err); diff != "" {
 			t.Errorf("error mismatch (-want +got):\n%s", diff)
+		}
+
+		cancel()
+		_, err = testPluginClient.PublicKey(testOpts...)
+		if !errors.Is(err, context.Canceled) {
+			t.Errorf("expected context.DeadlineExceeded error, got %v", err)
 		}
 	})
 
 	t.Run("SignMessage", func(t *testing.T) {
 		t.Parallel()
 
-		testContext, _ := context.WithDeadline(context.Background(), testContextDeadline)
+		testContext, cancel := context.WithDeadline(context.Background(), testContextDeadline)
 		testOpts := []signature.SignOption{
 			options.WithContext(testContext),
 			options.WithKeyVersion(testKeyVersion),
@@ -439,20 +477,26 @@ func TestPluginClient(t *testing.T) {
 			options.WithDigest(testDigest),
 			options.WithCryptoSignerOpts(testHashFunction),
 		}
-		signature, err := testPluginClient.SignMessage(bytes.NewReader(testMessageBytes), testOpts...)
 
+		signature, err := testPluginClient.SignMessage(bytes.NewReader(testMessageBytes), testOpts...)
 		if diff := cmp.Diff(testSignatureBytes, signature); diff != "" {
 			t.Errorf("signature mismatch (-want +got):\n%s", diff)
 		}
-		if diff := cmp.Diff(testErr, err); diff != "" {
+		if diff := cmp.Diff(testNilErr, err); diff != "" {
 			t.Errorf("error mismatch (-want +got):\n%s", diff)
+		}
+
+		cancel()
+		_, err = testPluginClient.SignMessage(bytes.NewReader(testMessageBytes), testOpts...)
+		if !errors.Is(err, context.Canceled) {
+			t.Errorf("expected context.Canceled error, got %v", err)
 		}
 	})
 
 	t.Run("VerifySignature", func(t *testing.T) {
 		t.Parallel()
 
-		testContext, _ := context.WithDeadline(context.Background(), testContextDeadline)
+		testContext, cancel := context.WithDeadline(context.Background(), testContextDeadline)
 		testOpts := []signature.VerifyOption{
 			options.WithContext(testContext),
 			options.WithKeyVersion(testKeyVersion),
@@ -460,10 +504,16 @@ func TestPluginClient(t *testing.T) {
 			options.WithDigest(testDigest),
 			options.WithCryptoSignerOpts(testHashFunction),
 		}
-		err := testPluginClient.VerifySignature(bytes.NewReader(testSignatureBytes), bytes.NewReader(testMessageBytes), testOpts...)
 
-		if diff := cmp.Diff(testErr, err); diff != "" {
+		err := testPluginClient.VerifySignature(bytes.NewReader(testSignatureBytes), bytes.NewReader(testMessageBytes), testOpts...)
+		if diff := cmp.Diff(testNilErr, err); diff != "" {
 			t.Errorf("error mismatch (-want +got):\n%s", diff)
+		}
+
+		cancel()
+		err = testPluginClient.VerifySignature(bytes.NewReader(testSignatureBytes), bytes.NewReader(testMessageBytes), testOpts...)
+		if !errors.Is(err, context.Canceled) {
+			t.Errorf("expected context.Canceled error, got %v", err)
 		}
 	})
 
@@ -473,11 +523,17 @@ func TestPluginClient(t *testing.T) {
 		// Here, we just make sure that our testSignerVerifierImpl.CryptoSigner() method is not called,
 		// since PluginClient.CryptoSigner()'s returned object is meant to be a wrapper around PluginClient.
 		testErrFunc := func(err error) {}
-		testContext, _ := context.WithDeadline(context.Background(), testContextDeadline)
-		_, _, err := testPluginClient.CryptoSigner(testContext, testErrFunc)
+		testContext, cancel := context.WithDeadline(context.Background(), testContextDeadline)
 
-		if diff := cmp.Diff(testErr, err); diff != "" {
+		_, _, err := testPluginClient.CryptoSigner(testContext, testErrFunc)
+		if diff := cmp.Diff(testNilErr, err); diff != "" {
 			t.Errorf("error mismatch (-want +got):\n%s", diff)
+		}
+
+		cancel()
+		_, _, err = testPluginClient.CryptoSigner(testContext, testErrFunc)
+		if !errors.Is(err, context.Canceled) {
+			t.Errorf("expected context.Canceled error, got %v", err)
 		}
 	})
 }
