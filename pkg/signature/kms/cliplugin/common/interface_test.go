@@ -111,7 +111,7 @@ func TestPluginArgsJSON(t *testing.T) {
 	wantedJSONLines := strings.Split(`{
 	"initOptions": {
 		"ctxDeadline": "2025-04-01T02:47:00Z",
-		"protocolVersion": "1",
+		"protocolVersion": "v1.0.0",
 		"keyResourceID": "testkms://testkey",
 		"hashFunc": 17,
 		"rpcOptions": {
