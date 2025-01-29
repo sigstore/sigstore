@@ -172,8 +172,5 @@ func (c PluginClient) VerifySignature(signature io.Reader, message io.Reader, op
 		defer cancel()
 	}
 	_, err = c.invokePlugin(ctx, message, args)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
