@@ -63,18 +63,6 @@ type algorithmDetails struct {
 	flagValue string
 }
 
-func (a algorithmDetails) GetSignatureAlgorithm() v1.PublicKeyDetails {
-	return a.knownAlgorithm
-}
-
-func (a algorithmDetails) GetKeyType() PublicKeyType {
-	return a.keyType
-}
-
-func (a algorithmDetails) GetHashType() crypto.Hash {
-	return a.hashType
-}
-
 func (a algorithmDetails) GetRSAKeySize() (RSAKeySize, error) {
 	if a.keyType != RSA {
 		return 0, fmt.Errorf("unable to retrieve RSA key size for key type: %T", a.keyType)
@@ -199,7 +187,7 @@ func (registryConfig AlgorithmRegistryConfig) IsAlgorithmPermitted(key crypto.Pu
 // of CLI arguments that are used for Sigstore services.
 func FormatSignatureAlgorithmFlag(algorithm v1.PublicKeyDetails) (string, error) {
 	for _, a := range supportedAlgorithms {
-		if a.GetSignatureAlgorithm() == algorithm {
+		if a.knownAlgorithm == algorithm {
 			return a.flagValue, nil
 		}
 	}
@@ -211,7 +199,7 @@ func FormatSignatureAlgorithmFlag(algorithm v1.PublicKeyDetails) (string, error)
 func ParseSignatureAlgorithmFlag(flag string) (v1.PublicKeyDetails, error) {
 	for _, a := range supportedAlgorithms {
 		if a.flagValue == flag {
-			return a.GetSignatureAlgorithm(), nil
+			return a.knownAlgorithm, nil
 		}
 	}
 	return v1.PublicKeyDetails_PUBLIC_KEY_DETAILS_UNSPECIFIED, fmt.Errorf("could not find matching signature algorithm for flag: %s", flag)
