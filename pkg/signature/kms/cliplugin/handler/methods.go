@@ -39,7 +39,7 @@ func DefaultAlgorithm(_ io.Reader, args *common.DefaultAlgorithmArgs, impl kms.S
 }
 
 // func SupportedAlgorithms parses arguments and return values to and from the impl.
-func SupportedAlgorithms(stdin io.Reader, args *common.SupportedAlgorithmsArgs, impl kms.SignerVerifier) (*common.SupportedAlgorithmsResp, error) {
+func SupportedAlgorithms(_ io.Reader, args *common.SupportedAlgorithmsArgs, impl kms.SignerVerifier) (*common.SupportedAlgorithmsResp, error) {
 	supportedAlgorithms := impl.SupportedAlgorithms()
 	resp := &common.SupportedAlgorithmsResp{
 		SupportedAlgorithms: supportedAlgorithms,
@@ -70,7 +70,7 @@ func CreateKey(_ io.Reader, args *common.CreateKeyArgs, impl kms.SignerVerifier)
 }
 
 // PublicKey parses arguments and return values to and from the impl.
-func PublicKey(stdin io.Reader, args *common.PublicKeyArgs, impl kms.SignerVerifier) (*common.PublicKeyResp, error) {
+func PublicKey(_ io.Reader, args *common.PublicKeyArgs, impl kms.SignerVerifier) (*common.PublicKeyResp, error) {
 	opts := encoding.UnpackPublicKeyOptions(args.PublicKeyOptions)
 	publicKey, err := impl.PublicKey(opts...)
 	if err != nil {
