@@ -30,7 +30,7 @@ import (
 )
 
 // DefaultAlgorithm parses arguments and return values to and from the impl.
-func DefaultAlgorithm(stdin io.Reader, args *common.DefaultAlgorithmArgs, impl kms.SignerVerifier) (*common.DefaultAlgorithmResp, error) {
+func DefaultAlgorithm(_ io.Reader, args *common.DefaultAlgorithmArgs, impl kms.SignerVerifier) (*common.DefaultAlgorithmResp, error) {
 	defaultAlgorithm := impl.DefaultAlgorithm()
 	resp := &common.DefaultAlgorithmResp{
 		DefaultAlgorithm: defaultAlgorithm,
@@ -48,7 +48,7 @@ func SupportedAlgorithms(stdin io.Reader, args *common.SupportedAlgorithmsArgs, 
 }
 
 // CreateKey parses arguments and return values to and from the impl.
-func CreateKey(stdin io.Reader, args *common.CreateKeyArgs, impl kms.SignerVerifier) (*common.CreateKeyResp, error) {
+func CreateKey(_ io.Reader, args *common.CreateKeyArgs, impl kms.SignerVerifier) (*common.CreateKeyResp, error) {
 	ctx := context.Background()
 	if args.CtxDeadline != nil {
 		var cancel context.CancelFunc
@@ -87,9 +87,9 @@ func PublicKey(stdin io.Reader, args *common.PublicKeyArgs, impl kms.SignerVerif
 }
 
 // SignMessage parses arguments and return values to and from the impl.
-func SignMessage(stdin io.Reader, args *common.SignMessageArgs, impl kms.SignerVerifier) (*common.SignMessageResp, error) {
+func SignMessage(message io.Reader, args *common.SignMessageArgs, impl kms.SignerVerifier) (*common.SignMessageResp, error) {
 	opts := encoding.UnpackSignOptions(args.SignOptions)
-	signature, err := impl.SignMessage(stdin, opts...)
+	signature, err := impl.SignMessage(message, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -100,9 +100,9 @@ func SignMessage(stdin io.Reader, args *common.SignMessageArgs, impl kms.SignerV
 }
 
 // VerifySignature parses arguments and return values to and from the impl.
-func VerifySignature(stdin io.Reader, args *common.VerifySignatureArgs, impl kms.SignerVerifier) (*common.VerifySignatureResp, error) {
+func VerifySignature(message io.Reader, args *common.VerifySignatureArgs, impl kms.SignerVerifier) (*common.VerifySignatureResp, error) {
 	opts := encoding.UnpackVerifyOptions(args.VerifyOptions)
-	err := impl.VerifySignature(bytes.NewReader(args.Signature), stdin, opts...)
+	err := impl.VerifySignature(bytes.NewReader(args.Signature), message, opts...)
 	if err != nil {
 		return nil, err
 	}
