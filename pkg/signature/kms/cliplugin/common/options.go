@@ -21,6 +21,11 @@ import (
 	"time"
 )
 
+// PublicKeyOptions contains the values for signature.PublicKeyOptions.
+type PublicKeyOptions struct {
+	RPCOptions RPCOptions `json:"rpcOptions"`
+}
+
 // SignOptions contains the values for signature.SignOption.
 type SignOptions struct {
 	RPCOptions     RPCOptions     `json:"rpcOptions"`

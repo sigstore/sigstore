@@ -26,12 +26,16 @@ const (
 	// Breaking changes to the PluginClient and this schema necessarily mean major version bumps of
 	// this ProtocolVersion and the sigstore version.
 	// Plugin authors may choose to be backwards compatible with older versions.
-	ProtocolVersion            = "1"
-	DefaultAlgorithmMethodName = "defaultAlgorithm"
-	CreateKeyMethodName        = "createKey"
-	SignMessageMethodName      = "signMessage"
-	VerifySignatureMethodName  = "verifySignature"
-	// TODO: Additonal methods to be implemented
+	// TODO: change this to be semver compatible, like v1, or v1.0.0.
+	ProtocolVersion               = "1"
+	DefaultAlgorithmMethodName    = "defaultAlgorithm"
+	SupportedAlgorithmsMethodName = "supportedAlgorithms"
+	CreateKeyMethodName           = "createKey"
+	PublicKeyMethodName           = "publicKey"
+	SignMessageMethodName         = "signMessage"
+	VerifySignatureMethodName     = "verifySignature"
+	// CryptoSigner is not to be added to the protocol.
+	// PluginClient.CryptoSigner() will instead return a wrapper around the plugin.
 )
 
 // PluginArgs contains all the initialization and method arguments to be sent to the plugin as a CLI argument.
@@ -48,7 +52,6 @@ type InitOptions struct {
 	KeyResourceID   string     `json:"keyResourceID"`
 	// HashFunc will serialize to ints according to https://pkg.go.dev/crypto@go1.23.5#Hash. e.g., crypto.SHA256 serializes to 5.
 	HashFunc crypto.Hash `json:"hashFunc"`
-	// TODO: extracted values from signature.RPCOption from LoadSignerVerifier().
 }
 
 // MethodArgs contains the method arguments. MethodName must be specified,
@@ -56,22 +59,24 @@ type InitOptions struct {
 // Arguments that are io.Readers, like `message` in `SignMessage()` will be sent over stdin.
 type MethodArgs struct {
 	// MethodName specifies which method is intended to be called.
-	MethodName       string                `json:"methodName"`
-	DefaultAlgorithm *DefaultAlgorithmArgs `json:"defaultAlgorithm,omitempty"`
-	CreateKey        *CreateKeyArgs        `json:"createKey,omitempty"`
-	SignMessage      *SignMessageArgs      `json:"signMessage,omitempty"`
-	VerifySignature  *VerifySignatureArgs  `json:"verifySignature,omitempty"`
-	// TODO: Additonal methods to be implemented
+	MethodName          string                   `json:"methodName"`
+	DefaultAlgorithm    *DefaultAlgorithmArgs    `json:"defaultAlgorithm,omitempty"`
+	SupportedAlgorithms *SupportedAlgorithmsArgs `json:"supportedAlgorithms,omitempty"`
+	CreateKey           *CreateKeyArgs           `json:"createKey,omitempty"`
+	PublicKey           *PublicKeyArgs           `json:"publicKey,omitempty"`
+	SignMessage         *SignMessageArgs         `json:"signMessage,omitempty"`
+	VerifySignature     *VerifySignatureArgs     `json:"verifySignature,omitempty"`
 }
 
 // PluginResp contains the serialized plugin method return values.
 type PluginResp struct {
-	ErrorMessage     string                `json:"errorMessage,omitempty"`
-	DefaultAlgorithm *DefaultAlgorithmResp `json:"defaultAlgorithm,omitempty"`
-	CreateKey        *CreateKeyResp        `json:"createKey,omitempty"`
-	SignMessage      *SignMessageResp      `json:"signMessage,omitempty"`
-	VerifySignature  *VerifySignatureResp  `json:"verifySignature,omitempty"`
-	// TODO: Additonal methods to be implemented
+	ErrorMessage        string                   `json:"errorMessage,omitempty"`
+	DefaultAlgorithm    *DefaultAlgorithmResp    `json:"defaultAlgorithm,omitempty"`
+	SupportedAlgorithms *SupportedAlgorithmsResp `json:"supportedAlgorithms,omitempty"`
+	CreateKey           *CreateKeyResp           `json:"createKey,omitempty"`
+	PublicKey           *PublicKeyResp           `json:"publicKey,omitempty"`
+	SignMessage         *SignMessageResp         `json:"signMessage,omitempty"`
+	VerifySignature     *VerifySignatureResp     `json:"verifySignature,omitempty"`
 }
 
 // DefaultAlgorithmArgs contains the serialized arguments for `DefaultAlgorithm()`.
@@ -83,6 +88,15 @@ type DefaultAlgorithmResp struct {
 	DefaultAlgorithm string `json:"defaultAlgorithm"`
 }
 
+// SupportedAlgorithmsArgs contains the serialized arguments for `SupportedAlgorithms()`.
+type SupportedAlgorithmsArgs struct {
+}
+
+// SupportedAlgorithmsResp contains the serialized response for `SupportedAlgorithms()`.
+type SupportedAlgorithmsResp struct {
+	SupportedAlgorithms []string `json:"supportedAlgorithms"`
+}
+
 // CreateKeyArgs contains the serialized arguments for `CreateKeyArgs()`.
 type CreateKeyArgs struct {
 	// CtxDeadline serializes to RFC 3339. See https://pkg.go.dev/time@go1.23.5#Time.MarshalJSON. e.g, 2025-04-01T02:47:00Z.
@@ -92,6 +106,17 @@ type CreateKeyArgs struct {
 
 // CreateKeyResp contains the serialized response for `CreateKeyResp()`.
 type CreateKeyResp struct {
+	// PublicKeyPEM is a base64 encoding of the Public Key PEM bytes. e.g, []byte("mypem") serializes to "bXlwZW0=".
+	PublicKeyPEM []byte `json:"publicKeyPEM"`
+}
+
+// PublicKeyArgs contains the serialized response for `PublicKey()`.
+type PublicKeyArgs struct {
+	PublicKeyOptions *PublicKeyOptions `json:"publicKeyOptions"`
+}
+
+// PublicKeyResp contains the serialized response for `PublicKey()`.
+type PublicKeyResp struct {
 	// PublicKeyPEM is a base64 encoding of the Public Key PEM bytes. e.g, []byte("mypem") serializes to "bXlwZW0=".
 	PublicKeyPEM []byte `json:"publicKeyPEM"`
 }
