@@ -30,6 +30,7 @@ const (
 	DefaultAlgorithmMethodName = "defaultAlgorithm"
 	CreateKeyMethodName        = "createKey"
 	SignMessageMethodName      = "signMessage"
+	VerifySignatureMethodName  = "verifySignature"
 	// TODO: Additonal methods to be implemented
 )
 
@@ -59,6 +60,7 @@ type MethodArgs struct {
 	DefaultAlgorithm *DefaultAlgorithmArgs `json:"defaultAlgorithm,omitempty"`
 	CreateKey        *CreateKeyArgs        `json:"createKey,omitempty"`
 	SignMessage      *SignMessageArgs      `json:"signMessage,omitempty"`
+	VerifySignature  *VerifySignatureArgs  `json:"verifySignature,omitempty"`
 	// TODO: Additonal methods to be implemented
 }
 
@@ -68,6 +70,7 @@ type PluginResp struct {
 	DefaultAlgorithm *DefaultAlgorithmResp `json:"defaultAlgorithm,omitempty"`
 	CreateKey        *CreateKeyResp        `json:"createKey,omitempty"`
 	SignMessage      *SignMessageResp      `json:"signMessage,omitempty"`
+	VerifySignature  *VerifySignatureResp  `json:"verifySignature,omitempty"`
 	// TODO: Additonal methods to be implemented
 }
 
@@ -102,4 +105,15 @@ type SignMessageArgs struct {
 type SignMessageResp struct {
 	// Signature is a base64 encoding of the signature bytes. e.g, []byte("any-signature") serializes to "W55LXNpZ25hdHVyZQ==".
 	Signature []byte `json:"signature"`
+}
+
+// VerifySignatureArgs contains the serialized arguments for `VerifySignature()`.
+type VerifySignatureArgs struct {
+	// Signature is a base64 encoding of the signature bytes. e.g, []byte("any-signature") serializes to "W55LXNpZ25hdHVyZQ==".
+	Signature     []byte         `json:"signature"`
+	VerifyOptions *VerifyOptions `json:"verifyOptions"`
+}
+
+// VerifySignatureResp contains the serialized response for `VerifySignature()`.
+type VerifySignatureResp struct {
 }

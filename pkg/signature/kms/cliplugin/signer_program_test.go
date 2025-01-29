@@ -25,7 +25,6 @@ import (
 	"context"
 	"crypto"
 	"flag"
-	"io"
 	"testing"
 	"time"
 
@@ -136,8 +135,6 @@ func TestDefaultAlgorithm(t *testing.T) {
 // TestCreateKey invokes CreateKey against the compiled plugin program.
 // Since implementations can vary, it merely checks that some public key is returned.
 func TestCreateKey(t *testing.T) {
-	t.Parallel()
-
 	pluginClient := getPluginClient(t)
 	ctx := context.Background()
 	defaultAlgorithm := pluginClient.DefaultAlgorithm()
@@ -184,8 +181,9 @@ func TestCreateKey(t *testing.T) {
 
 // TestCreateKey invokes SignMessage against the compiled plugin program,
 // with combinations of empty or non-empty messages, and digests.
-// Since implementations can vary, it merely checks that non-empty signature is returned.
-func TestSignMessage(t *testing.T) {
+// Since implementations can vary, it merely checks that non-empty signature is returned,
+// and that the same signaure can be verified.
+func TestSignMessageVerifySignature(t *testing.T) {
 	t.Parallel()
 
 	pluginClient := getPluginClient(t)
@@ -198,6 +196,7 @@ func TestSignMessage(t *testing.T) {
 	testDigest := hasher.Sum(nil)
 	testEmptyBytes := []byte(``)
 	testBadDigest := []byte("bad digest")
+	testBadSignature := []byte("bad signature")
 
 	ctx := context.Background()
 	defaultAlgorithm := pluginClient.DefaultAlgorithm()
@@ -208,27 +207,27 @@ func TestSignMessage(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		message io.Reader
+		message []byte
 		digest  *[]byte
 		err     error
 	}{
 		{
 			name:    "message only, no digest",
-			message: bytes.NewReader(testMessageBytes),
+			message: testMessageBytes,
 		},
 		{
 			name:    "digest only, empty message",
-			message: bytes.NewReader(testEmptyBytes),
+			message: testEmptyBytes,
 			digest:  &testDigest,
 		},
 		{
 			name:    "message and digest",
-			message: bytes.NewReader(testMessageBytes),
+			message: testMessageBytes,
 			digest:  &testDigest,
 		},
 		{
 			name:    "failure: bad digest, empty message",
-			message: bytes.NewReader(testEmptyBytes),
+			message: testEmptyBytes,
 			digest:  &testBadDigest,
 			err:     ErrorPluginReturnError,
 		},
@@ -237,16 +236,31 @@ func TestSignMessage(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			opts := []signature.SignOption{}
+			signOpts := []signature.SignOption{}
+			verifyOpts := []signature.VerifyOption{}
 			if tc.digest != nil {
-				opts = append(opts, options.WithDigest(*tc.digest))
+				signOpts = append(signOpts, options.WithDigest(*tc.digest))
+				verifyOpts = append(verifyOpts, options.WithDigest(*tc.digest))
 			}
-			signature, err := pluginClient.SignMessage(tc.message, opts...)
+			signature, err := pluginClient.SignMessage(bytes.NewReader(tc.message), signOpts...)
+
 			if diff := cmp.Diff(tc.err, err, cmpopts.EquateErrors()); diff != "" {
 				t.Errorf("unexpected error (-want +got): \n%s", diff)
 			}
 			if err == nil && len(signature) == 0 {
 				t.Error("expected non-empty signature")
+			}
+
+			if len(signature) > 0 {
+				// verify the real signature
+				if err = pluginClient.VerifySignature(bytes.NewReader(signature), bytes.NewReader(tc.message), verifyOpts...); err != nil {
+					t.Errorf("unexpected error verifying signature: %s", err)
+				}
+			} else {
+				// verify a fake signature
+				if err = pluginClient.VerifySignature(bytes.NewReader(testBadSignature), bytes.NewReader(tc.message), verifyOpts...); err == nil {
+					t.Error("expected error verifying fake signature")
+				}
 			}
 		})
 	}

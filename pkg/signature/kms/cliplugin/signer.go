@@ -149,3 +149,28 @@ func (c PluginClient) SignMessage(message io.Reader, opts ...signature.SignOptio
 	signature := resp.SignMessage.Signature
 	return signature, nil
 }
+
+// VerifySignature calls and returns the plugin's implementation of VerifySignature().
+// If the opts contain a deadline, then it will be used with the Cmd.
+func (c PluginClient) VerifySignature(signature io.Reader, message io.Reader, opts ...signature.VerifyOption) error {
+	// signatures won't be larger than 1MB, so it's fine to read the entire content into memory.
+	signatureBytes, err := io.ReadAll(signature)
+	if err != nil {
+		return err
+	}
+	args := &common.MethodArgs{
+		MethodName: common.VerifySignatureMethodName,
+		VerifySignature: &common.VerifySignatureArgs{
+			Signature:     signatureBytes,
+			VerifyOptions: encoding.PackVerifyOptions(opts),
+		},
+	}
+	ctx := context.Background()
+	if deadline := args.VerifySignature.VerifyOptions.RPCOptions.CtxDeadline; deadline != nil {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithDeadline(ctx, *deadline)
+		defer cancel()
+	}
+	_, err = c.invokePlugin(ctx, message, args)
+	return err
+}

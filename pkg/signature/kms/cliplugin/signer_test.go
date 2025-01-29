@@ -47,7 +47,7 @@ var (
 	testDefaultAlgorithm   = "alg1"
 	testPublicKey          crypto.PublicKey
 	testMessageBytes       = []byte(`my-message`)
-	testSignature          = []byte(`my-signature`)
+	testSignatureBytes     = []byte(`my-signature`)
 	testHashFunction       = crypto.SHA512
 	testKeyVersion         = "my-key-version"
 	testRemoteVerification = true
@@ -282,7 +282,42 @@ func (s testSignerVerifierImpl) SignMessage(message io.Reader, opts ...signature
 	if diff := cmp.Diff(wantedSignOptions, signOptions); diff != "" {
 		s.t.Errorf("unexpected sign options (-want +got):\n%s", diff)
 	}
-	return testSignature, nil
+	return testSignatureBytes, nil
+}
+
+// VerifySignature checks the expected message and opts.
+func (s testSignerVerifierImpl) VerifySignature(signature io.Reader, message io.Reader, opts ...signature.VerifyOption) error {
+	signatureBytes, err := io.ReadAll(signature)
+	if err != nil {
+		return err
+	}
+	if diff := cmp.Diff(testSignatureBytes, signatureBytes); diff != "" {
+		s.t.Errorf("unexpected signature (-want +got):\n%s", diff)
+	}
+	messageBytes, err := io.ReadAll(message)
+	if err != nil {
+		return err
+	}
+	if diff := cmp.Diff(testMessageBytes, messageBytes); diff != "" {
+		s.t.Errorf("unexpected message (-want +got):\n%s", diff)
+	}
+	signOptions := encoding.PackVerifyOptions(opts)
+	// we use a common.VerifyOptions{} so that we can use one cmp.Diff() call to check all the expected values.
+	wantedSignOptions := &common.VerifyOptions{
+		RPCOptions: common.RPCOptions{
+			CtxDeadline:        &testContextDeadline,
+			KeyVersion:         &testKeyVersion,
+			RemoteVerification: &testRemoteVerification,
+		},
+		MessageOptions: common.MessageOptions{
+			Digest:   &testDigest,
+			HashFunc: &testHashFunction,
+		},
+	}
+	if diff := cmp.Diff(wantedSignOptions, signOptions); diff != "" {
+		s.t.Errorf("unexpected verify options (-want +got):\n%s", diff)
+	}
+	return nil
 }
 
 // TestPluginClient tests each of PluginClient's methods for correct encoding and decoding between a simulated plugin program,
@@ -353,9 +388,27 @@ func TestPluginClient(t *testing.T) {
 		}
 		signature, err := testPluginClient.SignMessage(bytes.NewReader(testMessageBytes), testOpts...)
 
-		if diff := cmp.Diff(testSignature, signature); diff != "" {
+		if diff := cmp.Diff(testSignatureBytes, signature); diff != "" {
 			t.Errorf("signature mismatch (-want +got):\n%s", diff)
 		}
+		if diff := cmp.Diff(testErr, err); diff != "" {
+			t.Errorf("error mismatch (-want +got):\n%s", diff)
+		}
+	})
+
+	t.Run("VerifySignature", func(t *testing.T) {
+		t.Parallel()
+
+		testContext, _ := context.WithDeadline(context.Background(), testContextDeadline)
+		testOpts := []signature.VerifyOption{
+			options.WithContext(testContext),
+			options.WithKeyVersion(testKeyVersion),
+			options.WithRemoteVerification(testRemoteVerification),
+			options.WithDigest(testDigest),
+			options.WithCryptoSignerOpts(testHashFunction),
+		}
+		err := testPluginClient.VerifySignature(bytes.NewReader(testSignatureBytes), bytes.NewReader(testMessageBytes), testOpts...)
+
 		if diff := cmp.Diff(testErr, err); diff != "" {
 			t.Errorf("error mismatch (-want +got):\n%s", diff)
 		}
