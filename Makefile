@@ -28,7 +28,12 @@ GOLANGCI_LINT_BIN = $(GOLANGCI_LINT_DIR)/golangci-lint
 
 TEST_LOCALKMS_DIR := ./test/cliplugin/localkms
 TEST_LOCALKMS_BIN_DIR := $(GOLANGCI_LINT_DIR)
-PATH := $(TEST_LOCALKMS_BIN_DIR);$(PATH):$(TEST_LOCALKMS_BIN_DIR) # also add semicolor separator for windows
+ifeq ($(OS),Windows_NT) # Check if the OS is Windows
+ 	# semicolor for windows, colon otherwise
+	PATH := $(PATH);$(TEST_LOCALKMS_BIN_DIR)
+else
+	PATH := $(PATH):$(TEST_LOCALKMS_BIN_DIR)
+endif
 CLI_PLUGIN_DIR := ./pkg/signature/kms/cliplugin
 
 LDFLAGS ?=
@@ -56,7 +61,6 @@ test: ## Run Tests for all Go modules.
 	done
 
 test-signer-program: ## Run Tests for the cliplugin against a pre-compiled plugin program.
-	@echo %PATH%
 	set -o xtrace; \
 		go -C $(TEST_LOCALKMS_DIR) build -o $(TEST_LOCALKMS_BIN_DIR)/sigstore-kms-testkms && \
 		go -C $(CLI_PLUGIN_DIR) test -tags=signer_program ./ -key-resource-id testkms://$(TEST_LOCALKMS_BIN_DIR)/key.pem
