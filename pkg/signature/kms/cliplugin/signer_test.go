@@ -361,44 +361,43 @@ func (s testSignerVerifierImpl) CryptoSigner(ctx context.Context, errFunc func(e
 func TestPluginClient(t *testing.T) {
 	t.Parallel()
 
-	// Mock the behavior of Cmd to simulates a real plugin program by
-	// calling the helper handler functions `GetPluginArgs()` and `Dispatch()`, passing along the stdin, stdout, and args.
-	makeCmdFunc := func(ctx context.Context, stdin io.Reader, stderr io.Writer, name string, args ...string) cmd {
-		outputFunc := func() ([]byte, error) {
-			if err := ctx.Err(); err != nil {
-				return nil, err
-			}
+	newTestPluginClient := func(t *testing.T) *PluginClient {
+		// Mock the behavior of Cmd to simulates a real plugin program by
+		// calling the helper handler functions `GetPluginArgs()` and `Dispatch()`, passing along the stdin, stdout, and args.
+		makeCmdFunc := func(ctx context.Context, stdin io.Reader, stderr io.Writer, name string, args ...string) cmd {
+			outputFunc := func() ([]byte, error) {
+				if err := ctx.Err(); err != nil {
+					return nil, err
+				}
 
-			osArgs := append([]string{name}, args...)
-			pluginArgs, err := handler.GetPluginArgs(osArgs)
-			if err != nil {
-				t.Error(err)
-			}
-			var stdout bytes.Buffer
-			_, err = handler.Dispatch(&stdout, stdin, pluginArgs, testSignerVerifierImpl{
-				t: t,
-			})
-			if err != nil {
-				t.Error(err)
-			}
+				osArgs := append([]string{name}, args...)
+				pluginArgs, err := handler.GetPluginArgs(osArgs)
+				if err != nil {
+					t.Error(err)
+				}
+				var stdout bytes.Buffer
+				_, err = handler.Dispatch(&stdout, stdin, pluginArgs, testSignerVerifierImpl{
+					t: t,
+				})
+				if err != nil {
+					t.Error(err)
+				}
 
-			return stdout.Bytes(), err
+				return stdout.Bytes(), err
+			}
+			return testCmd{
+				outputFunc: outputFunc,
+			}
 		}
-		return testCmd{
-			outputFunc: outputFunc,
-		}
+
+		return newPluginClient(testExecutable, &common.InitOptions{}, makeCmdFunc)
 	}
-
-	testPluginClient := newPluginClient(
-		testExecutable,
-		&common.InitOptions{},
-		makeCmdFunc,
-	)
 	var testNilErr error = nil
 
 	t.Run("DefaultAlgorithm", func(t *testing.T) {
 		t.Parallel()
 
+		testPluginClient := newTestPluginClient(t)
 		defaultAlgorithm := testPluginClient.DefaultAlgorithm()
 		if diff := cmp.Diff(testDefaultAlgorithm, defaultAlgorithm); diff != "" {
 			t.Errorf("default algorithm mismatch (-want +got):\n%s", diff)
@@ -408,6 +407,7 @@ func TestPluginClient(t *testing.T) {
 	t.Run("SupportedAlgorithms", func(t *testing.T) {
 		t.Parallel()
 
+		testPluginClient := newTestPluginClient(t)
 		supportedAlgorithms := testPluginClient.SupportedAlgorithms()
 		if diff := cmp.Diff(testSupportedAlgorithms, supportedAlgorithms); diff != "" {
 			t.Errorf("supported algorithms mismatch (-want +got):\n%s", diff)
@@ -417,8 +417,8 @@ func TestPluginClient(t *testing.T) {
 	t.Run("CreateKey", func(t *testing.T) {
 		t.Parallel()
 
+		testPluginClient := newTestPluginClient(t)
 		testContext, cancel := context.WithDeadline(context.Background(), testContextDeadline)
-
 		publicKey, err := testPluginClient.CreateKey(testContext, testDefaultAlgorithm)
 		if diff := cmp.Diff(testPublicKey, publicKey); diff != "" {
 			t.Errorf("public key mismatch (-want +got):\n%s", diff)
@@ -437,6 +437,7 @@ func TestPluginClient(t *testing.T) {
 	t.Run("PublicKey", func(t *testing.T) {
 		t.Parallel()
 
+		testPluginClient := newTestPluginClient(t)
 		testContext, cancel := context.WithDeadline(context.Background(), testContextDeadline)
 		testOpts := []signature.PublicKeyOption{
 			options.WithContext(testContext),
@@ -462,6 +463,7 @@ func TestPluginClient(t *testing.T) {
 	t.Run("SignMessage", func(t *testing.T) {
 		t.Parallel()
 
+		testPluginClient := newTestPluginClient(t)
 		testContext, cancel := context.WithDeadline(context.Background(), testContextDeadline)
 		testOpts := []signature.SignOption{
 			options.WithContext(testContext),
@@ -489,6 +491,7 @@ func TestPluginClient(t *testing.T) {
 	t.Run("VerifySignature", func(t *testing.T) {
 		t.Parallel()
 
+		testPluginClient := newTestPluginClient(t)
 		testContext, cancel := context.WithDeadline(context.Background(), testContextDeadline)
 		testOpts := []signature.VerifyOption{
 			options.WithContext(testContext),
@@ -515,6 +518,7 @@ func TestPluginClient(t *testing.T) {
 
 		// Here, we just make sure that our testSignerVerifierImpl.CryptoSigner() method is not called,
 		// since PluginClient.CryptoSigner()'s returned object is meant to be a wrapper around PluginClient.
+		testPluginClient := newTestPluginClient(t)
 		testErrFunc := func(err error) {}
 		testContext, cancel := context.WithDeadline(context.Background(), testContextDeadline)
 
