@@ -28,7 +28,7 @@ GOLANGCI_LINT_BIN = $(GOLANGCI_LINT_DIR)/golangci-lint
 
 TEST_LOCALKMS_DIR := ./test/cliplugin/localkms
 TEST_LOCALKMS_BIN_DIR := $(GOLANGCI_LINT_DIR)
-PATH := $(PATH):$(TEST_LOCALKMS_BIN_DIR):;$(TEST_LOCALKMS_BIN_DIR) # also add semicolor separator for windows
+PATH := $(TEST_LOCALKMS_BIN_DIR);$(PATH):$(TEST_LOCALKMS_BIN_DIR) # also add semicolor separator for windows
 CLI_PLUGIN_DIR := ./pkg/signature/kms/cliplugin
 
 LDFLAGS ?=
