@@ -72,13 +72,16 @@ func Dispatch(stdout io.Writer, stdin io.Reader, pluginArgs *common.PluginArgs, 
 	switch pluginArgs.MethodName {
 	case common.DefaultAlgorithmMethodName:
 		resp.DefaultAlgorithm, err = DefaultAlgorithm(stdin, pluginArgs.DefaultAlgorithm, impl)
+	case common.SupportedAlgorithmsMethodName:
+		resp.SupportedAlgorithms, err = SupportedAlgorithms(stdin, pluginArgs.SupportedAlgorithms, impl)
 	case common.CreateKeyMethodName:
 		resp.CreateKey, err = CreateKey(stdin, pluginArgs.CreateKey, impl)
+	case common.PublicKeyMethodName:
+		resp.PublicKey, err = PublicKey(stdin, pluginArgs.PublicKey, impl)
 	case common.SignMessageMethodName:
 		resp.SignMessage, err = SignMessage(stdin, pluginArgs.SignMessage, impl)
 	case common.VerifySignatureMethodName:
 		resp.VerifySignature, err = VerifySignature(stdin, pluginArgs.VerifySignature, impl)
-	// TODO: Additonal methods to be implemented
 	default:
 		err = fmt.Errorf("%w: %s", ErrorUnsupportedMethod, pluginArgs.MethodName)
 	}

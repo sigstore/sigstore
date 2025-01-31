@@ -17,6 +17,7 @@
 package cliplugin
 
 import (
+	"bytes"
 	"context"
 	"crypto"
 	"encoding/json"
@@ -28,9 +29,9 @@ import (
 
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
 	"github.com/sigstore/sigstore/pkg/signature"
-	"github.com/sigstore/sigstore/pkg/signature/kms"
 	"github.com/sigstore/sigstore/pkg/signature/kms/cliplugin/common"
 	"github.com/sigstore/sigstore/pkg/signature/kms/cliplugin/encoding"
+	"github.com/sigstore/sigstore/pkg/signature/options"
 )
 
 var (
@@ -41,7 +42,6 @@ var (
 
 // PluginClient implements kms.SignerVerifier with calls to our plugin program.
 type PluginClient struct {
-	kms.SignerVerifier
 	executable  string
 	initOptions common.InitOptions
 	makeCmdFunc makeCmdFunc
@@ -90,8 +90,6 @@ func (c PluginClient) invokePlugin(ctx context.Context, stdin io.Reader, methodA
 	return &resp, nil
 }
 
-// TODO: Additonal methods to be implemented
-
 // DefaultAlgorithm calls and returns the plugin's implementation of DefaultAlgorithm().
 func (c PluginClient) DefaultAlgorithm() string {
 	args := &common.MethodArgs{
@@ -103,6 +101,19 @@ func (c PluginClient) DefaultAlgorithm() string {
 		log.Fatal(err)
 	}
 	return resp.DefaultAlgorithm.DefaultAlgorithm
+}
+
+// SupportedAlgorithms calls and returns the plugin's implementation of SupportedAlgorithms().
+func (c PluginClient) SupportedAlgorithms() []string {
+	args := &common.MethodArgs{
+		MethodName:          common.SupportedAlgorithmsMethodName,
+		SupportedAlgorithms: &common.SupportedAlgorithmsArgs{},
+	}
+	resp, err := c.invokePlugin(context.Background(), nil, args)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return resp.SupportedAlgorithms.SupportedAlgorithms
 }
 
 // CreateKey calls and returns the plugin's implementation of CreateKey().
@@ -127,8 +138,32 @@ func (c PluginClient) CreateKey(ctx context.Context, algorithm string) (crypto.P
 	return publicKey, nil
 }
 
+// PublicKey calls and returns the plugin's implementation of PublicKey().
+// If the opts contain a context, then it will be used with the Cmd.
+func (c PluginClient) PublicKey(opts ...signature.PublicKeyOption) (crypto.PublicKey, error) {
+	args := &common.MethodArgs{
+		MethodName: common.PublicKeyMethodName,
+		PublicKey: &common.PublicKeyArgs{
+			PublicKeyOptions: encoding.PackPublicKeyOptions(opts),
+		},
+	}
+	ctx := context.Background()
+	for _, opt := range opts {
+		opt.ApplyContext(&ctx)
+	}
+	resp, err := c.invokePlugin(ctx, nil, args)
+	if err != nil {
+		return nil, err
+	}
+	publicKey, err := cryptoutils.UnmarshalPEMToPublicKey(resp.PublicKey.PublicKeyPEM)
+	if err != nil {
+		return nil, err
+	}
+	return publicKey, nil
+}
+
 // SignMessage calls and returns the plugin's implementation of SignMessage().
-// If the opts contain a deadline, then it will be used with the Cmd.
+// If the opts contain a context, then it will be used with the Cmd.
 func (c PluginClient) SignMessage(message io.Reader, opts ...signature.SignOption) ([]byte, error) {
 	args := &common.MethodArgs{
 		MethodName: common.SignMessageMethodName,
@@ -137,10 +172,8 @@ func (c PluginClient) SignMessage(message io.Reader, opts ...signature.SignOptio
 		},
 	}
 	ctx := context.Background()
-	if deadline := args.SignMessage.SignOptions.RPCOptions.CtxDeadline; deadline != nil {
-		var cancel context.CancelFunc
-		ctx, cancel = context.WithDeadline(ctx, *deadline)
-		defer cancel()
+	for _, opt := range opts {
+		opt.ApplyContext(&ctx)
 	}
 	resp, err := c.invokePlugin(ctx, message, args)
 	if err != nil {
@@ -151,7 +184,7 @@ func (c PluginClient) SignMessage(message io.Reader, opts ...signature.SignOptio
 }
 
 // VerifySignature calls and returns the plugin's implementation of VerifySignature().
-// If the opts contain a deadline, then it will be used with the Cmd.
+// If the opts contain a context, then it will be used with the Cmd.
 func (c PluginClient) VerifySignature(signature io.Reader, message io.Reader, opts ...signature.VerifyOption) error {
 	// signatures won't be larger than 1MB, so it's fine to read the entire content into memory.
 	signatureBytes, err := io.ReadAll(signature)
@@ -166,11 +199,55 @@ func (c PluginClient) VerifySignature(signature io.Reader, message io.Reader, op
 		},
 	}
 	ctx := context.Background()
-	if deadline := args.VerifySignature.VerifyOptions.RPCOptions.CtxDeadline; deadline != nil {
-		var cancel context.CancelFunc
-		ctx, cancel = context.WithDeadline(ctx, *deadline)
-		defer cancel()
+	for _, opt := range opts {
+		opt.ApplyContext(&ctx)
 	}
 	_, err = c.invokePlugin(ctx, message, args)
-	return err
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// CryptoSigner is a wrapper around PluginClient.
+type CryptoSigner struct {
+	client  *PluginClient
+	ctx     context.Context
+	errFunc func(error)
+}
+
+// CryptoSigner returns a wrapper around PluginClient.
+func (c PluginClient) CryptoSigner(ctx context.Context, errFunc func(error)) (crypto.Signer, crypto.SignerOpts, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, nil, err
+	}
+	return &CryptoSigner{
+		client:  &c,
+		ctx:     ctx,
+		errFunc: errFunc,
+	}, c.initOptions.HashFunc, nil
+}
+
+// Sign is a wrapper around PluginClient.SignMessage(). The first argument for a rand source is not used.
+func (c CryptoSigner) Sign(_ io.Reader, digest []byte, cryptoSignerOpts crypto.SignerOpts) (sig []byte, err error) {
+	emptyMessage := bytes.NewReader([]byte(""))
+	opts := []signature.SignOption{
+		options.WithCryptoSignerOpts(cryptoSignerOpts.HashFunc()),
+		options.WithDigest(digest),
+		// the client's initializing ctx should not be used in calls to its methods.
+	}
+	sig, err = c.client.SignMessage(emptyMessage, opts...)
+	if err != nil && c.errFunc != nil {
+		c.errFunc(err)
+	}
+	return sig, err
+}
+
+func (c CryptoSigner) Public() crypto.PublicKey {
+	publicKey, err := c.client.PublicKey()
+	if err != nil && c.errFunc != nil {
+		c.errFunc(err)
+		// we don't panic here.
+	}
+	return publicKey
 }
