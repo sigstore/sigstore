@@ -45,6 +45,9 @@ var (
 		HashFunc: &testHashFunc,
 	}
 
+	testPublicKeyOptions = &common.PublicKeyOptions{
+		RPCOptions: *testRPCOptions,
+	}
 	testSignOptions = &common.SignOptions{
 		RPCOptions:     *testRPCOptions,
 		MessageOptions: *testMessageOptions,
@@ -154,6 +157,65 @@ func TestUnpackMessageOptions(t *testing.T) {
 	}
 	if diff := cmp.Diff(testHashFunc, signerOpts.HashFunc()); diff != "" {
 		t.Errorf("unexpected hashFunc (-want +got): \n%s", diff)
+	}
+}
+
+// TestPackPublicKeyOptions ensures that values are extracted from []signature.PublicKeyOption.
+func TestPackPublicKeyOptions(t *testing.T) {
+	t.Parallel()
+
+	// test values.
+	testContext, _ := context.WithDeadline(context.Background(), testContextDeadline)
+	opts := []signature.PublicKeyOption{
+		options.WithContext(testContext),
+		options.WithRemoteVerification(testRemoteVerification),
+		options.WithKeyVersion(testKeyVersion),
+	}
+
+	publicKeyOptions := PackPublicKeyOptions(opts)
+
+	// we use another common.PublicKeyOptions{} so we can conveniently compare all values with a single cmp.Diff().
+	wantedPublicKeyOption := &common.PublicKeyOptions{
+		RPCOptions: common.RPCOptions{
+			CtxDeadline:        &testContextDeadline,
+			KeyVersion:         &testKeyVersion,
+			RemoteVerification: &testRemoteVerification,
+		},
+	}
+	if diff := cmp.Diff(wantedPublicKeyOption, publicKeyOptions); diff != "" {
+		t.Errorf("unexpected resp (-want +got):\n%s", diff)
+	}
+}
+
+// TestUnpackPublicKeyOptions ensures we can extract all of []signature.PublicKeyOption.
+func TestUnpackPublicKeyOptions(t *testing.T) {
+	t.Parallel()
+
+	opts := UnpackPublicKeyOptions(testPublicKeyOptions)
+
+	// extract values from the []signature.PublicKeyOption with the usual methods.
+	ctx := context.Background()
+	var keyVersion string
+	var remoteVerification bool
+	for _, opt := range opts {
+		opt.ApplyContext(&ctx)
+		opt.ApplyKeyVersion(&keyVersion)
+		opt.ApplyRemoteVerification(&remoteVerification)
+	}
+
+	// test equality.
+	deadline, ok := ctx.Deadline()
+	if !ok {
+		t.Error("expected a context deadline")
+	}
+	if diff := cmp.Diff(testContextDeadline, deadline); diff != "" {
+		t.Errorf("unexpected deadline (-want +got): \n%s", diff)
+	}
+	if diff := cmp.Diff(testKeyVersion, keyVersion); diff != "" {
+		t.Errorf("unexpected keyVersion (-want +got): \n%s", diff)
+	}
+	if diff := cmp.Diff(testRemoteVerification, remoteVerification); diff != "" {
+		t.Errorf("unexpected remoteVerification (-want +got): \n%s", diff)
 	}
 }
 

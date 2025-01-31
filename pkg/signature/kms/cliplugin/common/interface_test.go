@@ -19,6 +19,7 @@ package common
 import (
 	"crypto"
 	"encoding/json"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -47,6 +48,11 @@ func TestPluginArgsJSON(t *testing.T) {
 		ProtocolVersion: ProtocolVersion,
 		KeyResourceID:   testKeyResourceID,
 		HashFunc:        testHashFunc,
+		RPCOptions: &RPCOptions{
+			CtxDeadline:        &testContextDeadline,
+			KeyVersion:         &testKeyVersion,
+			RemoteVerification: &testRemoteVerification,
+		},
 	}
 
 	tests := []struct {
@@ -66,12 +72,42 @@ func TestPluginArgsJSON(t *testing.T) {
 			want: `{
 	"initOptions": {
 		"ctxDeadline": "2025-04-01T02:47:00Z",
-		"protocolVersion": "1",
+		"protocolVersion": "v1.0.0",
 		"keyResourceID": "testkms://testkey",
-		"hashFunc": 17
+		"hashFunc": 17,
+		"rpcOptions": {
+			"ctxDeadline": "2025-04-01T02:47:00Z",
+			"keyVersion": "my-key-version",
+			"remoteVerification": true
+		}
 	},
 	"methodName": "defaultAlgorithm",
 	"defaultAlgorithm": {}
+}`,
+		},
+		{
+			name: "supportedAlgorithms",
+			pluginArgs: &PluginArgs{
+				InitOptions: testInitOptions,
+				MethodArgs: &MethodArgs{
+					MethodName:          SupportedAlgorithmsMethodName,
+					SupportedAlgorithms: &SupportedAlgorithmsArgs{},
+				},
+			},
+			want: `{
+	"initOptions": {
+		"ctxDeadline": "2025-04-01T02:47:00Z",
+		"protocolVersion": "v1.0.0",
+		"keyResourceID": "testkms://testkey",
+		"hashFunc": 17,
+		"rpcOptions": {
+			"ctxDeadline": "2025-04-01T02:47:00Z",
+			"keyVersion": "my-key-version",
+			"remoteVerification": true
+		}
+	},
+	"methodName": "supportedAlgorithms",
+	"supportedAlgorithms": {}
 }`,
 		},
 		{
@@ -89,14 +125,60 @@ func TestPluginArgsJSON(t *testing.T) {
 			want: `{
 	"initOptions": {
 		"ctxDeadline": "2025-04-01T02:47:00Z",
-		"protocolVersion": "1",
+		"protocolVersion": "v1.0.0",
 		"keyResourceID": "testkms://testkey",
-		"hashFunc": 17
+		"hashFunc": 17,
+		"rpcOptions": {
+			"ctxDeadline": "2025-04-01T02:47:00Z",
+			"keyVersion": "my-key-version",
+			"remoteVerification": true
+		}
 	},
 	"methodName": "createKey",
 	"createKey": {
 		"ctxDeadline": "2025-04-01T02:47:00Z",
 		"algorithm": "anyAlgorithm"
+	}
+}`,
+		},
+		{
+			name: "publicKey",
+			pluginArgs: &PluginArgs{
+				InitOptions: testInitOptions,
+				MethodArgs: &MethodArgs{
+					MethodName: PublicKeyMethodName,
+					PublicKey: &PublicKeyArgs{
+						PublicKeyOptions: &PublicKeyOptions{
+							RPCOptions: RPCOptions{
+								CtxDeadline:        &testContextDeadline,
+								KeyVersion:         &testKeyVersion,
+								RemoteVerification: &testRemoteVerification,
+							},
+						},
+					},
+				},
+			},
+			want: `{
+	"initOptions": {
+		"ctxDeadline": "2025-04-01T02:47:00Z",
+		"protocolVersion": "v1.0.0",
+		"keyResourceID": "testkms://testkey",
+		"hashFunc": 17,
+		"rpcOptions": {
+			"ctxDeadline": "2025-04-01T02:47:00Z",
+			"keyVersion": "my-key-version",
+			"remoteVerification": true
+		}
+	},
+	"methodName": "publicKey",
+	"publicKey": {
+		"publicKeyOptions": {
+			"rpcOptions": {
+				"ctxDeadline": "2025-04-01T02:47:00Z",
+				"keyVersion": "my-key-version",
+				"remoteVerification": true
+			}
+		}
 	}
 }`,
 		},
@@ -124,9 +206,14 @@ func TestPluginArgsJSON(t *testing.T) {
 			want: `{
 	"initOptions": {
 		"ctxDeadline": "2025-04-01T02:47:00Z",
-		"protocolVersion": "1",
+		"protocolVersion": "v1.0.0",
 		"keyResourceID": "testkms://testkey",
-		"hashFunc": 17
+		"hashFunc": 17,
+		"rpcOptions": {
+			"ctxDeadline": "2025-04-01T02:47:00Z",
+			"keyVersion": "my-key-version",
+			"remoteVerification": true
+		}
 	},
 	"methodName": "signMessage",
 	"signMessage": {
@@ -169,9 +256,14 @@ func TestPluginArgsJSON(t *testing.T) {
 			want: `{
 	"initOptions": {
 		"ctxDeadline": "2025-04-01T02:47:00Z",
-		"protocolVersion": "1",
+		"protocolVersion": "v1.0.0",
 		"keyResourceID": "testkms://testkey",
-		"hashFunc": 17
+		"hashFunc": 17,
+		"rpcOptions": {
+			"ctxDeadline": "2025-04-01T02:47:00Z",
+			"keyVersion": "my-key-version",
+			"remoteVerification": true
+		}
 	},
 	"methodName": "verifySignature",
 	"verifySignature": {
@@ -236,6 +328,22 @@ func TestPluginRespJSON(t *testing.T) {
 }`,
 		},
 		{
+			name: "supportedAlgorithms",
+			pluginResp: &PluginResp{
+				SupportedAlgorithms: &SupportedAlgorithmsResp{
+					SupportedAlgorithms: []string{testAlgorithm, "anotherAlgorithm"},
+				},
+			},
+			want: `{
+	"supportedAlgorithms": {
+		"supportedAlgorithms": [
+			"anyAlgorithm",
+			"anotherAlgorithm"
+		]
+	}
+}`,
+		},
+		{
 			name: "createKey",
 			pluginResp: &PluginResp{
 				ErrorMessage: testErrorMessage,
@@ -246,6 +354,21 @@ func TestPluginRespJSON(t *testing.T) {
 			want: `{
 	"errorMessage": "possibly empty error message",
 	"createKey": {
+		"publicKeyPEM": "bXlwZW0="
+	}
+}`,
+		},
+		{
+			name: "publicKey",
+			pluginResp: &PluginResp{
+				ErrorMessage: testErrorMessage,
+				PublicKey: &PublicKeyResp{
+					PublicKeyPEM: testPEM,
+				},
+			},
+			want: `{
+	"errorMessage": "possibly empty error message",
+	"publicKey": {
 		"publicKeyPEM": "bXlwZW0="
 	}
 }`,
@@ -289,6 +412,110 @@ func TestPluginRespJSON(t *testing.T) {
 			gotJSONLines := strings.Split(string(gotJSONBytes), "\n")
 			wantedJSONLines := strings.Split(tc.want, "\n")
 			if diff := cmp.Diff(wantedJSONLines, gotJSONLines); diff != "" {
+				t.Errorf("unexpected JSON (-want +got): \n%s", diff)
+			}
+		})
+	}
+}
+
+// TestHashFuncJSON ensures that some of our well-known hashfuncs consistently encode to known int values.
+// just in case the order of thoe iota changes in the future. If this test fails, then we likely need a new protocol version.
+// See iota values at https://pkg.go.dev/crypto@go1.23.5#Hash.
+func TestHashFuncJSON(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		hash    crypto.Hash
+		wantInt int
+	}{
+		// all know  crypto.HASH
+		{
+			crypto.MD4,
+			1,
+		},
+		{
+			crypto.MD5,
+			2,
+		},
+		{
+			crypto.SHA1,
+			3,
+		},
+		{
+			crypto.SHA224,
+			4,
+		},
+		{
+			crypto.SHA256,
+			5,
+		},
+		{
+			crypto.SHA384,
+			6,
+		},
+		{
+			crypto.SHA512,
+			7,
+		},
+		{
+			crypto.MD5SHA1,
+			8,
+		},
+		{
+			crypto.RIPEMD160,
+			9,
+		},
+		{
+			crypto.SHA3_224,
+			10,
+		},
+		{
+			crypto.SHA3_256,
+			11,
+		},
+		{
+			crypto.SHA3_384,
+			12,
+		},
+		{
+			crypto.SHA3_512,
+			13,
+		},
+		{
+			crypto.SHA512_224,
+			14,
+		},
+		{
+			crypto.SHA512_256,
+			15,
+		},
+		{
+			crypto.BLAKE2s_256,
+			16,
+		},
+		{
+			crypto.BLAKE2b_256,
+			17,
+		},
+		{
+			crypto.BLAKE2b_384,
+			18,
+		},
+		{
+			crypto.BLAKE2b_512,
+			19,
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.hash.String(), func(t *testing.T) {
+			t.Parallel()
+
+			got, err := json.Marshal(tc.hash)
+			if err != nil {
+				t.Errorf("marshaling hash %s: %v", tc.hash.String(), err)
+			}
+			want := []byte(strconv.Itoa(tc.wantInt))
+			if diff := cmp.Diff(want, got); diff != "" {
 				t.Errorf("unexpected JSON (-want +got): \n%s", diff)
 			}
 		})

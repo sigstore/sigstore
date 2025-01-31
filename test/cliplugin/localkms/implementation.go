@@ -27,35 +27,44 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"slices"
 
 	"github.com/sigstore/sigstore/pkg/signature"
-	"github.com/sigstore/sigstore/pkg/signature/kms"
 )
 
 const (
 	defaultAlgorithm = "rsa-2048"
 )
 
-// LocalSignerVerifier creates and verifies digital signatures with a key saved at KeyResourceID.
+var (
+	supportedAlgorithms = []string{defaultAlgorithm}
+)
+
+// LocalSignerVerifier creates and verifies digital signatures with a key saved at KeyResourceID,
+// and implements kms.SignerVerifier.
 type LocalSignerVerifier struct {
-	kms.SignerVerifier
 	keyResourceID string
 	hashFunc      crypto.Hash
 }
 
-// DefaultAlgorithm returns the default algorithm for the signer
+// DefaultAlgorithm returns the default algorithm for the signer.
 func (i LocalSignerVerifier) DefaultAlgorithm() string {
 	return defaultAlgorithm
+}
+
+// SupportedAlgorithms returns the supported algorithms for the signer.
+func (i LocalSignerVerifier) SupportedAlgorithms() []string {
+	return supportedAlgorithms
 }
 
 // CreateKey returns a new public key, and saves the private key to the path at KeyResourceID.
 // Don't do this in your own real implementation!
 func (i LocalSignerVerifier) CreateKey(ctx context.Context, algorithm string) (crypto.PublicKey, error) {
-	// TODO: implement SupportedAlgorithms()
-	// if !slices.Contains(i.SupportedAlgorithms(), algorithm) {
-	// 	return nil, fmt.Errorf("algorithm %s not supported", algorithm)
-	// }
-	if algorithm != i.DefaultAlgorithm() {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+
+	if !slices.Contains(i.SupportedAlgorithms(), algorithm) {
 		return nil, fmt.Errorf("algorithm %s not supported", algorithm)
 	}
 
@@ -77,7 +86,7 @@ func (i LocalSignerVerifier) CreateKey(ctx context.Context, algorithm string) (c
 		return nil, fmt.Errorf("error generating private key: %w", err)
 	}
 
-	// wirite to the path
+	// write to the path
 	privateKeyPEM := &pem.Block{
 		Type:  "RSA PRIVATE KEY",
 		Bytes: x509.MarshalPKCS1PrivateKey(privateKey),
@@ -100,8 +109,33 @@ func (i LocalSignerVerifier) CreateKey(ctx context.Context, algorithm string) (c
 	return publicKey, nil
 }
 
+// PublicKey returns the public key.
+func (i LocalSignerVerifier) PublicKey(opts ...signature.PublicKeyOption) (crypto.PublicKey, error) {
+	ctx := context.Background()
+	for _, opt := range opts {
+		opt.ApplyContext(&ctx)
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+
+	privateKey, err := loadRSAPrivateKey(i.keyResourceID)
+	if err != nil {
+		return nil, err
+	}
+	return &privateKey.PublicKey, nil
+}
+
 // SignMessage signs the message with the KeyResourceID.
 func (i LocalSignerVerifier) SignMessage(message io.Reader, opts ...signature.SignOption) ([]byte, error) {
+	ctx := context.Background()
+	for _, opt := range opts {
+		opt.ApplyContext(&ctx)
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+
 	privateKey, err := loadRSAPrivateKey(i.keyResourceID)
 	if err != nil {
 		return nil, err
@@ -130,6 +164,14 @@ func (i LocalSignerVerifier) SignMessage(message io.Reader, opts ...signature.Si
 
 // VerifySignature verifies the signature.
 func (i LocalSignerVerifier) VerifySignature(signature io.Reader, message io.Reader, opts ...signature.VerifyOption) error {
+	ctx := context.Background()
+	for _, opt := range opts {
+		opt.ApplyContext(&ctx)
+	}
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+
 	privateKey, err := loadRSAPrivateKey(i.keyResourceID)
 	if err != nil {
 		return err
@@ -187,4 +229,9 @@ func computeDigest(message *io.Reader, hashFunc crypto.Hash) ([]byte, error) {
 		return nil, err
 	}
 	return hasher.Sum(nil), nil
+}
+
+// CryptoSigner need not be fully implemented by plugins.
+func (i LocalSignerVerifier) CryptoSigner(ctx context.Context, errFunc func(error)) (crypto.Signer, crypto.SignerOpts, error) {
+	panic("CryptoSigner() not implemented")
 }

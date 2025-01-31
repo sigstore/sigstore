@@ -26,6 +26,7 @@ import (
 	"github.com/sigstore/sigstore/pkg/signature"
 	"github.com/sigstore/sigstore/pkg/signature/kms"
 	"github.com/sigstore/sigstore/pkg/signature/kms/cliplugin/common"
+	"github.com/sigstore/sigstore/pkg/signature/kms/cliplugin/encoding"
 )
 
 const (
@@ -47,6 +48,9 @@ func init() {
 
 // LoadSignerVerifier creates a PluginClient with these InitOptions.
 func LoadSignerVerifier(ctx context.Context, inputKeyResourceID string, hashFunc crypto.Hash, opts ...signature.RPCOption) (kms.SignerVerifier, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	executable, keyResourceID, err := getPluginExecutableAndKeyResourceID(inputKeyResourceID)
 	if err != nil {
 		return nil, err
@@ -55,7 +59,7 @@ func LoadSignerVerifier(ctx context.Context, inputKeyResourceID string, hashFunc
 		ProtocolVersion: common.ProtocolVersion,
 		KeyResourceID:   keyResourceID,
 		HashFunc:        hashFunc,
-		// TODO: include extracted values from opts
+		RPCOptions:      encoding.PackRPCOptions(opts),
 	}
 	if deadline, ok := ctx.Deadline(); ok {
 		initOptions.CtxDeadline = &deadline
