@@ -28,8 +28,7 @@ GOLANGCI_LINT_BIN = $(GOLANGCI_LINT_DIR)/golangci-lint
 
 TEST_LOCALKMS_DIR := ./test/cliplugin/localkms
 TEST_LOCALKMS_BIN_DIR := $(GOLANGCI_LINT_DIR)
-ifeq ($(OS),Windows_NT) # Check if the OS is Windows
- 	# semicolor for windows, colon otherwise
+ifeq ($(OS),Windows_NT)
 	PATH := $(PATH);$(TEST_LOCALKMS_BIN_DIR)
 else
 	PATH := $(PATH):$(TEST_LOCALKMS_BIN_DIR)
