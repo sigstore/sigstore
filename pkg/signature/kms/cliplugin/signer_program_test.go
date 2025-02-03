@@ -291,11 +291,10 @@ func TestSignMessageVerifySignature(t *testing.T) {
 				if err = pluginClient.VerifySignature(bytes.NewReader(signature), bytes.NewReader(tc.message), verifyOpts...); err != nil {
 					t.Errorf("unexpected error verifying signature: %s", err)
 				}
-			} else {
-				// verify a fake signature
-				if err = pluginClient.VerifySignature(bytes.NewReader(testBadSignature), bytes.NewReader(tc.message), verifyOpts...); err == nil {
-					t.Error("expected error verifying fake signature")
-				}
+			}
+			// verify a fake signature
+			if err = pluginClient.VerifySignature(bytes.NewReader(testBadSignature), bytes.NewReader(tc.message), verifyOpts...); err == nil {
+				t.Error("expected error verifying fake signature")
 			}
 		})
 	}
