@@ -23,16 +23,12 @@ FUZZ_DIR := ./test/fuzz
 INTEGRATION_TEST_DIR := ./test/e2e
 GO-FUZZ-BUILD := $(TOOLS_BIN_DIR)/go-fuzz-build
 
-GOLANGCI_LINT_DIR = $(shell pwd)/bin
+GOLANGCI_LINT_DIR = $(CURDIR)/bin
 GOLANGCI_LINT_BIN = $(GOLANGCI_LINT_DIR)/golangci-lint
 
 TEST_LOCALKMS_DIR := ./test/cliplugin/localkms
 TEST_LOCALKMS_BIN_DIR := $(GOLANGCI_LINT_DIR)
-ifeq ($(OS),Windows_NT)
-	PATH := $(PATH);$(TEST_LOCALKMS_BIN_DIR)
-else
-	PATH := $(PATH):$(TEST_LOCALKMS_BIN_DIR)
-endif
+PATH := $(PATH):$(TEST_LOCALKMS_BIN_DIR)
 CLI_PLUGIN_DIR := ./pkg/signature/kms/cliplugin
 
 LDFLAGS ?=
@@ -60,8 +56,9 @@ test: ## Run Tests for all Go modules.
 	done
 
 test-signer-program: ## Run Tests for the cliplugin against a pre-compiled plugin program.
+
 	set -o xtrace; \
-		go -C $(TEST_LOCALKMS_DIR) build -o $(TEST_LOCALKMS_BIN_DIR)/sigstore-kms-testkms && \
+		go -C $(TEST_LOCALKMS_DIR) build -o $(TEST_LOCALKMS_BIN_DIR)/sigstore-kms-testkms$(if $(filter Windows_NT,$(OS)),.exe) && \
 		go -C $(CLI_PLUGIN_DIR) test -tags=signer_program ./ -key-resource-id testkms://$(TEST_LOCALKMS_BIN_DIR)/key.pem
 
 tidy: ## Run go mod tidy all Go modules.
