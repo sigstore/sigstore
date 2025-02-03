@@ -201,8 +201,7 @@ func TestPublicKey(t *testing.T) {
 	defaultAlgorithm := pluginClient.DefaultAlgorithm()
 	var wantedErr error = nil
 
-	_, err := pluginClient.CreateKey(ctx, defaultAlgorithm)
-	if err != nil {
+	if _, err := pluginClient.CreateKey(ctx, defaultAlgorithm); err != nil {
 		t.Fatal(err)
 	}
 
