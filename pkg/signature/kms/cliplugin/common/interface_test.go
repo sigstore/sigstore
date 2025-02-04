@@ -75,6 +75,26 @@ func TestPluginArgsJSON(t *testing.T) {
 }`,
 		},
 		{
+			name: "supportedAlgorithms",
+			pluginArgs: &PluginArgs{
+				InitOptions: testInitOptions,
+				MethodArgs: &MethodArgs{
+					MethodName:          SupportedAlgorithmsMethodName,
+					SupportedAlgorithms: &SupportedAlgorithmsArgs{},
+				},
+			},
+			want: `{
+	"initOptions": {
+		"ctxDeadline": "2025-04-01T02:47:00Z",
+		"protocolVersion": "1",
+		"keyResourceID": "testkms://testkey",
+		"hashFunc": 17
+	},
+	"methodName": "supportedAlgorithms",
+	"supportedAlgorithms": {}
+}`,
+		},
+		{
 			name: "createKey",
 			pluginArgs: &PluginArgs{
 				InitOptions: testInitOptions,
@@ -97,6 +117,42 @@ func TestPluginArgsJSON(t *testing.T) {
 	"createKey": {
 		"ctxDeadline": "2025-04-01T02:47:00Z",
 		"algorithm": "anyAlgorithm"
+	}
+}`,
+		},
+		{
+			name: "publicKey",
+			pluginArgs: &PluginArgs{
+				InitOptions: testInitOptions,
+				MethodArgs: &MethodArgs{
+					MethodName: PublicKeyMethodName,
+					PublicKey: &PublicKeyArgs{
+						PublicKeyOptions: &PublicKeyOptions{
+							RPCOptions: RPCOptions{
+								CtxDeadline:        &testContextDeadline,
+								KeyVersion:         &testKeyVersion,
+								RemoteVerification: &testRemoteVerification,
+							},
+						},
+					},
+				},
+			},
+			want: `{
+	"initOptions": {
+		"ctxDeadline": "2025-04-01T02:47:00Z",
+		"protocolVersion": "1",
+		"keyResourceID": "testkms://testkey",
+		"hashFunc": 17
+	},
+	"methodName": "publicKey",
+	"publicKey": {
+		"publicKeyOptions": {
+			"rpcOptions": {
+				"ctxDeadline": "2025-04-01T02:47:00Z",
+				"keyVersion": "my-key-version",
+				"remoteVerification": true
+			}
+		}
 	}
 }`,
 		},
@@ -236,6 +292,22 @@ func TestPluginRespJSON(t *testing.T) {
 }`,
 		},
 		{
+			name: "supportedAlgorithms",
+			pluginResp: &PluginResp{
+				SupportedAlgorithms: &SupportedAlgorithmsResp{
+					SupportedAlgorithms: []string{testAlgorithm, "anotherAlgorithm"},
+				},
+			},
+			want: `{
+	"supportedAlgorithms": {
+		"supportedAlgorithms": [
+			"anyAlgorithm",
+			"anotherAlgorithm"
+		]
+	}
+}`,
+		},
+		{
 			name: "createKey",
 			pluginResp: &PluginResp{
 				ErrorMessage: testErrorMessage,
@@ -246,6 +318,21 @@ func TestPluginRespJSON(t *testing.T) {
 			want: `{
 	"errorMessage": "possibly empty error message",
 	"createKey": {
+		"publicKeyPEM": "bXlwZW0="
+	}
+}`,
+		},
+		{
+			name: "publicKey",
+			pluginResp: &PluginResp{
+				ErrorMessage: testErrorMessage,
+				PublicKey: &PublicKeyResp{
+					PublicKeyPEM: testPEM,
+				},
+			},
+			want: `{
+	"errorMessage": "possibly empty error message",
+	"publicKey": {
 		"publicKeyPEM": "bXlwZW0="
 	}
 }`,

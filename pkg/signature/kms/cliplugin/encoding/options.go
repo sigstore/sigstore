@@ -84,6 +84,26 @@ func PackMessageOptions(opts []signature.MessageOption) *common.MessageOptions {
 	}
 }
 
+// PackMessageOptions extracts properties of all of opts into struct ready for serializing.
+func PackPublicKeyOptions(opts []signature.PublicKeyOption) *common.PublicKeyOptions {
+	rpcOpts := []signature.RPCOption{}
+	for _, opt := range opts {
+		rpcOpts = append(rpcOpts, opt)
+	}
+	return &common.PublicKeyOptions{
+		RPCOptions: *PackRPCOptions(rpcOpts),
+	}
+}
+
+// UnpackPublicKeyOptions builds the []signature.PublicKeyOption from common.PublicKeyOptions.
+func UnpackPublicKeyOptions(commonOpts *common.PublicKeyOptions) []signature.PublicKeyOption {
+	opts := []signature.PublicKeyOption{}
+	for _, opt := range UnpackRPCOptions(&commonOpts.RPCOptions) {
+		opts = append(opts, opt.(signature.SignOption))
+	}
+	return opts
+}
+
 // UnpackMessageOptions builds the []signature.MessageOption from common.MessageOptions.
 func UnpackMessageOptions(commonOpts *common.MessageOptions) []signature.MessageOption {
 	opts := []signature.MessageOption{}

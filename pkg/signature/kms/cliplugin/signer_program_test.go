@@ -40,6 +40,8 @@ import (
 // `go test -tags=signer_program -count=1 ./... -key-resource-id [my-kms]://[my-key-ref]`
 // See ./README.md for plugin program usage.
 
+// We don't have a TestCryptoSigner since PluginClient.CryptoSigner()'s returned object is meant to be a wrapper around PluginClient.
+
 var (
 	inputKeyResourceID = flag.String("key-resource-id", "", "key resource ID for the KMS, defaults to 'testkms://testkey'")
 	testHashFunc       = crypto.SHA512
@@ -132,6 +134,18 @@ func TestDefaultAlgorithm(t *testing.T) {
 	}
 }
 
+// TestSupportedAlgorithms invokes DefaultAlgorithm against the compiled plugin program.
+// Since implementations can vary, it merely checks that some non-empty value is returned.
+func TestSupportedAlgorithms(t *testing.T) {
+	t.Parallel()
+
+	pluginClient := getPluginClient(t)
+
+	if supportedAlgorithms := pluginClient.SupportedAlgorithms(); len(supportedAlgorithms) == 0 {
+		t.Error("expected non-empty supported algorithms")
+	}
+}
+
 // TestCreateKey invokes CreateKey against the compiled plugin program.
 // Since implementations can vary, it merely checks that some public key is returned.
 func TestCreateKey(t *testing.T) {
@@ -176,6 +190,27 @@ func TestCreateKey(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+// TestPublicKey invokes CreateKey against the compiled plugin program.
+// Since implementations can vary, it merely checks that some public key is returned.
+func TestPublicKey(t *testing.T) {
+	pluginClient := getPluginClient(t)
+	ctx := context.Background()
+	defaultAlgorithm := pluginClient.DefaultAlgorithm()
+	var wantedErr error = nil
+
+	if _, err := pluginClient.CreateKey(ctx, defaultAlgorithm); err != nil {
+		t.Fatal(err)
+	}
+
+	publicKey, err := pluginClient.PublicKey()
+	if publicKey == nil {
+		t.Error("unexpected non-nil publicKey")
+	}
+	if diff := cmp.Diff(wantedErr, err, cmpopts.EquateErrors()); diff != "" {
+		t.Errorf("unexpected error (-want +got): \n%s", diff)
 	}
 }
 
@@ -256,11 +291,10 @@ func TestSignMessageVerifySignature(t *testing.T) {
 				if err = pluginClient.VerifySignature(bytes.NewReader(signature), bytes.NewReader(tc.message), verifyOpts...); err != nil {
 					t.Errorf("unexpected error verifying signature: %s", err)
 				}
-			} else {
-				// verify a fake signature
-				if err = pluginClient.VerifySignature(bytes.NewReader(testBadSignature), bytes.NewReader(tc.message), verifyOpts...); err == nil {
-					t.Error("expected error verifying fake signature")
-				}
+			}
+			// verify a fake signature
+			if err = pluginClient.VerifySignature(bytes.NewReader(testBadSignature), bytes.NewReader(tc.message), verifyOpts...); err == nil {
+				t.Error("expected error verifying fake signature")
 			}
 		})
 	}

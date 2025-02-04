@@ -29,13 +29,20 @@ import (
 	"github.com/sigstore/sigstore/pkg/signature/kms/cliplugin/encoding"
 )
 
-// TODO: Additonal methods to be implemented
-
 // DefaultAlgorithm parses arguments and return values to and from the impl.
 func DefaultAlgorithm(_ io.Reader, args *common.DefaultAlgorithmArgs, impl kms.SignerVerifier) (*common.DefaultAlgorithmResp, error) {
 	defaultAlgorithm := impl.DefaultAlgorithm()
 	resp := &common.DefaultAlgorithmResp{
 		DefaultAlgorithm: defaultAlgorithm,
+	}
+	return resp, nil
+}
+
+// func SupportedAlgorithms parses arguments and return values to and from the impl.
+func SupportedAlgorithms(_ io.Reader, args *common.SupportedAlgorithmsArgs, impl kms.SignerVerifier) (*common.SupportedAlgorithmsResp, error) {
+	supportedAlgorithms := impl.SupportedAlgorithms()
+	resp := &common.SupportedAlgorithmsResp{
+		SupportedAlgorithms: supportedAlgorithms,
 	}
 	return resp, nil
 }
@@ -57,6 +64,23 @@ func CreateKey(_ io.Reader, args *common.CreateKeyArgs, impl kms.SignerVerifier)
 		return nil, err
 	}
 	resp := &common.CreateKeyResp{
+		PublicKeyPEM: publicKeyPEM,
+	}
+	return resp, nil
+}
+
+// PublicKey parses arguments and return values to and from the impl.
+func PublicKey(_ io.Reader, args *common.PublicKeyArgs, impl kms.SignerVerifier) (*common.PublicKeyResp, error) {
+	opts := encoding.UnpackPublicKeyOptions(args.PublicKeyOptions)
+	publicKey, err := impl.PublicKey(opts...)
+	if err != nil {
+		return nil, err
+	}
+	publicKeyPEM, err := cryptoutils.MarshalPublicKeyToPEM(publicKey)
+	if err != nil {
+		return nil, err
+	}
+	resp := &common.PublicKeyResp{
 		PublicKeyPEM: publicKeyPEM,
 	}
 	return resp, nil
