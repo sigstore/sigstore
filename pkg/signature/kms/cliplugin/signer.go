@@ -131,11 +131,7 @@ func (c PluginClient) CreateKey(ctx context.Context, algorithm string) (crypto.P
 	if err != nil {
 		return nil, err
 	}
-	publicKey, err := cryptoutils.UnmarshalPEMToPublicKey(resp.CreateKey.PublicKeyPEM)
-	if err != nil {
-		return nil, err
-	}
-	return publicKey, nil
+	return cryptoutils.UnmarshalPEMToPublicKey(resp.CreateKey.PublicKeyPEM)
 }
 
 // PublicKey calls and returns the plugin's implementation of PublicKey().
@@ -155,11 +151,7 @@ func (c PluginClient) PublicKey(opts ...signature.PublicKeyOption) (crypto.Publi
 	if err != nil {
 		return nil, err
 	}
-	publicKey, err := cryptoutils.UnmarshalPEMToPublicKey(resp.PublicKey.PublicKeyPEM)
-	if err != nil {
-		return nil, err
-	}
-	return publicKey, nil
+	return cryptoutils.UnmarshalPEMToPublicKey(resp.PublicKey.PublicKeyPEM)
 }
 
 // SignMessage calls and returns the plugin's implementation of SignMessage().
@@ -203,10 +195,7 @@ func (c PluginClient) VerifySignature(signature io.Reader, message io.Reader, op
 		opt.ApplyContext(&ctx)
 	}
 	_, err = c.invokePlugin(ctx, message, args)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 // CryptoSigner is a wrapper around PluginClient.
