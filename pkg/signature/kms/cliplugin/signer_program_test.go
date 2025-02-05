@@ -201,8 +201,7 @@ func TestPublicKey(t *testing.T) {
 	defaultAlgorithm := pluginClient.DefaultAlgorithm()
 	var wantedErr error = nil
 
-	_, err := pluginClient.CreateKey(ctx, defaultAlgorithm)
-	if err != nil {
+	if _, err := pluginClient.CreateKey(ctx, defaultAlgorithm); err != nil {
 		t.Fatal(err)
 	}
 
@@ -292,11 +291,10 @@ func TestSignMessageVerifySignature(t *testing.T) {
 				if err = pluginClient.VerifySignature(bytes.NewReader(signature), bytes.NewReader(tc.message), verifyOpts...); err != nil {
 					t.Errorf("unexpected error verifying signature: %s", err)
 				}
-			} else {
-				// verify a fake signature
-				if err = pluginClient.VerifySignature(bytes.NewReader(testBadSignature), bytes.NewReader(tc.message), verifyOpts...); err == nil {
-					t.Error("expected error verifying fake signature")
-				}
+			}
+			// verify a fake signature
+			if err = pluginClient.VerifySignature(bytes.NewReader(testBadSignature), bytes.NewReader(tc.message), verifyOpts...); err == nil {
+				t.Error("expected error verifying fake signature")
 			}
 		})
 	}
