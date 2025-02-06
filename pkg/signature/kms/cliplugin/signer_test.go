@@ -392,7 +392,7 @@ func TestPluginClient(t *testing.T) {
 
 		return newPluginClient(testExecutable, &common.InitOptions{}, makeCmdFunc)
 	}
-	var testNilErr error = nil
+	var testNilErr error
 
 	t.Run("DefaultAlgorithm", func(t *testing.T) {
 		t.Parallel()
