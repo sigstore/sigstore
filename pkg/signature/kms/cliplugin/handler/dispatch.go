@@ -32,7 +32,7 @@ var (
 	// ErrorPluginArgsParse indicates a problem parsing the plugin args
 	ErrorPluginArgsParse = errors.New("error parsing plugin args")
 	// ErrorUnsupportedMethod indicates that an unsupported method name was supplied.
-	ErrorUnsupportedMethod = errors.New("unsupported methodArgs")
+	ErrorUnsupportedMethod = errors.New("unsupported method")
 )
 
 // GetPluginArgs parses the PluginArgs from the os args.
