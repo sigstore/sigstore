@@ -30,7 +30,7 @@ import (
 )
 
 // DefaultAlgorithm parses arguments and return values to and from the impl.
-func DefaultAlgorithm(_ io.Reader, args *common.DefaultAlgorithmArgs, impl kms.SignerVerifier) (*common.DefaultAlgorithmResp, error) {
+func DefaultAlgorithm(_ io.Reader, _ *common.DefaultAlgorithmArgs, impl kms.SignerVerifier) (*common.DefaultAlgorithmResp, error) {
 	defaultAlgorithm := impl.DefaultAlgorithm()
 	resp := &common.DefaultAlgorithmResp{
 		DefaultAlgorithm: defaultAlgorithm,
@@ -39,7 +39,7 @@ func DefaultAlgorithm(_ io.Reader, args *common.DefaultAlgorithmArgs, impl kms.S
 }
 
 // func SupportedAlgorithms parses arguments and return values to and from the impl.
-func SupportedAlgorithms(_ io.Reader, args *common.SupportedAlgorithmsArgs, impl kms.SignerVerifier) (*common.SupportedAlgorithmsResp, error) {
+func SupportedAlgorithms(_ io.Reader, _ *common.SupportedAlgorithmsArgs, impl kms.SignerVerifier) (*common.SupportedAlgorithmsResp, error) {
 	supportedAlgorithms := impl.SupportedAlgorithms()
 	resp := &common.SupportedAlgorithmsResp{
 		SupportedAlgorithms: supportedAlgorithms,
