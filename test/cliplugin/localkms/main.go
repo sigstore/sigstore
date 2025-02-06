@@ -24,7 +24,7 @@ import (
 )
 
 // See cliplugin.common.ProtocolVersion
-const expectedProtocolVersion = "v1.0.0"
+const expectedProtocolVersion = "v1"
 
 func main() {
 	// we log to stderr, not stdout. stdout is reserved for the plugin return value.

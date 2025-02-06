@@ -26,7 +26,7 @@ const (
 	// Breaking changes to the PluginClient and this schema necessarily mean major version bumps of
 	// this ProtocolVersion and the sigstore version.
 	// Plugin authors may choose to be backwards compatible with older versions.
-	ProtocolVersion               = "v1.0.0"
+	ProtocolVersion               = "v1"
 	DefaultAlgorithmMethodName    = "defaultAlgorithm"
 	SupportedAlgorithmsMethodName = "supportedAlgorithms"
 	CreateKeyMethodName           = "createKey"

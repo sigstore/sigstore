@@ -72,7 +72,7 @@ func TestPluginArgsJSON(t *testing.T) {
 			want: `{
 	"initOptions": {
 		"ctxDeadline": "2025-04-01T02:47:00Z",
-		"protocolVersion": "v1.0.0",
+		"protocolVersion": "v1",
 		"keyResourceID": "testkms://testkey",
 		"hashFunc": 17,
 		"rpcOptions": {
@@ -97,7 +97,7 @@ func TestPluginArgsJSON(t *testing.T) {
 			want: `{
 	"initOptions": {
 		"ctxDeadline": "2025-04-01T02:47:00Z",
-		"protocolVersion": "v1.0.0",
+		"protocolVersion": "v1",
 		"keyResourceID": "testkms://testkey",
 		"hashFunc": 17,
 		"rpcOptions": {
@@ -125,7 +125,7 @@ func TestPluginArgsJSON(t *testing.T) {
 			want: `{
 	"initOptions": {
 		"ctxDeadline": "2025-04-01T02:47:00Z",
-		"protocolVersion": "v1.0.0",
+		"protocolVersion": "v1",
 		"keyResourceID": "testkms://testkey",
 		"hashFunc": 17,
 		"rpcOptions": {
@@ -161,7 +161,7 @@ func TestPluginArgsJSON(t *testing.T) {
 			want: `{
 	"initOptions": {
 		"ctxDeadline": "2025-04-01T02:47:00Z",
-		"protocolVersion": "v1.0.0",
+		"protocolVersion": "v1",
 		"keyResourceID": "testkms://testkey",
 		"hashFunc": 17,
 		"rpcOptions": {
@@ -206,7 +206,7 @@ func TestPluginArgsJSON(t *testing.T) {
 			want: `{
 	"initOptions": {
 		"ctxDeadline": "2025-04-01T02:47:00Z",
-		"protocolVersion": "v1.0.0",
+		"protocolVersion": "v1",
 		"keyResourceID": "testkms://testkey",
 		"hashFunc": 17,
 		"rpcOptions": {
@@ -256,7 +256,7 @@ func TestPluginArgsJSON(t *testing.T) {
 			want: `{
 	"initOptions": {
 		"ctxDeadline": "2025-04-01T02:47:00Z",
-		"protocolVersion": "v1.0.0",
+		"protocolVersion": "v1",
 		"keyResourceID": "testkms://testkey",
 		"hashFunc": 17,
 		"rpcOptions": {
