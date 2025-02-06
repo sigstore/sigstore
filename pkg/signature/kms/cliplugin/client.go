@@ -44,9 +44,7 @@ var (
 // init registers the plugin system as a provider. It does not search for plugin programs.
 // Users must import this package, e.g.,  `import _ "github.com/sigstore/sigstore/pkg/signature/kms/cliplugin"`
 func init() {
-	kms.AddProvider(kms.CLIPluginProviderKey, func(ctx context.Context, keyResourceID string, hashFunc crypto.Hash, opts ...signature.RPCOption) (kms.SignerVerifier, error) {
-		return LoadSignerVerifier(ctx, keyResourceID, hashFunc, opts...)
-	})
+	kms.AddProvider(kms.CLIPluginProviderKey, LoadSignerVerifier)
 }
 
 // LoadSignerVerifier creates a PluginClient with these InitOptions.
