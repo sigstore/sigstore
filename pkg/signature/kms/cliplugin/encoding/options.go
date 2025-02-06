@@ -99,7 +99,7 @@ func PackPublicKeyOptions(opts []signature.PublicKeyOption) *common.PublicKeyOpt
 func UnpackPublicKeyOptions(commonOpts *common.PublicKeyOptions) []signature.PublicKeyOption {
 	opts := []signature.PublicKeyOption{}
 	for _, opt := range UnpackRPCOptions(&commonOpts.RPCOptions) {
-		opts = append(opts, opt.(signature.SignOption))
+		opts = append(opts, opt.(signature.PublicKeyOption))
 	}
 	return opts
 }
