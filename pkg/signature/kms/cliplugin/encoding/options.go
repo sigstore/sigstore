@@ -16,7 +16,7 @@
 // Package encoding has helper functions for encoding and decoding some method arguments and return values.
 package encoding
 
-// We have some type assertions that seem like they may panic, but this is just to satisy
+// We have some type assertions that seem like they may panic, but this is just to satisfy
 // golanci-lint's forcetypeassert linter. If they were to ever fail, unit tests would also fail.
 // We know the asserted types are valid because otherwise we would have compiler failures.
 
@@ -88,7 +88,7 @@ func PackMessageOptions(opts []signature.MessageOption) *common.MessageOptions {
 	}
 }
 
-// PackMessageOptions extracts properties of all of opts into struct ready for serializing.
+// PackPublicKeyOptions extracts properties of all of opts into struct ready for serializing.
 func PackPublicKeyOptions(opts []signature.PublicKeyOption) *common.PublicKeyOptions {
 	rpcOpts := []signature.RPCOption{}
 	for _, opt := range opts {

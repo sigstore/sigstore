@@ -73,7 +73,7 @@ func (c PluginClient) invokePlugin(ctx context.Context, stdin io.Reader, methodA
 	cmd := c.makeCmdFunc(ctx, stdin, os.Stderr, c.executable, common.ProtocolVersion, string(argsEnc))
 	// We won't look at the program's non-zero exit code, but we will respect any other
 	// error, and cases when exec.ExitError.ExitCode() is 0 or -1:
-	//   * (0) the program finished successfuly or
+	//   * (0) the program finished successfully or
 	//   * (-1) there was some other problem not due to the program itself.
 	// The only debugging is to either parse the the returned error in stdout,
 	// or for the user to examine the sterr logs.

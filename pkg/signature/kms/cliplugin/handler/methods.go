@@ -38,7 +38,7 @@ func DefaultAlgorithm(_ io.Reader, _ *common.DefaultAlgorithmArgs, impl kms.Sign
 	return resp, nil
 }
 
-// func SupportedAlgorithms parses arguments and return values to and from the impl.
+// SupportedAlgorithms parses arguments and return values to and from the impl.
 func SupportedAlgorithms(_ io.Reader, _ *common.SupportedAlgorithmsArgs, impl kms.SignerVerifier) (*common.SupportedAlgorithmsResp, error) {
 	supportedAlgorithms := impl.SupportedAlgorithms()
 	resp := &common.SupportedAlgorithmsResp{
