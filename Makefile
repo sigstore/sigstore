@@ -42,10 +42,11 @@ GO_MOD_DIRS = . ./pkg/signature/kms/aws ./pkg/signature/kms/azure ./pkg/signatur
 golangci-lint:
 	rm -f $(GOLANGCI_LINT_BIN) || :
 	set -e ;\
-	GOBIN=$(GOLANGCI_LINT_DIR) go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.53.2 ;\
+	GOBIN=$(GOLANGCI_LINT_DIR) go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.63.4 ;\
 
 lint: golangci-lint ## Run golangci-lint
 	$(GOLANGCI_LINT_BIN) run -v --new-from-rev=HEAD~ ./...
+	cd $(CLI_PLUGIN_DIR) && $(GOLANGCI_LINT_BIN) run -v --new-from-rev=HEAD~ ./...
 
 pkg: ## Build pkg
 	set -o xtrace; \
