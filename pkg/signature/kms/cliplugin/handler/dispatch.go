@@ -88,6 +88,6 @@ func Dispatch(stdout io.Writer, stdin io.Reader, pluginArgs *common.PluginArgs, 
 	if err != nil {
 		resp.ErrorMessage = err.Error()
 	}
-	WriteResponse(stdout, &resp)
+	err = WriteResponse(stdout, &resp)
 	return &resp, err
 }
