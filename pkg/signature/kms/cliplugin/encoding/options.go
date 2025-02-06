@@ -16,6 +16,10 @@
 // Package encoding has helper functions for encoding and decoding some method arguments and return values.
 package encoding
 
+// We have some type assertions that seem like they may panic, but this is just to satisy
+// golanci-lint's forcetypeassert linter. If they were to ever fail, unit tests would also fail.
+// We know the asserted types are valid because otherwise we would have compiler failures.
+
 import (
 	"context"
 	"crypto"
@@ -99,7 +103,11 @@ func PackPublicKeyOptions(opts []signature.PublicKeyOption) *common.PublicKeyOpt
 func UnpackPublicKeyOptions(commonOpts *common.PublicKeyOptions) []signature.PublicKeyOption {
 	opts := []signature.PublicKeyOption{}
 	for _, opt := range UnpackRPCOptions(&commonOpts.RPCOptions) {
-		opts = append(opts, opt.(signature.PublicKeyOption))
+		opt, ok := opt.(signature.PublicKeyOption)
+		if !ok {
+			panic("cannot assert as PublicKeyOption")
+		}
+		opts = append(opts, opt)
 	}
 	return opts
 }
@@ -136,10 +144,18 @@ func PackSignOptions(opts []signature.SignOption) *common.SignOptions {
 func UnpackSignOptions(commonOpts *common.SignOptions) []signature.SignOption {
 	opts := []signature.SignOption{}
 	for _, opt := range UnpackRPCOptions(&commonOpts.RPCOptions) {
-		opts = append(opts, opt.(signature.SignOption))
+		opt, ok := opt.(signature.SignOption)
+		if !ok {
+			panic("cannot assert as SignOption")
+		}
+		opts = append(opts, opt)
 	}
 	for _, opt := range UnpackMessageOptions(&commonOpts.MessageOptions) {
-		opts = append(opts, opt.(signature.SignOption))
+		opt, ok := opt.(signature.SignOption)
+		if !ok {
+			panic("cannot assert as SignOption")
+		}
+		opts = append(opts, opt)
 	}
 	return opts
 }
@@ -164,10 +180,18 @@ func PackVerifyOptions(opts []signature.VerifyOption) *common.VerifyOptions {
 func UnpackVerifyOptions(commonOpts *common.VerifyOptions) []signature.VerifyOption {
 	opts := []signature.VerifyOption{}
 	for _, opt := range UnpackRPCOptions(&commonOpts.RPCOptions) {
-		opts = append(opts, opt.(signature.VerifyOption))
+		opt, ok := opt.(signature.VerifyOption)
+		if !ok {
+			panic("cannot assert as VerifyOption")
+		}
+		opts = append(opts, opt)
 	}
 	for _, opt := range UnpackMessageOptions(&commonOpts.MessageOptions) {
-		opts = append(opts, opt.(signature.VerifyOption))
+		opt, ok := opt.(signature.VerifyOption)
+		if !ok {
+			panic("cannot assert as VerifyOption")
+		}
+		opts = append(opts, opt)
 	}
 	return opts
 }
