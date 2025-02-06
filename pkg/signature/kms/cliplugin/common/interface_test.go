@@ -47,6 +47,11 @@ func TestPluginArgsJSON(t *testing.T) {
 		ProtocolVersion: ProtocolVersion,
 		KeyResourceID:   testKeyResourceID,
 		HashFunc:        testHashFunc,
+		RPCOptions: &RPCOptions{
+			CtxDeadline:        &testContextDeadline,
+			KeyVersion:         &testKeyVersion,
+			RemoteVerification: &testRemoteVerification,
+		},
 	}
 
 	tests := []struct {
@@ -68,7 +73,12 @@ func TestPluginArgsJSON(t *testing.T) {
 		"ctxDeadline": "2025-04-01T02:47:00Z",
 		"protocolVersion": "1",
 		"keyResourceID": "testkms://testkey",
-		"hashFunc": 17
+		"hashFunc": 17,
+		"rpcOptions": {
+			"ctxDeadline": "2025-04-01T02:47:00Z",
+			"keyVersion": "my-key-version",
+			"remoteVerification": true
+		}
 	},
 	"methodName": "defaultAlgorithm",
 	"defaultAlgorithm": {}
@@ -88,7 +98,12 @@ func TestPluginArgsJSON(t *testing.T) {
 		"ctxDeadline": "2025-04-01T02:47:00Z",
 		"protocolVersion": "1",
 		"keyResourceID": "testkms://testkey",
-		"hashFunc": 17
+		"hashFunc": 17,
+		"rpcOptions": {
+			"ctxDeadline": "2025-04-01T02:47:00Z",
+			"keyVersion": "my-key-version",
+			"remoteVerification": true
+		}
 	},
 	"methodName": "supportedAlgorithms",
 	"supportedAlgorithms": {}
@@ -111,7 +126,12 @@ func TestPluginArgsJSON(t *testing.T) {
 		"ctxDeadline": "2025-04-01T02:47:00Z",
 		"protocolVersion": "1",
 		"keyResourceID": "testkms://testkey",
-		"hashFunc": 17
+		"hashFunc": 17,
+		"rpcOptions": {
+			"ctxDeadline": "2025-04-01T02:47:00Z",
+			"keyVersion": "my-key-version",
+			"remoteVerification": true
+		}
 	},
 	"methodName": "createKey",
 	"createKey": {
@@ -142,7 +162,12 @@ func TestPluginArgsJSON(t *testing.T) {
 		"ctxDeadline": "2025-04-01T02:47:00Z",
 		"protocolVersion": "1",
 		"keyResourceID": "testkms://testkey",
-		"hashFunc": 17
+		"hashFunc": 17,
+		"rpcOptions": {
+			"ctxDeadline": "2025-04-01T02:47:00Z",
+			"keyVersion": "my-key-version",
+			"remoteVerification": true
+		}
 	},
 	"methodName": "publicKey",
 	"publicKey": {
@@ -182,7 +207,12 @@ func TestPluginArgsJSON(t *testing.T) {
 		"ctxDeadline": "2025-04-01T02:47:00Z",
 		"protocolVersion": "1",
 		"keyResourceID": "testkms://testkey",
-		"hashFunc": 17
+		"hashFunc": 17,
+		"rpcOptions": {
+			"ctxDeadline": "2025-04-01T02:47:00Z",
+			"keyVersion": "my-key-version",
+			"remoteVerification": true
+		}
 	},
 	"methodName": "signMessage",
 	"signMessage": {
@@ -227,7 +257,12 @@ func TestPluginArgsJSON(t *testing.T) {
 		"ctxDeadline": "2025-04-01T02:47:00Z",
 		"protocolVersion": "1",
 		"keyResourceID": "testkms://testkey",
-		"hashFunc": 17
+		"hashFunc": 17,
+		"rpcOptions": {
+			"ctxDeadline": "2025-04-01T02:47:00Z",
+			"keyVersion": "my-key-version",
+			"remoteVerification": true
+		}
 	},
 	"methodName": "verifySignature",
 	"verifySignature": {

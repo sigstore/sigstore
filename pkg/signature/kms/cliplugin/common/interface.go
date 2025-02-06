@@ -51,7 +51,8 @@ type InitOptions struct {
 	ProtocolVersion string     `json:"protocolVersion"`
 	KeyResourceID   string     `json:"keyResourceID"`
 	// HashFunc will serialize to ints according to https://pkg.go.dev/crypto@go1.23.5#Hash. e.g., crypto.SHA256 serializes to 5.
-	HashFunc crypto.Hash `json:"hashFunc"`
+	HashFunc   crypto.Hash `json:"hashFunc"`
+	RPCOptions *RPCOptions `json:"rpcOptions"`
 }
 
 // MethodArgs contains the method arguments. MethodName must be specified,
