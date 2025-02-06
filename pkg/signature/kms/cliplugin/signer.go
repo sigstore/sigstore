@@ -211,7 +211,6 @@ type CryptoSigner struct {
 // CryptoSigner returns a wrapper around PluginClient.
 func (c PluginClient) CryptoSigner(ctx context.Context, errFunc func(error)) (crypto.Signer, crypto.SignerOpts, error) {
 	if err := ctx.Err(); err != nil {
-		errFunc(err)
 		return nil, nil, err
 	}
 	return &CryptoSigner{

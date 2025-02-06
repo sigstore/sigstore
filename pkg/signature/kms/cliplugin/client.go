@@ -37,8 +37,6 @@ const (
 // ErrorInputKeyResourceID indicates a problem parsing the key resource id.
 var ErrorInputKeyResourceID = errors.New("parsing input key resource id")
 
-// TODO: original contexts should be used with invokePlugin, so that the caller's cancel funcs are respected.
-
 // init registers the plugin system as a provider. It does not search for plugin programs.
 // Users must import this package, e.g.,  `import _ "github.com/sigstore/sigstore/pkg/signature/kms/cliplugin"`
 func init() {

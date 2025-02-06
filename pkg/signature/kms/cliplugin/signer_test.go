@@ -191,10 +191,6 @@ func TestInvokePlugin(t *testing.T) {
 					if err := ctx.Err(); err != nil {
 						return nil, err
 					}
-
-					if err := ctx.Err(); err != nil {
-						t.Error(err)
-					}
 					if diff := cmp.Diff(testExecutable, name); diff != "" {
 						t.Errorf("unexpected executable name (-want +got):\n%s", diff)
 					}
