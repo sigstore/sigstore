@@ -57,7 +57,7 @@ func UnpackRPCOptions(commonOpts *common.RPCOptions) []signature.RPCOption {
 	if commonOpts.CtxDeadline != nil {
 		// no need fot this package to cancel the context early,
 		// and users may still check if the deadline is exceeded with ctx.Err().
-		ctx, _ := context.WithDeadline(context.Background(), *commonOpts.CtxDeadline)
+		ctx, _ := context.WithDeadline(context.Background(), *commonOpts.CtxDeadline) //nolint:govet
 		opts = append(opts, options.WithContext(ctx))
 	}
 	if commonOpts.KeyVersion != nil {
