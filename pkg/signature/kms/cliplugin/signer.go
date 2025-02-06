@@ -180,7 +180,7 @@ func (c PluginClient) SignMessage(message io.Reader, opts ...signature.SignOptio
 
 // VerifySignature calls and returns the plugin's implementation of VerifySignature().
 // If the opts contain a context, then it will be used with the Cmd.
-func (c PluginClient) VerifySignature(signature io.Reader, message io.Reader, opts ...signature.VerifyOption) error {
+func (c PluginClient) VerifySignature(signature, message io.Reader, opts ...signature.VerifyOption) error {
 	// signatures won't be larger than 1MB, so it's fine to read the entire content into memory.
 	signatureBytes, err := io.ReadAll(signature)
 	if err != nil {

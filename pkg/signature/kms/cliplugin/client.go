@@ -34,10 +34,8 @@ const (
 	PluginBinaryPrefix = "sigstore-kms-"
 )
 
-var (
-	// ErrorInputKeyResourceID indicates a problem parsing the key resource id.
-	ErrorInputKeyResourceID = errors.New("parsing input key resource id")
-)
+// ErrorInputKeyResourceID indicates a problem parsing the key resource id.
+var ErrorInputKeyResourceID = errors.New("parsing input key resource id")
 
 // TODO: original contexts should be used with invokePlugin, so that the caller's cancel funcs are respected.
 

@@ -315,7 +315,7 @@ func (s testSignerVerifierImpl) SignMessage(message io.Reader, opts ...signature
 }
 
 // VerifySignature checks the expected message and opts.
-func (s testSignerVerifierImpl) VerifySignature(signature io.Reader, message io.Reader, opts ...signature.VerifyOption) error {
+func (s testSignerVerifierImpl) VerifySignature(signature, message io.Reader, opts ...signature.VerifyOption) error {
 	signatureBytes, err := io.ReadAll(signature)
 	if err != nil {
 		return err

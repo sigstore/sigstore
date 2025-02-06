@@ -86,8 +86,7 @@ type PluginResp struct {
 }
 
 // DefaultAlgorithmArgs contains the serialized arguments for `DefaultAlgorithm()`.
-type DefaultAlgorithmArgs struct {
-}
+type DefaultAlgorithmArgs struct{}
 
 // DefaultAlgorithmResp contains the serialized response for `DefaultAlgorithm()`.
 type DefaultAlgorithmResp struct {
@@ -95,8 +94,7 @@ type DefaultAlgorithmResp struct {
 }
 
 // SupportedAlgorithmsArgs contains the serialized arguments for `SupportedAlgorithms()`.
-type SupportedAlgorithmsArgs struct {
-}
+type SupportedAlgorithmsArgs struct{}
 
 // SupportedAlgorithmsResp contains the serialized response for `SupportedAlgorithms()`.
 type SupportedAlgorithmsResp struct {
@@ -146,5 +144,4 @@ type VerifySignatureArgs struct {
 }
 
 // VerifySignatureResp contains the serialized response for `VerifySignature()`.
-type VerifySignatureResp struct {
-}
+type VerifySignatureResp struct{}
