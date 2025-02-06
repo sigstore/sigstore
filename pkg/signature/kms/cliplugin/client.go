@@ -35,6 +35,7 @@ const (
 )
 
 var (
+	// ErrorInputKeyResourceID indicates a problem parsing the key resource id.
 	ErrorInputKeyResourceID = errors.New("parsing input key resource id")
 )
 

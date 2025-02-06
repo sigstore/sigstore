@@ -35,8 +35,11 @@ import (
 )
 
 var (
-	ErrorExecutingPlugin   = errors.New("error executing plugin program")
-	ErrorResponseParse     = errors.New("parsing plugin response")
+	// ErrorExecutingPlugin indicates a problem executing the plugin program.
+	ErrorExecutingPlugin = errors.New("error executing plugin program")
+	// ErrorResponseParse indicates a problem parsing the plugin response.
+	ErrorResponseParse = errors.New("parsing plugin response")
+	// ErrorPluginReturnError indicates that the plugin returned a praseable error.
 	ErrorPluginReturnError = errors.New("plugin returned error")
 )
 
@@ -233,6 +236,7 @@ func (c CryptoSigner) Sign(_ io.Reader, digest []byte, cryptoSignerOpts crypto.S
 	return sig, err
 }
 
+// Public is a wrapper around PluginClient.PublicKey().
 func (c CryptoSigner) Public() crypto.PublicKey {
 	publicKey, err := c.client.PublicKey()
 	if err != nil && c.errFunc != nil {
