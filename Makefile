@@ -34,7 +34,7 @@ CLI_PLUGIN_DIR := ./pkg/signature/kms/cliplugin
 
 LDFLAGS ?=
 
-GO_MOD_DIRS = . ./pkg/signature/kms/aws ./pkg/signature/kms/azure ./pkg/signature/kms/gcp ./pkg/signature/kms/hashivault ./pkg/signature/kms/cliplugin
+GO_MOD_DIRS = . ./pkg/signature/kms/aws ./pkg/signature/kms/azure ./pkg/signature/kms/gcp ./pkg/signature/kms/hashivault
 
 lint:
 	for dir in $(GO_MOD_DIRS) ; do \
