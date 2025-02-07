@@ -13,5 +13,5 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package oauth contains types and utilities related to OAuth2.
+// Package oauth contains types and utilities related to OAuth2. 
 package oauth
