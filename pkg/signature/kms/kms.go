@@ -27,12 +27,6 @@ import (
 	"github.com/sigstore/sigstore/pkg/signature/kms/signerverifier"
 )
 
-const (
-	// CLIPluginProviderKey is a placeholder used to register the cliplugin as a provider in AddProvider().
-	// Its value should not conflict with any potential callers of AddProvider().
-	CLIPluginProviderKey = "cliplugin"
-)
-
 // ProviderNotFoundError indicates that no matching KMS provider was found
 type ProviderNotFoundError struct {
 	ref string
@@ -55,6 +49,7 @@ func AddProvider(keyResourceID string, init ProviderInit) {
 
 var providersMap = map[string]ProviderInit{}
 
+// Get returns a KMS SignerVerifier for the given resource string and hash function.
 // If no matching built-in provider is found, it will try to use the plugin system as a provider.
 // If keyResourceID doesn't match any of our hard-coded providers' schemas, or the plugin program
 // can't be found, then it returns ProviderNotFoundError.
