@@ -29,8 +29,10 @@ import (
 )
 
 var (
-	ErrorPluginArgsParse   = errors.New("error parsing plugin args")
-	ErrorUnsupportedMethod = errors.New("unsupported methodArgs")
+	// ErrorPluginArgsParse indicates a problem parsing the plugin args
+	ErrorPluginArgsParse = errors.New("error parsing plugin args")
+	// ErrorUnsupportedMethod indicates that an unsupported method name was supplied.
+	ErrorUnsupportedMethod = errors.New("unsupported method")
 )
 
 // GetPluginArgs parses the PluginArgs from the os args.
@@ -88,6 +90,6 @@ func Dispatch(stdout io.Writer, stdin io.Reader, pluginArgs *common.PluginArgs, 
 	if err != nil {
 		resp.ErrorMessage = err.Error()
 	}
-	WriteResponse(stdout, &resp)
+	err = WriteResponse(stdout, &resp)
 	return &resp, err
 }

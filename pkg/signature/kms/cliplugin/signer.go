@@ -35,8 +35,11 @@ import (
 )
 
 var (
-	ErrorExecutingPlugin   = errors.New("error executing plugin program")
-	ErrorResponseParse     = errors.New("parsing plugin response")
+	// ErrorExecutingPlugin indicates a problem executing the plugin program.
+	ErrorExecutingPlugin = errors.New("error executing plugin program")
+	// ErrorResponseParse indicates a problem parsing the plugin response.
+	ErrorResponseParse = errors.New("parsing plugin response")
+	// ErrorPluginReturnError indicates that the plugin returned a praseable error.
 	ErrorPluginReturnError = errors.New("plugin returned error")
 )
 
@@ -70,7 +73,7 @@ func (c PluginClient) invokePlugin(ctx context.Context, stdin io.Reader, methodA
 	cmd := c.makeCmdFunc(ctx, stdin, os.Stderr, c.executable, common.ProtocolVersion, string(argsEnc))
 	// We won't look at the program's non-zero exit code, but we will respect any other
 	// error, and cases when exec.ExitError.ExitCode() is 0 or -1:
-	//   * (0) the program finished successfuly or
+	//   * (0) the program finished successfully or
 	//   * (-1) there was some other problem not due to the program itself.
 	// The only debugging is to either parse the the returned error in stdout,
 	// or for the user to examine the sterr logs.
@@ -177,7 +180,7 @@ func (c PluginClient) SignMessage(message io.Reader, opts ...signature.SignOptio
 
 // VerifySignature calls and returns the plugin's implementation of VerifySignature().
 // If the opts contain a context, then it will be used with the Cmd.
-func (c PluginClient) VerifySignature(signature io.Reader, message io.Reader, opts ...signature.VerifyOption) error {
+func (c PluginClient) VerifySignature(signature, message io.Reader, opts ...signature.VerifyOption) error {
 	// signatures won't be larger than 1MB, so it's fine to read the entire content into memory.
 	signatureBytes, err := io.ReadAll(signature)
 	if err != nil {
@@ -232,6 +235,7 @@ func (c CryptoSigner) Sign(_ io.Reader, digest []byte, cryptoSignerOpts crypto.S
 	return sig, err
 }
 
+// Public is a wrapper around PluginClient.PublicKey().
 func (c CryptoSigner) Public() crypto.PublicKey {
 	publicKey, err := c.client.PublicKey()
 	if err != nil && c.errFunc != nil {

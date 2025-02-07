@@ -63,7 +63,8 @@ func TestPackRPCOptions(t *testing.T) {
 	t.Parallel()
 
 	// test values.
-	testContext, _ := context.WithDeadline(context.Background(), testContextDeadline)
+	testContext, cancel := context.WithDeadline(context.Background(), testContextDeadline)
+	defer cancel()
 	opts := []signature.RPCOption{
 		options.WithContext(testContext),
 		options.WithRemoteVerification(testRemoteVerification),
@@ -165,7 +166,8 @@ func TestPackPublicKeyOptions(t *testing.T) {
 	t.Parallel()
 
 	// test values.
-	testContext, _ := context.WithDeadline(context.Background(), testContextDeadline)
+	testContext, cancel := context.WithDeadline(context.Background(), testContextDeadline)
+	defer cancel()
 	opts := []signature.PublicKeyOption{
 		options.WithContext(testContext),
 		options.WithRemoteVerification(testRemoteVerification),
@@ -224,7 +226,8 @@ func TestPackSignOptions(t *testing.T) {
 	t.Parallel()
 
 	// test values.
-	testContext, _ := context.WithDeadline(context.Background(), testContextDeadline)
+	testContext, cancel := context.WithDeadline(context.Background(), testContextDeadline)
+	defer cancel()
 	opts := []signature.SignOption{
 		options.WithContext(testContext),
 		options.WithRemoteVerification(testRemoteVerification),
@@ -299,7 +302,8 @@ func TestPackVerifyOptions(t *testing.T) {
 	t.Parallel()
 
 	// test values.
-	testContext, _ := context.WithDeadline(context.Background(), testContextDeadline)
+	testContext, cancel := context.WithDeadline(context.Background(), testContextDeadline)
+	defer cancel()
 	opts := []signature.VerifyOption{
 		options.WithContext(testContext),
 		options.WithRemoteVerification(testRemoteVerification),
