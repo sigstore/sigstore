@@ -186,7 +186,7 @@ func TestInvokePlugin(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			// mock the behavior of Cmd, simulating a plugin program.
-			makeCmdFunc := func(ctx context.Context, stdin io.Reader, stderr io.Writer, name string, args ...string) cmd {
+			makeCmdFunc := func(ctx context.Context, stdin io.Reader, _ io.Writer, name string, args ...string) cmd {
 				outputFunc := func() ([]byte, error) {
 					if err := ctx.Err(); err != nil {
 						return nil, err
@@ -311,7 +311,7 @@ func (s testSignerVerifierImpl) SignMessage(message io.Reader, opts ...signature
 }
 
 // VerifySignature checks the expected message and opts.
-func (s testSignerVerifierImpl) VerifySignature(signature io.Reader, message io.Reader, opts ...signature.VerifyOption) error {
+func (s testSignerVerifierImpl) VerifySignature(signature, message io.Reader, opts ...signature.VerifyOption) error {
 	signatureBytes, err := io.ReadAll(signature)
 	if err != nil {
 		return err
@@ -347,7 +347,7 @@ func (s testSignerVerifierImpl) VerifySignature(signature io.Reader, message io.
 
 // CryptoSigner only ensures that it is never called, since PluginClient.CryptoSigner()'s
 // returned object is meant to be a wrapper around PluginClient.
-func (s testSignerVerifierImpl) CryptoSigner(ctx context.Context, errFunc func(error)) (crypto.Signer, crypto.SignerOpts, error) {
+func (s testSignerVerifierImpl) CryptoSigner(_ context.Context, _ func(error)) (crypto.Signer, crypto.SignerOpts, error) {
 	s.t.Errorf("testSignerVerifierImpl.CryptoSigner() should never be called")
 	return nil, nil, errors.New("CryptoSigner() is not implemented")
 }
@@ -360,7 +360,7 @@ func TestPluginClient(t *testing.T) {
 	newTestPluginClient := func(t *testing.T) *PluginClient {
 		// Mock the behavior of Cmd to simulates a real plugin program by
 		// calling the helper handler functions `GetPluginArgs()` and `Dispatch()`, passing along the stdin, stdout, and args.
-		makeCmdFunc := func(ctx context.Context, stdin io.Reader, stderr io.Writer, name string, args ...string) cmd {
+		makeCmdFunc := func(ctx context.Context, stdin io.Reader, _ io.Writer, name string, args ...string) cmd {
 			outputFunc := func() ([]byte, error) {
 				if err := ctx.Err(); err != nil {
 					return nil, err
@@ -388,7 +388,7 @@ func TestPluginClient(t *testing.T) {
 
 		return newPluginClient(testExecutable, &common.InitOptions{}, makeCmdFunc)
 	}
-	var testNilErr error = nil
+	var testNilErr error
 
 	t.Run("DefaultAlgorithm", func(t *testing.T) {
 		t.Parallel()
@@ -515,7 +515,7 @@ func TestPluginClient(t *testing.T) {
 		// Here, we just make sure that our testSignerVerifierImpl.CryptoSigner() method is not called,
 		// since PluginClient.CryptoSigner()'s returned object is meant to be a wrapper around PluginClient.
 		testPluginClient := newTestPluginClient(t)
-		testErrFunc := func(err error) {}
+		testErrFunc := func(_ error) {}
 		testContext, cancel := context.WithDeadline(context.Background(), testContextDeadline)
 
 		_, _, err := testPluginClient.CryptoSigner(testContext, testErrFunc)

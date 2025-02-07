@@ -26,13 +26,19 @@ const (
 	// Breaking changes to the PluginClient and this schema necessarily mean major version bumps of
 	// this ProtocolVersion and the sigstore version.
 	// Plugin authors may choose to be backwards compatible with older versions.
-	ProtocolVersion               = "v1"
-	DefaultAlgorithmMethodName    = "defaultAlgorithm"
+	ProtocolVersion = "v1"
+	// DefaultAlgorithmMethodName is the MethodName for DefaultAlgorithsm().
+	DefaultAlgorithmMethodName = "defaultAlgorithm"
+	// SupportedAlgorithmsMethodName is the MethodName for SupportedAlgorithms().
 	SupportedAlgorithmsMethodName = "supportedAlgorithms"
-	CreateKeyMethodName           = "createKey"
-	PublicKeyMethodName           = "publicKey"
-	SignMessageMethodName         = "signMessage"
-	VerifySignatureMethodName     = "verifySignature"
+	// CreateKeyMethodName is the MethodName for CreateKey().
+	CreateKeyMethodName = "createKey"
+	// PublicKeyMethodName is the MethodName for PublicKey().
+	PublicKeyMethodName = "publicKey"
+	// SignMessageMethodName is the MethodName for SignMessage().
+	SignMessageMethodName = "signMessage"
+	// VerifySignatureMethodName is the MethodName for VerifySignature().
+	VerifySignatureMethodName = "verifySignature"
 	// CryptoSigner is not to be added to the protocol.
 	// PluginClient.CryptoSigner() will instead return a wrapper around the plugin.
 )
@@ -80,8 +86,7 @@ type PluginResp struct {
 }
 
 // DefaultAlgorithmArgs contains the serialized arguments for `DefaultAlgorithm()`.
-type DefaultAlgorithmArgs struct {
-}
+type DefaultAlgorithmArgs struct{}
 
 // DefaultAlgorithmResp contains the serialized response for `DefaultAlgorithm()`.
 type DefaultAlgorithmResp struct {
@@ -89,8 +94,7 @@ type DefaultAlgorithmResp struct {
 }
 
 // SupportedAlgorithmsArgs contains the serialized arguments for `SupportedAlgorithms()`.
-type SupportedAlgorithmsArgs struct {
-}
+type SupportedAlgorithmsArgs struct{}
 
 // SupportedAlgorithmsResp contains the serialized response for `SupportedAlgorithms()`.
 type SupportedAlgorithmsResp struct {
@@ -140,5 +144,4 @@ type VerifySignatureArgs struct {
 }
 
 // VerifySignatureResp contains the serialized response for `VerifySignature()`.
-type VerifySignatureResp struct {
-}
+type VerifySignatureResp struct{}
