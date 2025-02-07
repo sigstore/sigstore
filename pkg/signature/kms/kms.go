@@ -28,6 +28,9 @@ import (
 )
 
 // ProviderNotFoundError indicates that no matching KMS provider was found
+//
+// Deprecated: ProviderNotFoundError is no longer rerturned by Get(). If no matching provider is found
+// Get(), attempts to find a plugin program on the system, returning exec.ErrNotFound if not found.
 type ProviderNotFoundError struct {
 	ref string
 }
