@@ -25,9 +25,9 @@ import (
 	"strings"
 
 	"github.com/sigstore/sigstore/pkg/signature"
-	"github.com/sigstore/sigstore/pkg/signature/kms"
 	"github.com/sigstore/sigstore/pkg/signature/kms/cliplugin/common"
 	"github.com/sigstore/sigstore/pkg/signature/kms/cliplugin/encoding"
+	"github.com/sigstore/sigstore/pkg/signature/kms/signerverifier"
 )
 
 const (
@@ -38,15 +38,9 @@ const (
 // ErrorInputKeyResourceID indicates a problem parsing the key resource id.
 var ErrorInputKeyResourceID = errors.New("parsing input key resource id")
 
-// init registers the plugin system as a provider. It does not search for plugin programs.
-// Users must import this package, e.g.,  `import _ "github.com/sigstore/sigstore/pkg/signature/kms/cliplugin"`
-func init() {
-	kms.AddProvider(kms.CLIPluginProviderKey, LoadSignerVerifier)
-}
-
 // LoadSignerVerifier creates a PluginClient with these InitOptions.
 // If the plugin executable does not exist, then it returns exec.ErrNotFound.
-func LoadSignerVerifier(ctx context.Context, inputKeyResourceID string, hashFunc crypto.Hash, opts ...signature.RPCOption) (kms.SignerVerifier, error) {
+func LoadSignerVerifier(ctx context.Context, inputKeyResourceID string, hashFunc crypto.Hash, opts ...signature.RPCOption) (signerverifier.SignerVerifier, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}

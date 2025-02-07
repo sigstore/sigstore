@@ -23,6 +23,7 @@ import (
 	"strings"
 
 	"github.com/sigstore/sigstore/pkg/signature"
+	"github.com/sigstore/sigstore/pkg/signature/kms/cliplugin"
 	"github.com/sigstore/sigstore/pkg/signature/kms/signerverifier"
 )
 
@@ -54,12 +55,10 @@ func AddProvider(keyResourceID string, init ProviderInit) {
 
 var providersMap = map[string]ProviderInit{}
 
-// Get returns a KMS SignerVerifier for the given resource string and hash function.
-// If no matching provider is found, Get returns a ProviderNotFoundError. It
-// also returns an error if initializing the SignerVerifier fails.
-// If keyResourceID doesn't match any of our hard-coded providers' schemas,
-// it will try to use the plugin system as a provider. If the caller did not import cliplugin
-// to allow it to run its init(), then it returns ProviderNotFoundError.
+// If no matching built-in provider is found, it will try to use the plugin system as a provider.
+// If keyResourceID doesn't match any of our hard-coded providers' schemas, or the plugin program
+// can't be found, then it returns ProviderNotFoundError.
+// It also returns an error if initializing the SignerVerifier fails.
 func Get(ctx context.Context, keyResourceID string, hashFunc crypto.Hash, opts ...signature.RPCOption) (SignerVerifier, error) {
 	for ref, pi := range providersMap {
 		if strings.HasPrefix(keyResourceID, ref) {
@@ -70,14 +69,15 @@ func Get(ctx context.Context, keyResourceID string, hashFunc crypto.Hash, opts .
 			return sv, nil
 		}
 	}
-	if pi, ok := providersMap[CLIPluginProviderKey]; ok {
-		sv, err := pi(ctx, keyResourceID, hashFunc, opts...)
-		if err != nil {
-			return nil, err
-		}
-		return sv, nil
-	}
-	return nil, &ProviderNotFoundError{ref: keyResourceID}
+	sv, err := cliplugin.LoadSignerVerifier(ctx, keyResourceID, hashFunc, opts...)
+	// We don't return a ProviderNotFoundError because cosign currently interprets those in a confusing way:
+	// "error during command execution: signing ../blob.txt: reading key: loading URL: unrecognized scheme: mykms://".
+	// Instead, without the ProviderNotFoundError, we would get:
+	// "error during command execution: signing ../blob.txt: reading key: kms get: exec: "sigstore-kms-mykms": executable file not found in $PATH"
+	// if errors.Is(err, exec.ErrNotFound) {
+	// 	return nil, &ProviderNotFoundError{ref: keyResourceID}
+	// }
+	return sv, err
 }
 
 // SupportedProviders returns list of initialized providers
