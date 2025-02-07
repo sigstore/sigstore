@@ -41,7 +41,7 @@ var (
 )
 
 // LocalSignerVerifier creates and verifies digital signatures with a key saved at KeyResourceID,
-// and implements kms.SignerVerifier.
+// and implements signerverifier.SignerVerifier.
 type LocalSignerVerifier struct {
 	keyResourceID string
 	hashFunc      crypto.Hash

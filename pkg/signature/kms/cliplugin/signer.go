@@ -43,7 +43,7 @@ var (
 	ErrorPluginReturnError = errors.New("plugin returned error")
 )
 
-// PluginClient implements kms.SignerVerifier with calls to our plugin program.
+// PluginClient implements signerverifier.SignerVerifier with calls to our plugin program.
 type PluginClient struct {
 	executable  string
 	initOptions common.InitOptions

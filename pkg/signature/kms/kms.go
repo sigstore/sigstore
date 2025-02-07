@@ -23,6 +23,7 @@ import (
 	"strings"
 
 	"github.com/sigstore/sigstore/pkg/signature"
+	"github.com/sigstore/sigstore/pkg/signature/kms/signerverifier"
 )
 
 const (
@@ -89,10 +90,7 @@ func SupportedProviders() []string {
 }
 
 // SignerVerifier creates and verifies digital signatures over a message using a KMS service
+// It is a wrapper for signerverifier.SignerVerifier.
 type SignerVerifier interface {
-	signature.SignerVerifier
-	CreateKey(ctx context.Context, algorithm string) (crypto.PublicKey, error)
-	CryptoSigner(ctx context.Context, errFunc func(error)) (crypto.Signer, crypto.SignerOpts, error)
-	SupportedAlgorithms() []string
-	DefaultAlgorithm() string
+	signerverifier.SignerVerifier
 }
