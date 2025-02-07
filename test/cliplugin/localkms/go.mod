@@ -4,19 +4,16 @@ go 1.22.0
 
 replace github.com/sigstore/sigstore => ../../..
 
-replace github.com/sigstore/sigstore/pkg/signature/kms/cliplugin => ../../../pkg/signature/kms/cliplugin
-
 require (
 	github.com/davecgh/go-spew v1.1.1
-	github.com/sigstore/sigstore v1.8.10
-	github.com/sigstore/sigstore/pkg/signature/kms/cliplugin v0.0.0-00010101000000-000000000000
+	github.com/sigstore/sigstore v0.0.0-00010101000000-000000000000
 )
 
 require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/go-jose/go-jose/v4 v4.0.2 // indirect
 	github.com/google/go-containerregistry v0.20.2 // indirect
-	github.com/kr/text v0.2.0 // indirect
+	github.com/kr/pretty v0.3.1 // indirect
 	github.com/letsencrypt/boulder v0.0.0-20240620165639-de9c06129bec // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/rogpeppe/go-internal v1.13.1 // indirect
