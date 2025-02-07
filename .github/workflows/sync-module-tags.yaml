@@ -32,10 +32,14 @@ jobs:
 
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: true
+        env:
+          REF_NAME: ${{ github.ref_name }}
       - run: |
-          tag="${{ matrix.module }}/${{ github.ref_name }}"
+          tag="${{ matrix.module }}/${REF_NAME}"
           echo tagging "${tag}"
           git config user.name "${GITHUB_ACTOR}"
           git config user.email "${GITHUB_ACTOR}@users.noreply.github.com"
-          git tag -a "${tag}" -m "syncing module ${{ matrix.module }} @ ${{ github.ref_name }}"
+          git tag -a "${tag}" -m "syncing module ${{ matrix.module }} @ ${REF_NAME}"
           git push origin "${tag}"
