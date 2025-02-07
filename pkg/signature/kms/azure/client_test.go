@@ -94,7 +94,6 @@ func (c *keyNotFoundClient) GetKey(_ context.Context, _, _ string, _ *azkeys.Get
 
 type nonResponseErrClient struct {
 	testKVClient
-	keyCache *ttlcache.Cache[string, crypto.PublicKey]
 }
 
 func (c *nonResponseErrClient) GetKey(_ context.Context, _, _ string, _ *azkeys.GetKeyOptions) (result azkeys.GetKeyResponse, err error) {
@@ -104,7 +103,6 @@ func (c *nonResponseErrClient) GetKey(_ context.Context, _, _ string, _ *azkeys.
 
 type non404RespClient struct {
 	testKVClient
-	keyCache *ttlcache.Cache[string, crypto.PublicKey]
 }
 
 func (c *non404RespClient) GetKey(_ context.Context, _, _ string, _ *azkeys.GetKeyOptions) (result azkeys.GetKeyResponse, err error) {

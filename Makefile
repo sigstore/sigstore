@@ -23,11 +23,8 @@ FUZZ_DIR := ./test/fuzz
 INTEGRATION_TEST_DIR := ./test/e2e
 GO-FUZZ-BUILD := $(TOOLS_BIN_DIR)/go-fuzz-build
 
-GOLANGCI_LINT_DIR = $(CURDIR)/bin
-GOLANGCI_LINT_BIN = $(GOLANGCI_LINT_DIR)/golangci-lint
-
 TEST_LOCALKMS_DIR := ./test/cliplugin/localkms
-TEST_LOCALKMS_BIN_DIR := $(GOLANGCI_LINT_DIR)
+TEST_LOCALKMS_BIN_DIR := $(CURDIR)/bin
 TEST_LOCALKMS_BIN := $(TEST_LOCALKMS_BIN_DIR)/sigstore-kms-testkms
 ifeq ($(OS),Windows_NT)
 	TEST_LOCALKMS_BIN := $(TEST_LOCALKMS_BIN).exe
@@ -39,14 +36,10 @@ LDFLAGS ?=
 
 GO_MOD_DIRS = . ./pkg/signature/kms/aws ./pkg/signature/kms/azure ./pkg/signature/kms/gcp ./pkg/signature/kms/hashivault ./pkg/signature/kms/cliplugin
 
-golangci-lint:
-	rm -f $(GOLANGCI_LINT_BIN) || :
-	set -e ;\
-	GOBIN=$(GOLANGCI_LINT_DIR) go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.63.4 ;\
-
-lint: golangci-lint ## Run golangci-lint
-	$(GOLANGCI_LINT_BIN) run -v --new-from-rev=HEAD~ ./...
-	cd $(CLI_PLUGIN_DIR) && $(GOLANGCI_LINT_BIN) run -v --new-from-rev=HEAD~ ./...
+lint:
+	for dir in $(GO_MOD_DIRS) ; do \
+	    cd $$dir && golangci-lint run -v --new-from-rev=HEAD~ ./... && cd - ; \
+	done
 
 pkg: ## Build pkg
 	set -o xtrace; \

@@ -34,8 +34,6 @@ linters:
     - unparam
     - unused
     - whitespace
-output:
-  uniq-by-line: false
 issues:
   include:
     # revive `package-comments` and `exported` rules.
@@ -53,6 +51,7 @@ issues:
         - revive
   max-issues-per-linter: 0
   max-same-issues: 0
+  uniq-by-line: false
 linters-settings:
   gofumpt:
     extra-rules: true
