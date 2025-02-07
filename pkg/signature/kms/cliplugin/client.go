@@ -21,6 +21,7 @@ import (
 	"crypto"
 	"errors"
 	"fmt"
+	"os/exec"
 	"strings"
 
 	"github.com/sigstore/sigstore/pkg/signature"
@@ -44,12 +45,16 @@ func init() {
 }
 
 // LoadSignerVerifier creates a PluginClient with these InitOptions.
+// If the plugin executable does not exist, then it returns exec.ErrNotFound.
 func LoadSignerVerifier(ctx context.Context, inputKeyResourceID string, hashFunc crypto.Hash, opts ...signature.RPCOption) (kms.SignerVerifier, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
 	executable, keyResourceID, err := getPluginExecutableAndKeyResourceID(inputKeyResourceID)
 	if err != nil {
+		return nil, err
+	}
+	if _, err := exec.LookPath(executable); err != nil {
 		return nil, err
 	}
 	initOptions := &common.InitOptions{
