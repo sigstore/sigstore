@@ -59,13 +59,13 @@ One caveat is that the plugin program needs to be relaunched upon every `SignerV
 For the next major protocol version, we could implement a REPL-like system, where the plugin program is long-lived, and method arguments are sent over stdin, line-by-line on a loop. This way, the PluginClient and the plugin program can both be long-lived and can both maintain state in-memory. Here is how it could work:
 
 1. Main program launches the plugin program with version “v+1” as the sole argument.
-  1. Main program sends `InitOptions` over stdin on a single line.
-  1. For thread safety, the `PluginClient` will need to maintain a lock so that two goroutines using the same instance of the client don’t trigger simultaneous writes or reads against the io.Reader and io.Reader of the running `Command`.
+    1. Main program sends `InitOptions` over stdin on a single line.
+    1. For thread safety, the `PluginClient` will need to maintain a lock so that two goroutines using the same instance of the client don’t trigger simultaneous writes or reads against the io.Reader and io.Reader of the running `Command`.
 1. Plugin program reads a single line, parses the `InitOptions`, and performs initialization tasks.
 1. In a loop:
-  1. Plugin program awaits to read a single line of `MethodArgs` from stdin, parses, dispatches to its `SignerVerifier` implementation, returns a `MethodResp` on a single line over stdout.
-  1. Main program sends a single line of `MethodArgs` over stdin, awaits a single line of `MethodResp` over stdout, parses, and returns to the caller of the method.
-  1. Main program can send a `EOF` line as a signal that the plugin program interprets to exit its loop.
+    1. Plugin program awaits to read a single line of `MethodArgs` from stdin, parses, dispatches to its `SignerVerifier` implementation, returns a `MethodResp` on a single line over stdout.
+    1. Main program sends a single line of `MethodArgs` over stdin, awaits a single line of `MethodResp` over stdout, parses, and returns to the caller of the method.
+    1. Main program can send a `EOF` line as a signal that the plugin program interprets to exit its loop.
 
 ## Development
 
