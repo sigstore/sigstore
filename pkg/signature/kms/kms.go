@@ -67,15 +67,15 @@ func Get(ctx context.Context, keyResourceID string, hashFunc crypto.Hash, opts .
 			return sv, nil
 		}
 	}
-	sv, err := cliplugin.LoadSignerVerifier(ctx, keyResourceID, hashFunc, opts...)
 	// We don't return a ProviderNotFoundError because cosign currently interprets those in a confusing way:
 	// "error during command execution: signing ../blob.txt: reading key: loading URL: unrecognized scheme: mykms://".
 	// Instead, without the ProviderNotFoundError, we would get:
 	// "error during command execution: signing ../blob.txt: reading key: kms get: exec: "sigstore-kms-mykms": executable file not found in $PATH"
+	// sv, err := cliplugin.LoadSignerVerifier(ctx, keyResourceID, hashFunc, opts...)
 	// if errors.Is(err, exec.ErrNotFound) {
 	// 	return nil, &ProviderNotFoundError{ref: keyResourceID}
 	// }
-	return sv, err
+	return cliplugin.LoadSignerVerifier(ctx, keyResourceID, hashFunc, opts...)
 }
 
 // SupportedProviders returns list of initialized providers

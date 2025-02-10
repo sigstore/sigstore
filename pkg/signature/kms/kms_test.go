@@ -33,10 +33,8 @@ func TestGetCLIPluginLoadAttempt(t *testing.T) {
 	testCtx := context.Background()
 	testKey := "gundam://00"
 
-	_, err := Get(testCtx, testKey, testHashFunc)
-
 	// exec.ErrNotFound is returned by cliplugin.LoadSignerVerifier().
-	if !errors.Is(err, exec.ErrNotFound) {
+	if _, err := Get(testCtx, testKey, testHashFunc); !errors.Is(err, exec.ErrNotFound) {
 		t.Errorf("wanted exec.ErrNotFound, got: %v", err)
 	}
 }
