@@ -25,7 +25,7 @@ import (
 	"io"
 
 	"github.com/sigstore/sigstore/pkg/signature/kms/cliplugin/common"
-	"github.com/sigstore/sigstore/pkg/signature/kms/signerverifier"
+	"github.com/sigstore/sigstore/pkg/signature/kms/cliplugin/internal/signerverifier"
 )
 
 var (

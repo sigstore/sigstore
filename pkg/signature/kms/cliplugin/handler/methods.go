@@ -26,7 +26,7 @@ import (
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
 	"github.com/sigstore/sigstore/pkg/signature/kms/cliplugin/common"
 	"github.com/sigstore/sigstore/pkg/signature/kms/cliplugin/encoding"
-	"github.com/sigstore/sigstore/pkg/signature/kms/signerverifier"
+	"github.com/sigstore/sigstore/pkg/signature/kms/cliplugin/internal/signerverifier"
 )
 
 // DefaultAlgorithm parses arguments and return values to and from the impl.

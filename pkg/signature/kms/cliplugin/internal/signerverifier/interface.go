@@ -24,6 +24,8 @@ import (
 )
 
 // SignerVerifier creates and verifies digital signatures over a message using a KMS service
+// The contents must be kept in sync with kms.SignerVerifier, to continue satisfying that interface.
+// We don't directly embed kms.SignerVerfifier because then we would have an import cycle.
 type SignerVerifier interface {
 	signature.SignerVerifier
 	CreateKey(ctx context.Context, algorithm string) (crypto.PublicKey, error)

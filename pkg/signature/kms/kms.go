@@ -24,7 +24,6 @@ import (
 
 	"github.com/sigstore/sigstore/pkg/signature"
 	"github.com/sigstore/sigstore/pkg/signature/kms/cliplugin"
-	"github.com/sigstore/sigstore/pkg/signature/kms/signerverifier"
 )
 
 // ProviderNotFoundError indicates that no matching KMS provider was found
@@ -88,7 +87,10 @@ func SupportedProviders() []string {
 }
 
 // SignerVerifier creates and verifies digital signatures over a message using a KMS service
-// It is a wrapper for signerverifier.SignerVerifier.
 type SignerVerifier interface {
-	signerverifier.SignerVerifier
+	signature.SignerVerifier
+	CreateKey(ctx context.Context, algorithm string) (crypto.PublicKey, error)
+	CryptoSigner(ctx context.Context, errFunc func(error)) (crypto.Signer, crypto.SignerOpts, error)
+	SupportedAlgorithms() []string
+	DefaultAlgorithm() string
 }
