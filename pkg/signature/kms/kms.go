@@ -19,7 +19,9 @@ package kms
 import (
 	"context"
 	"crypto"
+	"errors"
 	"fmt"
+	"os/exec"
 	"strings"
 
 	"github.com/sigstore/sigstore/pkg/signature"
@@ -27,9 +29,6 @@ import (
 )
 
 // ProviderNotFoundError indicates that no matching KMS provider was found
-//
-// Deprecated: ProviderNotFoundError is no longer returned by Get(). If no matching provider is found
-// Get(), attempts to find a plugin program on the system, returning exec.ErrNotFound if not found.
 type ProviderNotFoundError struct {
 	ref string
 }
@@ -66,15 +65,11 @@ func Get(ctx context.Context, keyResourceID string, hashFunc crypto.Hash, opts .
 			return sv, nil
 		}
 	}
-	// We don't return a ProviderNotFoundError because cosign currently interprets those in a confusing way:
-	// "error during command execution: signing ../blob.txt: reading key: loading URL: unrecognized scheme: mykms://".
-	// Instead, without the ProviderNotFoundError, we would get:
-	// "error during command execution: signing ../blob.txt: reading key: kms get: exec: "sigstore-kms-mykms": executable file not found in $PATH"
-	// sv, err := cliplugin.LoadSignerVerifier(ctx, keyResourceID, hashFunc, opts...)
-	// if errors.Is(err, exec.ErrNotFound) {
-	// 	return nil, &ProviderNotFoundError{ref: keyResourceID}
-	// }
-	return cliplugin.LoadSignerVerifier(ctx, keyResourceID, hashFunc, opts...)
+	sv, err := cliplugin.LoadSignerVerifier(ctx, keyResourceID, hashFunc, opts...)
+	if errors.Is(err, exec.ErrNotFound) {
+		return nil, fmt.Errorf("%w: %w", &ProviderNotFoundError{ref: keyResourceID}, err)
+	}
+	return sv, err
 }
 
 // SupportedProviders returns list of initialized providers

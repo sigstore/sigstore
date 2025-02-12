@@ -22,19 +22,74 @@ import (
 	"errors"
 	"os/exec"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/sigstore/sigstore/pkg/signature"
 )
 
-// TestGetCLIPluginLoadAttempt ensures that there is an attempt to load the PluginClient.
-// Other KMS providers can't really be tested here because we would have to import them, causing circular imports.
-func TestGetCLIPluginLoadAttempt(t *testing.T) {
+// TestGet ensures that there is are load attempts on registered providers, including the CLIPlugin,
+// and it returns the correct errors.
+func TestGet(t *testing.T) {
 	t.Parallel()
 
 	testHashFunc := crypto.SHA256
 	testCtx := context.Background()
-	testKey := "gundam://00"
 
-	// exec.ErrNotFound is returned by cliplugin.LoadSignerVerifier().
-	if _, err := Get(testCtx, testKey, testHashFunc); !errors.Is(err, exec.ErrNotFound) {
-		t.Errorf("wanted exec.ErrNotFound, got: %v", err)
-	}
+	t.Run("cliplugin", func(t *testing.T) {
+		t.Parallel()
+
+		testKey := "gundam://00"
+		var providerNotFoundError *ProviderNotFoundError
+
+		// we only check for errors because we can't assume that there exits on the system
+		// a program prefixed with "sigstore-kms-".
+		_, err := Get(testCtx, testKey, testHashFunc)
+		if !errors.As(err, &providerNotFoundError) {
+			t.Errorf("wanted ProviderNotFoundError, got: %v", err)
+		}
+		// exec.ErrNotFound is returned by cliplugin.LoadSignerVerifier().
+		if !errors.Is(err, exec.ErrNotFound) {
+			t.Errorf("wanted exec.ErrNotFound, got: %v", err)
+		}
+	})
+
+	t.Run("registered provider error", func(t *testing.T) {
+		t.Parallel()
+
+		testKeySchma := "myhero://"
+		testKeyResourceID := testKeySchma + "deku"
+		ErrorAssumingAllMight := errors.New("error assuming all might")
+
+		// this init function only returns an error
+		AddProvider("myhero://", func(ctx context.Context, s string, h crypto.Hash, r ...signature.RPCOption) (SignerVerifier, error) {
+			return nil, ErrorAssumingAllMight
+		})
+		_, err := Get(testCtx, testKeyResourceID, testHashFunc)
+		if diff := cmp.Diff(ErrorAssumingAllMight, err, cmpopts.EquateErrors()); diff != "" {
+			t.Errorf("unexpected error (-want +got):\n%s", diff)
+		}
+	})
+
+	t.Run("successful provider", func(t *testing.T) {
+		t.Parallel()
+
+		testKeySchma := "sac://"
+		testKeyResourceID := testKeySchma + "2nd"
+		testSignerVerifier := struct {
+			SignerVerifier
+		}{}
+		var wantedErr error
+
+		AddProvider(testKeySchma, func(ctx context.Context, s string, h crypto.Hash, r ...signature.RPCOption) (SignerVerifier, error) {
+			return testSignerVerifier, nil
+		})
+		signerVerifier, err := Get(testCtx, testKeyResourceID, testHashFunc)
+		if diff := cmp.Diff(wantedErr, err, cmpopts.EquateErrors()); diff != "" {
+			t.Errorf("unexpected error (-want +got):\n%s", diff)
+		}
+		if diff := cmp.Diff(testSignerVerifier, signerVerifier); diff != "" {
+			t.Errorf("unexpected signer verifier (-want +got):\n%s", diff)
+		}
+	})
 }
