@@ -62,7 +62,7 @@ func TestGet(t *testing.T) {
 		ErrorAssumingAllMight := errors.New("error assuming all might")
 
 		// this init function only returns an error
-		AddProvider("myhero://", func(ctx context.Context, s string, h crypto.Hash, r ...signature.RPCOption) (SignerVerifier, error) {
+		AddProvider("myhero://", func(_ context.Context, _ string, _ crypto.Hash, _ ...signature.RPCOption) (SignerVerifier, error) {
 			return nil, ErrorAssumingAllMight
 		})
 		_, err := Get(testCtx, testKeyResourceID, testHashFunc)
@@ -81,7 +81,7 @@ func TestGet(t *testing.T) {
 		}{}
 		var wantedErr error
 
-		AddProvider(testKeySchma, func(ctx context.Context, s string, h crypto.Hash, r ...signature.RPCOption) (SignerVerifier, error) {
+		AddProvider(testKeySchma, func(_ context.Context, _ string, _ crypto.Hash, _ ...signature.RPCOption) (SignerVerifier, error) {
 			return testSignerVerifier, nil
 		})
 		signerVerifier, err := Get(testCtx, testKeyResourceID, testHashFunc)
