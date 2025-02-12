@@ -24,13 +24,13 @@ import (
 	"io"
 
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
-	"github.com/sigstore/sigstore/pkg/signature/kms"
 	"github.com/sigstore/sigstore/pkg/signature/kms/cliplugin/common"
 	"github.com/sigstore/sigstore/pkg/signature/kms/cliplugin/encoding"
+	"github.com/sigstore/sigstore/pkg/signature/kms/cliplugin/internal/signerverifier"
 )
 
 // DefaultAlgorithm parses arguments and return values to and from the impl.
-func DefaultAlgorithm(_ io.Reader, _ *common.DefaultAlgorithmArgs, impl kms.SignerVerifier) (*common.DefaultAlgorithmResp, error) {
+func DefaultAlgorithm(_ io.Reader, _ *common.DefaultAlgorithmArgs, impl signerverifier.SignerVerifier) (*common.DefaultAlgorithmResp, error) {
 	defaultAlgorithm := impl.DefaultAlgorithm()
 	resp := &common.DefaultAlgorithmResp{
 		DefaultAlgorithm: defaultAlgorithm,
@@ -39,7 +39,7 @@ func DefaultAlgorithm(_ io.Reader, _ *common.DefaultAlgorithmArgs, impl kms.Sign
 }
 
 // SupportedAlgorithms parses arguments and return values to and from the impl.
-func SupportedAlgorithms(_ io.Reader, _ *common.SupportedAlgorithmsArgs, impl kms.SignerVerifier) (*common.SupportedAlgorithmsResp, error) {
+func SupportedAlgorithms(_ io.Reader, _ *common.SupportedAlgorithmsArgs, impl signerverifier.SignerVerifier) (*common.SupportedAlgorithmsResp, error) {
 	supportedAlgorithms := impl.SupportedAlgorithms()
 	resp := &common.SupportedAlgorithmsResp{
 		SupportedAlgorithms: supportedAlgorithms,
@@ -48,7 +48,7 @@ func SupportedAlgorithms(_ io.Reader, _ *common.SupportedAlgorithmsArgs, impl km
 }
 
 // CreateKey parses arguments and return values to and from the impl.
-func CreateKey(_ io.Reader, args *common.CreateKeyArgs, impl kms.SignerVerifier) (*common.CreateKeyResp, error) {
+func CreateKey(_ io.Reader, args *common.CreateKeyArgs, impl signerverifier.SignerVerifier) (*common.CreateKeyResp, error) {
 	ctx := context.Background()
 	if args.CtxDeadline != nil {
 		var cancel context.CancelFunc
@@ -70,7 +70,7 @@ func CreateKey(_ io.Reader, args *common.CreateKeyArgs, impl kms.SignerVerifier)
 }
 
 // PublicKey parses arguments and return values to and from the impl.
-func PublicKey(_ io.Reader, args *common.PublicKeyArgs, impl kms.SignerVerifier) (*common.PublicKeyResp, error) {
+func PublicKey(_ io.Reader, args *common.PublicKeyArgs, impl signerverifier.SignerVerifier) (*common.PublicKeyResp, error) {
 	opts := encoding.UnpackPublicKeyOptions(args.PublicKeyOptions)
 	publicKey, err := impl.PublicKey(opts...)
 	if err != nil {
@@ -87,7 +87,7 @@ func PublicKey(_ io.Reader, args *common.PublicKeyArgs, impl kms.SignerVerifier)
 }
 
 // SignMessage parses arguments and return values to and from the impl.
-func SignMessage(message io.Reader, args *common.SignMessageArgs, impl kms.SignerVerifier) (*common.SignMessageResp, error) {
+func SignMessage(message io.Reader, args *common.SignMessageArgs, impl signerverifier.SignerVerifier) (*common.SignMessageResp, error) {
 	opts := encoding.UnpackSignOptions(args.SignOptions)
 	signature, err := impl.SignMessage(message, opts...)
 	if err != nil {
@@ -100,7 +100,7 @@ func SignMessage(message io.Reader, args *common.SignMessageArgs, impl kms.Signe
 }
 
 // VerifySignature parses arguments and return values to and from the impl.
-func VerifySignature(message io.Reader, args *common.VerifySignatureArgs, impl kms.SignerVerifier) (*common.VerifySignatureResp, error) {
+func VerifySignature(message io.Reader, args *common.VerifySignatureArgs, impl signerverifier.SignerVerifier) (*common.VerifySignatureResp, error) {
 	opts := encoding.UnpackVerifyOptions(args.VerifyOptions)
 	err := impl.VerifySignature(bytes.NewReader(args.Signature), message, opts...)
 	if err != nil {

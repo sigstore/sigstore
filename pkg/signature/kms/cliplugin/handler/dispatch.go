@@ -24,8 +24,8 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/sigstore/sigstore/pkg/signature/kms"
 	"github.com/sigstore/sigstore/pkg/signature/kms/cliplugin/common"
+	"github.com/sigstore/sigstore/pkg/signature/kms/cliplugin/internal/signerverifier"
 )
 
 var (
@@ -68,7 +68,7 @@ func WriteErrorResponse(stdout io.Writer, err error) error {
 
 // Dispatch routes to handler functions based on the PluginArgs.
 // If there is an error to be returned, it will also call WriteResponse with the error.
-func Dispatch(stdout io.Writer, stdin io.Reader, pluginArgs *common.PluginArgs, impl kms.SignerVerifier) (*common.PluginResp, error) {
+func Dispatch(stdout io.Writer, stdin io.Reader, pluginArgs *common.PluginArgs, impl signerverifier.SignerVerifier) (*common.PluginResp, error) {
 	var resp common.PluginResp
 	var err error
 	switch pluginArgs.MethodName {

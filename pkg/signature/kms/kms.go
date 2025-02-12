@@ -19,16 +19,13 @@ package kms
 import (
 	"context"
 	"crypto"
+	"errors"
 	"fmt"
+	"os/exec"
 	"strings"
 
 	"github.com/sigstore/sigstore/pkg/signature"
-)
-
-const (
-	// CLIPluginProviderKey is a placeholder used to register the cliplugin as a provider in AddProvider().
-	// Its value should not conflict with any potential callers of AddProvider().
-	CLIPluginProviderKey = "cliplugin"
+	"github.com/sigstore/sigstore/pkg/signature/kms/cliplugin"
 )
 
 // ProviderNotFoundError indicates that no matching KMS provider was found
@@ -54,11 +51,10 @@ func AddProvider(keyResourceID string, init ProviderInit) {
 var providersMap = map[string]ProviderInit{}
 
 // Get returns a KMS SignerVerifier for the given resource string and hash function.
-// If no matching provider is found, Get returns a ProviderNotFoundError. It
-// also returns an error if initializing the SignerVerifier fails.
-// If keyResourceID doesn't match any of our hard-coded providers' schemas,
-// it will try to use the plugin system as a provider. If the caller did not import cliplugin
-// to allow it to run its init(), then it returns ProviderNotFoundError.
+// If no matching built-in provider is found, it will try to use the plugin system as a provider.
+// If keyResourceID doesn't match any of our hard-coded providers' schemas, or the plugin program
+// can't be found, then it returns ProviderNotFoundError.
+// It also returns an error if initializing the SignerVerifier fails.
 func Get(ctx context.Context, keyResourceID string, hashFunc crypto.Hash, opts ...signature.RPCOption) (SignerVerifier, error) {
 	for ref, pi := range providersMap {
 		if strings.HasPrefix(keyResourceID, ref) {
@@ -69,14 +65,11 @@ func Get(ctx context.Context, keyResourceID string, hashFunc crypto.Hash, opts .
 			return sv, nil
 		}
 	}
-	if pi, ok := providersMap[CLIPluginProviderKey]; ok {
-		sv, err := pi(ctx, keyResourceID, hashFunc, opts...)
-		if err != nil {
-			return nil, err
-		}
-		return sv, nil
+	sv, err := cliplugin.LoadSignerVerifier(ctx, keyResourceID, hashFunc, opts...)
+	if errors.Is(err, exec.ErrNotFound) {
+		return nil, fmt.Errorf("%w: %w", &ProviderNotFoundError{ref: keyResourceID}, err)
 	}
-	return nil, &ProviderNotFoundError{ref: keyResourceID}
+	return sv, err
 }
 
 // SupportedProviders returns list of initialized providers
