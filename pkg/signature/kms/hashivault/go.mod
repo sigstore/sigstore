@@ -5,7 +5,7 @@ replace github.com/sigstore/sigstore => ../../../../
 go 1.22.0
 
 require (
-	github.com/hashicorp/vault/api v1.15.0
+	github.com/hashicorp/vault/api v1.16.0
 	github.com/jellydator/ttlcache/v3 v3.3.0
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/sigstore/sigstore v1.6.4
@@ -36,7 +36,7 @@ require (
 	github.com/sigstore/protobuf-specs v0.4.0 // indirect
 	github.com/titanous/rocacheck v0.0.0-20171023193734-afe73141d399 // indirect
 	golang.org/x/crypto v0.32.0 // indirect
-	golang.org/x/net v0.33.0 // indirect
+	golang.org/x/net v0.34.0 // indirect
 	golang.org/x/sync v0.10.0 // indirect
 	golang.org/x/sys v0.29.0 // indirect
 	golang.org/x/term v0.28.0 // indirect
