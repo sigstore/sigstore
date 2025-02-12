@@ -42,7 +42,7 @@ func TestGet(t *testing.T) {
 		testKey := "gundam://00"
 		var providerNotFoundError *ProviderNotFoundError
 
-		// we only check for errors because we can't assume that there exits on the system
+		// we only check for errors because we can't assume that there exists on the system
 		// a program prefixed with "sigstore-kms-".
 		_, err := Get(testCtx, testKey, testHashFunc)
 		if !errors.As(err, &providerNotFoundError) {
