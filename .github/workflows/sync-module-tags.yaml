@@ -1,3 +1,4 @@
+name: "Sync tags with all modules"
 on:
   push:
     tags:
@@ -36,7 +37,7 @@ jobs:
         env:
           REF_NAME: ${{ github.ref_name }}
       - run: |
-          tag="${{ matrix.module }}/${REF_NAME}"
+          export tag="${{ matrix.module }}/${REF_NAME}"
           echo tagging "${tag}"
           git config user.name "${GITHUB_ACTOR}"
           git config user.email "${GITHUB_ACTOR}@users.noreply.github.com"
