@@ -34,9 +34,9 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           persist-credentials: true
-        env:
+      - env:
           REF_NAME: ${{ github.ref_name }}
-      - run: |
+        run: |
           export tag="${{ matrix.module }}/${REF_NAME}"
           echo tagging "${tag}"
           git config user.name "${GITHUB_ACTOR}"
