@@ -67,7 +67,7 @@ func Get(ctx context.Context, keyResourceID string, hashFunc crypto.Hash, opts .
 	sv, err := cliplugin.LoadSignerVerifier(ctx, keyResourceID, hashFunc, opts...)
 	var pnfErr *cliplugin.ProviderNotFoundError
 	if errors.As(err, &pnfErr) {
-		return nil, fmt.Errorf("%w: %v", &ProviderNotFoundError{Ref: keyResourceID}, err)
+		return nil, fmt.Errorf("%w: %w", &ProviderNotFoundError{Ref: keyResourceID}, err)
 	}
 	return sv, err
 }
