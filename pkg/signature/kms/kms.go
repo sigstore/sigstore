@@ -21,7 +21,6 @@ import (
 	"crypto"
 	"errors"
 	"fmt"
-	"os/exec"
 	"strings"
 
 	"github.com/sigstore/sigstore/pkg/signature"
@@ -30,11 +29,11 @@ import (
 
 // ProviderNotFoundError indicates that no matching KMS provider was found
 type ProviderNotFoundError struct {
-	ref string
+	Ref string
 }
 
 func (e *ProviderNotFoundError) Error() string {
-	return fmt.Sprintf("no kms provider found for key reference: %s", e.ref)
+	return fmt.Sprintf("no kms provider found for key reference: %s", e.Ref)
 }
 
 // ProviderInit is a function that initializes provider-specific SignerVerifier.
@@ -66,8 +65,9 @@ func Get(ctx context.Context, keyResourceID string, hashFunc crypto.Hash, opts .
 		}
 	}
 	sv, err := cliplugin.LoadSignerVerifier(ctx, keyResourceID, hashFunc, opts...)
-	if errors.Is(err, exec.ErrNotFound) {
-		return nil, fmt.Errorf("%w: %w", &ProviderNotFoundError{ref: keyResourceID}, err)
+	var pnfErr *cliplugin.ProviderNotFoundError
+	if errors.As(err, &pnfErr) {
+		return nil, fmt.Errorf("%w: %v", &ProviderNotFoundError{Ref: keyResourceID}, err)
 	}
 	return sv, err
 }

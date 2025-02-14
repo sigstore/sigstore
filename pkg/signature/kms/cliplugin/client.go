@@ -35,6 +35,15 @@ const (
 	PluginBinaryPrefix = "sigstore-kms-"
 )
 
+// ProviderNotFoundError indicates that no matching KMS provider was found
+type ProviderNotFoundError struct {
+	Ref string
+}
+
+func (e *ProviderNotFoundError) Error() string {
+	return fmt.Sprintf("no kms provider found for key reference: %s", e.Ref)
+}
+
 // ErrorInputKeyResourceID indicates a problem parsing the key resource id.
 var ErrorInputKeyResourceID = errors.New("parsing input key resource id")
 
@@ -49,6 +58,9 @@ func LoadSignerVerifier(ctx context.Context, inputKeyResourceID string, hashFunc
 		return nil, err
 	}
 	if _, err := exec.LookPath(executable); err != nil {
+		if errors.Is(err, exec.ErrNotFound) {
+			return nil, &ProviderNotFoundError{Ref: inputKeyResourceID}
+		}
 		return nil, err
 	}
 	initOptions := &common.InitOptions{
@@ -68,7 +80,7 @@ func LoadSignerVerifier(ctx context.Context, inputKeyResourceID string, hashFunc
 func getPluginExecutableAndKeyResourceID(inputKeyResourceID string) (string, string, error) {
 	parts := strings.SplitN(inputKeyResourceID, "://", 2)
 	if len(parts) != 2 {
-		return "", "", fmt.Errorf("%w: expected format: [plugin name]://[key ref], got: %s", ErrorInputKeyResourceID, inputKeyResourceID)
+		return "", "", &ProviderNotFoundError{Ref: inputKeyResourceID}
 	}
 	pluginName, keyResourceID := parts[0], parts[1]
 	executable := PluginBinaryPrefix + pluginName
