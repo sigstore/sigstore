@@ -26,6 +26,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/sigstore/sigstore/pkg/signature"
+	"github.com/sigstore/sigstore/pkg/signature/kms/cliplugin"
 )
 
 // TestGet ensures that there is are load attempts on registered providers, including the CLIPlugin,
@@ -36,11 +37,12 @@ func TestGet(t *testing.T) {
 	testHashFunc := crypto.SHA256
 	testCtx := context.Background()
 
+	var providerNotFoundError *ProviderNotFoundError
+
 	t.Run("cliplugin", func(t *testing.T) {
 		t.Parallel()
 
 		testKey := "gundam://00"
-		var providerNotFoundError *ProviderNotFoundError
 
 		// we only check for errors because we can't assume that there exists on the system
 		// a program prefixed with "sigstore-kms-".
@@ -68,6 +70,18 @@ func TestGet(t *testing.T) {
 		_, err := Get(testCtx, testKeyResourceID, testHashFunc)
 		if diff := cmp.Diff(ErrorAssumingAllMight, err, cmpopts.EquateErrors()); diff != "" {
 			t.Errorf("unexpected error (-want +got):\n%s", diff)
+		}
+	})
+
+	t.Run("file path", func(t *testing.T) {
+		t.Parallel()
+		testKeyResourceID := "/this/is/the/way"
+		_, err := Get(testCtx, testKeyResourceID, testHashFunc)
+		if !errors.As(err, &providerNotFoundError) {
+			t.Errorf("wanted ProviderNotFoundError, got: %v", err)
+		}
+		if !errors.Is(err, cliplugin.ErrorInputKeyResourceID) {
+			t.Errorf("wanted exec.ErrNotFound, got: %v", err)
 		}
 	})
 

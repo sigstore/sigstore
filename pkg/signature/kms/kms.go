@@ -66,7 +66,7 @@ func Get(ctx context.Context, keyResourceID string, hashFunc crypto.Hash, opts .
 		}
 	}
 	sv, err := cliplugin.LoadSignerVerifier(ctx, keyResourceID, hashFunc, opts...)
-	if errors.Is(err, exec.ErrNotFound) {
+	if errors.Is(err, exec.ErrNotFound) || errors.Is(err, cliplugin.ErrorInputKeyResourceID) {
 		return nil, fmt.Errorf("%w: %w", &ProviderNotFoundError{ref: keyResourceID}, err)
 	}
 	return sv, err
