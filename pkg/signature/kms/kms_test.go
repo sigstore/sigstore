@@ -81,7 +81,7 @@ func TestGet(t *testing.T) {
 			t.Errorf("wanted ProviderNotFoundError, got: %v", err)
 		}
 		if !errors.Is(err, cliplugin.ErrorInputKeyResourceID) {
-			t.Errorf("wanted exec.ErrNotFound, got: %v", err)
+			t.Errorf("wanted cliplugin.ErrorInputKeyResourceID, got: %v", err)
 		}
 	})
 
