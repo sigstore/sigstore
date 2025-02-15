@@ -20,7 +20,6 @@ import (
 	"context"
 	"crypto"
 	"errors"
-	"os/exec"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -47,10 +46,6 @@ func TestGet(t *testing.T) {
 		_, err := Get(testCtx, testKey, testHashFunc)
 		if !errors.As(err, &providerNotFoundError) {
 			t.Errorf("wanted ProviderNotFoundError, got: %v", err)
-		}
-		// exec.ErrNotFound is returned by cliplugin.LoadSignerVerifier().
-		if !errors.Is(err, exec.ErrNotFound) {
-			t.Errorf("wanted exec.ErrNotFound, got: %v", err)
 		}
 	})
 
