@@ -20,6 +20,7 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
+	"reflect"
 	"testing"
 
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
@@ -76,7 +77,7 @@ func FuzzUnmarshalPEMToPublicKey(f *testing.F) {
 		}
 		result, err := cryptoutils.UnmarshalPEMToPublicKey(data)
 		if err != nil {
-			if result != nil {
+			if result != nil && !reflect.ValueOf(result).IsNil() {
 				t.Errorf("result %v should be nil when there is an error %v", result, err)
 			}
 			t.Skip("invalid pem")
