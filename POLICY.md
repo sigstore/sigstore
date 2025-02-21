@@ -77,16 +77,8 @@ Sigstore currently supports the following KMS providers:
 * Hashicorp Vault
 * Microsoft Azure
 
-PRs for new providers will only be accepted if the following conditions are met:
+We offer a plugin interface for new KMS providers. Organizations can independently develop & distribute their plugins without needing downstream updates to libraries like Cosign to support the additional KMS providers. See https://github.com/sigstore/sigstore/tree/main/pkg/signature/kms/cliplugin for more information and https://github.com/sigstore/sigstore/tree/main/test/cliplugin/localkms for an example implementation.
 
-* Maintainers of Sigstore are familiar with the provider and able to debug issues with the provider and with end-to-end tests.
-* There is significant community interest in the KMS provider.
-* The provider is well-maintained with regular contributions (if open source) and releases should be frequent. The license must be compatible with the Apache 2.0 license.
-* The provider has not had significant security and/or privacy vulnerabilities. Sigstore reserves the right to remove support for a provider if it is shown to not take security and/or privacy seriously.
-* The PR contains sufficient unit and end-to-end tests.
+We will not accept PRs for new KMS providers.
 
-Please file an issue before starting implementation of the KMS provider to confirm that the provider meets these requirements.
-
-We encourage maintaining a private fork of sigstore/sigstore and Cosign if you wish to support a provider that does not meet these requirements.
-
-Sigstore's roadmap for future client updates includes a porcelain-and-plumbing model. One goal will be to add plugin support such that users could bring their own signing and verification modules without requiring a fork of Cosign.
+You are welcome to file an issue after your KMS provider has been implemented and open-sourced to highlight it on a README in this repository.
