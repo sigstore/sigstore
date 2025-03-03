@@ -12,7 +12,7 @@ require (
 require (
 	github.com/cyphar/filepath-securejoin v0.2.4 // indirect
 	github.com/elazarl/go-bindata-assetfs v1.0.1 // indirect
-	github.com/go-jose/go-jose/v4 v4.0.2 // indirect
+	github.com/go-jose/go-jose/v4 v4.0.5 // indirect
 	github.com/google/go-containerregistry v0.20.2 // indirect
 	github.com/kr/pretty v0.2.1 // indirect
 	github.com/letsencrypt/boulder v0.0.0-20240620165639-de9c06129bec // indirect
