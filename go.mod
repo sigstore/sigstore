@@ -4,7 +4,7 @@ go 1.22.0
 
 require (
 	github.com/coreos/go-oidc/v3 v3.12.0
-	github.com/go-jose/go-jose/v3 v3.0.3
+	github.com/go-jose/go-jose/v4 v4.0.5
 	github.com/go-rod/rod v0.116.2
 	github.com/go-test/deep v1.1.1
 	github.com/google/go-cmp v0.6.0
@@ -24,7 +24,6 @@ require (
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/go-jose/go-jose/v4 v4.0.5 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect

@@ -28,7 +28,7 @@ import (
 	"unsafe"
 
 	"github.com/coreos/go-oidc/v3/oidc"
-	"github.com/go-jose/go-jose/v3"
+	"github.com/go-jose/go-jose/v4"
 	"golang.org/x/oauth2"
 )
 
