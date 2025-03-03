@@ -123,3 +123,14 @@ func LoadSignerFromPEMFileWithOpts(path string, pf cryptoutils.PassFunc, opts ..
 	}
 	return LoadSignerWithOpts(priv, opts...)
 }
+
+// LoadSignerFromPrivateKey returns a signature.Signer based on the private key.
+// Each private key has a corresponding PublicKeyDetails associated in the
+// Sigstore ecosystem, see Algorithm Registry for more details.
+func LoadSignerFromPrivateKey(privateKey crypto.PrivateKey) (Signer, error) {
+	algorithmDetails, err := GetDefaultAlgorithmDetails(privateKey)
+	if err != nil {
+		return nil, err
+	}
+	return LoadSignerWithOpts(privateKey, options.WithHash(algorithmDetails.GetHashType()), options.WithED25519ph())
+}

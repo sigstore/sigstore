@@ -195,3 +195,77 @@ func TestSignatureAlgorithmFlagRoundtrip(t *testing.T) {
 		}
 	}
 }
+
+func TestGetDefaultPublicKeyDetails(t *testing.T) {
+	tts := []struct {
+		name     string
+		key      func() crypto.PublicKey
+		expected v1.PublicKeyDetails
+	}{
+		{
+			name: "ecdsa-p256",
+			key: func() crypto.PublicKey {
+				ecdsaKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+				if err != nil {
+					t.Errorf("unexpected error creating ecdsa key: %v", err)
+				}
+				return &ecdsaKey.PublicKey
+			},
+			expected: v1.PublicKeyDetails_PKIX_ECDSA_P256_SHA_256,
+		},
+		{
+			name: "ecdsa-p384",
+			key: func() crypto.PublicKey {
+				ecdsaKey, err := ecdsa.GenerateKey(elliptic.P384(), rand.Reader)
+				if err != nil {
+					t.Errorf("unexpected error creating ecdsa key: %v", err)
+				}
+				return &ecdsaKey.PublicKey
+			},
+			expected: v1.PublicKeyDetails_PKIX_ECDSA_P384_SHA_384,
+		},
+		{
+			name: "rsa-2048",
+			key: func() crypto.PublicKey {
+				rsaKey, err := rsa.GenerateKey(rand.Reader, 2048)
+				if err != nil {
+					t.Errorf("unexpected error creating rsa key: %v", err)
+				}
+				return &rsaKey.PublicKey
+			},
+			expected: v1.PublicKeyDetails_PKIX_RSA_PKCS1V15_2048_SHA256,
+		},
+		{
+			name: "ed25519",
+			key: func() crypto.PublicKey {
+				ed25519Key, _, err := ed25519.GenerateKey(rand.Reader)
+				if err != nil {
+					t.Errorf("unexpected error creating ed25519 key: %v", err)
+				}
+				return ed25519Key
+			},
+			expected: v1.PublicKeyDetails_PKIX_ED25519_PH,
+		},
+	}
+
+	for _, tt := range tts {
+		t.Run(tt.name, func(t *testing.T) {
+			key := tt.key()
+			keyDetails, err := GetDefaultPublicKeyDetails(key)
+			if err != nil {
+				t.Errorf("unexpected error getting default public key details: %v", err)
+			}
+			if keyDetails != tt.expected {
+				t.Errorf("unexpected signature algorithm")
+			}
+
+			algorithmDetails, err := GetDefaultAlgorithmDetails(key)
+			if err != nil {
+				t.Errorf("unexpected error getting default algorithm details: %v", err)
+			}
+			if algorithmDetails.GetSignatureAlgorithm() != keyDetails {
+				t.Errorf("unexpected signature algorithm")
+			}
+		})
+	}
+}

@@ -21,6 +21,7 @@ import (
 	"crypto/ed25519"
 	"crypto/elliptic"
 	"crypto/rsa"
+	"errors"
 	"fmt"
 
 	v1 "github.com/sigstore/protobuf-specs/gen/pb-go/common/v1"
@@ -221,4 +222,49 @@ func ParseSignatureAlgorithmFlag(flag string) (v1.PublicKeyDetails, error) {
 		}
 	}
 	return v1.PublicKeyDetails_PUBLIC_KEY_DETAILS_UNSPECIFIED, fmt.Errorf("could not find matching signature algorithm for flag: %s", flag)
+}
+
+// GetDefaultPublicKeyDetails returns the default public key details for a given key.
+//
+// RSA 2048 => v1.PublicKeyDetails_PKIX_RSA_PKCS1V15_2048_SHA256
+// RSA 3072 => v1.PublicKeyDetails_PKIX_RSA_PKCS1V15_3072_SHA256
+// RSA 4096 => v1.PublicKeyDetails_PKIX_RSA_PKCS1V15_4096_SHA256
+// ECDSA P256 => v1.PublicKeyDetails_PKIX_ECDSA_P256_SHA_256
+// ECDSA P384 => v1.PublicKeyDetails_PKIX_ECDSA_P384_SHA_384
+// ECDSA P521 => v1.PublicKeyDetails_PKIX_ECDSA_P521_SHA_512
+// ED25519 => v1.PublicKeyDetails_PKIX_ED25519_PH
+func GetDefaultPublicKeyDetails(publicKey crypto.PublicKey) (v1.PublicKeyDetails, error) {
+	switch pk := publicKey.(type) {
+	case *rsa.PublicKey:
+		switch pk.Size() * 8 {
+		case 2048:
+			return v1.PublicKeyDetails_PKIX_RSA_PKCS1V15_2048_SHA256, nil
+		case 3072:
+			return v1.PublicKeyDetails_PKIX_RSA_PKCS1V15_3072_SHA256, nil
+		case 4096:
+			return v1.PublicKeyDetails_PKIX_RSA_PKCS1V15_4096_SHA256, nil
+		}
+	case *ecdsa.PublicKey:
+		switch pk.Curve {
+		case elliptic.P256():
+			return v1.PublicKeyDetails_PKIX_ECDSA_P256_SHA_256, nil
+		case elliptic.P384():
+			return v1.PublicKeyDetails_PKIX_ECDSA_P384_SHA_384, nil
+		case elliptic.P521():
+			return v1.PublicKeyDetails_PKIX_ECDSA_P521_SHA_512, nil
+		}
+	case ed25519.PublicKey:
+		return v1.PublicKeyDetails_PKIX_ED25519_PH, nil
+	}
+	return v1.PublicKeyDetails_PUBLIC_KEY_DETAILS_UNSPECIFIED, errors.New("unsupported public key type")
+}
+
+// GetDefaultAlgorithmDetails returns the default algorithm details for a given
+// key, according to GetDefaultPublicKeyDetails.
+func GetDefaultAlgorithmDetails(publicKey crypto.PublicKey) (AlgorithmDetails, error) {
+	knownAlgorithm, err := GetDefaultPublicKeyDetails(publicKey)
+	if err != nil {
+		return AlgorithmDetails{}, err
+	}
+	return GetAlgorithmDetails(knownAlgorithm)
 }
