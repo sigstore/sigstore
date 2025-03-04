@@ -28,17 +28,17 @@ import (
 )
 
 func TestGetAlgorithmDetails(t *testing.T) {
-	details, err := getAlgorithmDetails(v1.PublicKeyDetails_PKIX_ECDSA_P256_SHA_256)
+	details, err := GetAlgorithmDetails(v1.PublicKeyDetails_PKIX_ECDSA_P256_SHA_256)
 	if err != nil {
 		t.Errorf("unexpected error getting algorithm details: %v", err)
 	}
-	if details.knownAlgorithm != v1.PublicKeyDetails_PKIX_ECDSA_P256_SHA_256 {
+	if details.GetSignatureAlgorithm() != v1.PublicKeyDetails_PKIX_ECDSA_P256_SHA_256 {
 		t.Errorf("unexpected signature algorithm")
 	}
-	if details.keyType != ECDSA {
+	if details.GetKeyType() != ECDSA {
 		t.Errorf("unexpected key algorithm")
 	}
-	if details.hashType != crypto.SHA256 {
+	if details.GetHashType() != crypto.SHA256 {
 		t.Errorf("unexpected hash algorithm")
 	}
 	curve, err := details.GetECDSACurve()
