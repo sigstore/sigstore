@@ -64,18 +64,22 @@ type AlgorithmDetails struct {
 	flagValue string
 }
 
+// GetSignatureAlgorithm returns the PublicKeyDetails associated with the algorithm details.
 func (a AlgorithmDetails) GetSignatureAlgorithm() v1.PublicKeyDetails {
 	return a.knownAlgorithm
 }
 
+// GetKeyType returns the PublicKeyType for the algorithm details.
 func (a AlgorithmDetails) GetKeyType() PublicKeyType {
 	return a.keyType
 }
 
+// GetHashType returns the hash algorithm that should be used with this algorithm
 func (a AlgorithmDetails) GetHashType() crypto.Hash {
 	return a.hashType
 }
 
+// GetRSAKeySize returns the RSA key size for the algorithm details, if the key type is RSA.
 func (a AlgorithmDetails) GetRSAKeySize() (RSAKeySize, error) {
 	if a.keyType != RSA {
 		return 0, fmt.Errorf("unable to retrieve RSA key size for key type: %T", a.keyType)
@@ -88,6 +92,7 @@ func (a AlgorithmDetails) GetRSAKeySize() (RSAKeySize, error) {
 	return rsaKeySize, nil
 }
 
+// GetECDSACurve returns the elliptic curve for the algorithm details, if the key type is ECDSA.
 func (a AlgorithmDetails) GetECDSACurve() (*elliptic.Curve, error) {
 	if a.keyType != ECDSA {
 		return nil, fmt.Errorf("unable to retrieve ECDSA curve for key type: %T", a.keyType)
