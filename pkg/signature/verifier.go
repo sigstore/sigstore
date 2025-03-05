@@ -140,10 +140,20 @@ func LoadVerifierFromPEMFileWithOpts(path string, opts ...LoadOption) (Verifier,
 // LoadVerifierFromPublicKey returns a signature.Verifier based on the public key.
 // Each public key has a corresponding PublicKeyDetails associated in the
 // Sigstore ecosystem, see Algorithm Registry for more details.
-func LoadVerifierFromPublicKey(publicKey crypto.PublicKey) (Verifier, error) {
-	algorithmDetails, err := GetDefaultAlgorithmDetails(publicKey)
+func LoadVerifierFromPublicKey(publicKey crypto.PublicKey, opts ...LoadOption) (Verifier, error) {
+	algorithmDetails, err := GetDefaultAlgorithmDetails(publicKey, opts...)
 	if err != nil {
 		return nil, err
 	}
-	return LoadVerifierWithOpts(publicKey, options.WithHash(algorithmDetails.GetHashType()), options.WithED25519ph())
+	filteredOpts := []LoadOption{options.WithHash(algorithmDetails.hashType)}
+	for _, opt := range opts {
+		var useED25519ph bool
+		var rsaPSSOptions *rsa.PSSOptions
+		opt.ApplyED25519ph(&useED25519ph)
+		opt.ApplyRSAPSS(&rsaPSSOptions)
+		if useED25519ph || rsaPSSOptions != nil {
+			filteredOpts = append(filteredOpts, opt)
+		}
+	}
+	return LoadVerifierWithOpts(publicKey, filteredOpts...)
 }
