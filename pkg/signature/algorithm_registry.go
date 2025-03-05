@@ -233,16 +233,40 @@ func ParseSignatureAlgorithmFlag(flag string) (v1.PublicKeyDetails, error) {
 // ECDSA P384 => v1.PublicKeyDetails_PKIX_ECDSA_P384_SHA_384
 // ECDSA P521 => v1.PublicKeyDetails_PKIX_ECDSA_P521_SHA_512
 // ED25519 => v1.PublicKeyDetails_PKIX_ED25519_PH
-func GetDefaultPublicKeyDetails(publicKey crypto.PublicKey) (v1.PublicKeyDetails, error) {
+//
+// This function accepts LoadOptions, which are used to determine the default
+// public key details when there may be ambiguities. For example, RSA keys may
+// be PSS or PKCS1v1.5 encoded, and ED25519 keys may be used with PureEd25519 or
+// with Ed25519ph. The Hash option is ignored if passed, because each of the
+// supported algorithms already has a default hash.
+func GetDefaultPublicKeyDetails(publicKey crypto.PublicKey, opts ...LoadOption) (v1.PublicKeyDetails, error) {
+	var rsaPSSOptions *rsa.PSSOptions
+	var useED25519ph bool
+	for _, o := range opts {
+		o.ApplyED25519ph(&useED25519ph)
+		o.ApplyRSAPSS(&rsaPSSOptions)
+	}
+
 	switch pk := publicKey.(type) {
 	case *rsa.PublicKey:
-		switch pk.Size() * 8 {
-		case 2048:
-			return v1.PublicKeyDetails_PKIX_RSA_PKCS1V15_2048_SHA256, nil
-		case 3072:
-			return v1.PublicKeyDetails_PKIX_RSA_PKCS1V15_3072_SHA256, nil
-		case 4096:
-			return v1.PublicKeyDetails_PKIX_RSA_PKCS1V15_4096_SHA256, nil
+		if rsaPSSOptions != nil {
+			switch pk.Size() * 8 {
+			case 2048:
+				return v1.PublicKeyDetails_PKIX_RSA_PSS_2048_SHA256, nil
+			case 3072:
+				return v1.PublicKeyDetails_PKIX_RSA_PSS_3072_SHA256, nil
+			case 4096:
+				return v1.PublicKeyDetails_PKIX_RSA_PSS_4096_SHA256, nil
+			}
+		} else {
+			switch pk.Size() * 8 {
+			case 2048:
+				return v1.PublicKeyDetails_PKIX_RSA_PKCS1V15_2048_SHA256, nil
+			case 3072:
+				return v1.PublicKeyDetails_PKIX_RSA_PKCS1V15_3072_SHA256, nil
+			case 4096:
+				return v1.PublicKeyDetails_PKIX_RSA_PKCS1V15_4096_SHA256, nil
+			}
 		}
 	case *ecdsa.PublicKey:
 		switch pk.Curve {
@@ -254,15 +278,24 @@ func GetDefaultPublicKeyDetails(publicKey crypto.PublicKey) (v1.PublicKeyDetails
 			return v1.PublicKeyDetails_PKIX_ECDSA_P521_SHA_512, nil
 		}
 	case ed25519.PublicKey:
-		return v1.PublicKeyDetails_PKIX_ED25519_PH, nil
+		if useED25519ph {
+			return v1.PublicKeyDetails_PKIX_ED25519_PH, nil
+		}
+		return v1.PublicKeyDetails_PKIX_ED25519, nil
 	}
 	return v1.PublicKeyDetails_PUBLIC_KEY_DETAILS_UNSPECIFIED, errors.New("unsupported public key type")
 }
 
 // GetDefaultAlgorithmDetails returns the default algorithm details for a given
 // key, according to GetDefaultPublicKeyDetails.
-func GetDefaultAlgorithmDetails(publicKey crypto.PublicKey) (AlgorithmDetails, error) {
-	knownAlgorithm, err := GetDefaultPublicKeyDetails(publicKey)
+//
+// This function accepts LoadOptions, which are used to determine the default
+// algorithm details when there may be ambiguities. For example, RSA keys may be
+// PSS or PKCS1v1.5 encoded, and ED25519 keys may be used with PureEd25519 or
+// with Ed25519ph. The Hash option is ignored if passed, because each of the
+// supported algorithms already has a default hash.
+func GetDefaultAlgorithmDetails(publicKey crypto.PublicKey, opts ...LoadOption) (AlgorithmDetails, error) {
+	knownAlgorithm, err := GetDefaultPublicKeyDetails(publicKey, opts...)
 	if err != nil {
 		return AlgorithmDetails{}, err
 	}

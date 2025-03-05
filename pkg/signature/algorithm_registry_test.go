@@ -25,6 +25,7 @@ import (
 	"testing"
 
 	v1 "github.com/sigstore/protobuf-specs/gen/pb-go/common/v1"
+	"github.com/sigstore/sigstore/pkg/signature/options"
 )
 
 func TestGetAlgorithmDetails(t *testing.T) {
@@ -200,6 +201,7 @@ func TestGetDefaultPublicKeyDetails(t *testing.T) {
 	tts := []struct {
 		name     string
 		key      func() crypto.PublicKey
+		opts     []LoadOption
 		expected v1.PublicKeyDetails
 	}{
 		{
@@ -244,14 +246,38 @@ func TestGetDefaultPublicKeyDetails(t *testing.T) {
 				}
 				return ed25519Key
 			},
+			expected: v1.PublicKeyDetails_PKIX_ED25519,
+		},
+		{
+			name: "ed25519-ph",
+			key: func() crypto.PublicKey {
+				ed25519Key, _, err := ed25519.GenerateKey(rand.Reader)
+				if err != nil {
+					t.Errorf("unexpected error creating ed25519 key: %v", err)
+				}
+				return ed25519Key
+			},
+			opts:     []LoadOption{options.WithED25519ph()},
 			expected: v1.PublicKeyDetails_PKIX_ED25519_PH,
+		},
+		{
+			name: "rsa-2048-pss",
+			key: func() crypto.PublicKey {
+				rsaKey, err := rsa.GenerateKey(rand.Reader, 2048)
+				if err != nil {
+					t.Errorf("unexpected error creating rsa key: %v", err)
+				}
+				return &rsaKey.PublicKey
+			},
+			opts:     []LoadOption{options.WithRSAPSS(&rsa.PSSOptions{SaltLength: rsa.PSSSaltLengthAuto, Hash: crypto.SHA256})},
+			expected: v1.PublicKeyDetails_PKIX_RSA_PSS_2048_SHA256,
 		},
 	}
 
 	for _, tt := range tts {
 		t.Run(tt.name, func(t *testing.T) {
 			key := tt.key()
-			keyDetails, err := GetDefaultPublicKeyDetails(key)
+			keyDetails, err := GetDefaultPublicKeyDetails(key, tt.opts...)
 			if err != nil {
 				t.Errorf("unexpected error getting default public key details: %v", err)
 			}
@@ -259,7 +285,7 @@ func TestGetDefaultPublicKeyDetails(t *testing.T) {
 				t.Errorf("unexpected signature algorithm")
 			}
 
-			algorithmDetails, err := GetDefaultAlgorithmDetails(key)
+			algorithmDetails, err := GetDefaultAlgorithmDetails(key, tt.opts...)
 			if err != nil {
 				t.Errorf("unexpected error getting default algorithm details: %v", err)
 			}
