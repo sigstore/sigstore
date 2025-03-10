@@ -157,7 +157,7 @@ func TestLoadDefaultSigner(t *testing.T) {
 
 	for _, tt := range tts {
 		t.Run(tt.name, func(t *testing.T) {
-			sv, err := LoadSignerFromPrivateKey(tt.key(), tt.opts...)
+			sv, err := LoadDefaultSigner(tt.key(), tt.opts...)
 			if err != nil {
 				t.Fatalf("unexpected error creating signer: %v", err)
 			}

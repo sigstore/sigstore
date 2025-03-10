@@ -133,7 +133,7 @@ func TestLoadDefaultVerifier(t *testing.T) {
 			privKey := tt.key()
 			signer, _ := privKey.(crypto.Signer)
 			pubKey := signer.Public()
-			sv, err := LoadVerifierFromPublicKey(pubKey, tt.opts...)
+			sv, err := LoadDefaultVerifier(pubKey, tt.opts...)
 			if err != nil {
 				t.Fatalf("unexpected error creating verifier: %v", err)
 			}
