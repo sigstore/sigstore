@@ -19,9 +19,11 @@ require (
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966
 	github.com/stretchr/testify v1.10.0
 	github.com/theupdateframework/go-tuf v0.7.0
+	github.com/tink-crypto/tink-go/v2 v2.3.0
 	golang.org/x/crypto v0.35.0
 	golang.org/x/oauth2 v0.27.0
 	golang.org/x/term v0.29.0
+	google.golang.org/protobuf v1.36.5
 )
 
 require (
@@ -38,6 +40,5 @@ require (
 	github.com/ysmood/leakless v0.9.0 // indirect
 	golang.org/x/sys v0.30.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20240520151616-dc85e6b867a5 // indirect
-	google.golang.org/protobuf v1.36.5 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
