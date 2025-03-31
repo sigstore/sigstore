@@ -2,7 +2,7 @@ module github.com/sigstore/sigstore
 
 go 1.23.0
 
-toolchain go1.23.6
+toolchain go1.24.1
 
 require (
 	github.com/coreos/go-oidc/v3 v3.12.0
@@ -23,7 +23,7 @@ require (
 	golang.org/x/crypto v0.35.0
 	golang.org/x/oauth2 v0.28.0
 	golang.org/x/term v0.29.0
-	google.golang.org/protobuf v1.36.5
+	google.golang.org/protobuf v1.36.6
 )
 
 require (
