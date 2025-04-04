@@ -75,7 +75,8 @@ func TestRSAPSSSignerVerifier(t *testing.T) {
 	if err != nil {
 		t.Errorf("unexpected error unmarshalling private key: %v", err)
 	}
-	sv, err := LoadRSAPSSSignerVerifier(privateKey.(*rsa.PrivateKey), crypto.SHA256, opts)
+	privKey, _ := privateKey.(*rsa.PrivateKey)
+	sv, err := LoadRSAPSSSignerVerifier(privKey, crypto.SHA256, opts)
 	if err != nil {
 		t.Errorf("unexpected error creating signer/verifier: %v", err)
 	}
@@ -87,7 +88,7 @@ func TestRSAPSSSignerVerifier(t *testing.T) {
 	testingVerifier(t, sv, "rsa", crypto.SHA256, sig, message)
 
 	// test with nil opts (sane defaults)
-	sv, err = LoadRSAPSSSignerVerifier(privateKey.(*rsa.PrivateKey), crypto.SHA256, nil)
+	sv, err = LoadRSAPSSSignerVerifier(privKey, crypto.SHA256, nil)
 	if err != nil {
 		t.Errorf("unexpected error creating signer/verifier: %v", err)
 	}
@@ -98,13 +99,14 @@ func TestRSAPSSSignerVerifier(t *testing.T) {
 	if err != nil {
 		t.Errorf("unexpected error unmarshalling public key: %v", err)
 	}
-	v, err := LoadRSAPSSVerifier(publicKey.(*rsa.PublicKey), crypto.SHA256, opts)
+	pk, _ := publicKey.(*rsa.PublicKey)
+	v, err := LoadRSAPSSVerifier(pk, crypto.SHA256, opts)
 	if err != nil {
 		t.Errorf("unexpected error creating verifier: %v", err)
 	}
 	testingVerifier(t, v, "rsa", crypto.SHA256, sig, message)
 
-	v, err = LoadRSAPSSVerifier(publicKey.(*rsa.PublicKey), crypto.SHA256, nil)
+	v, err = LoadRSAPSSVerifier(pk, crypto.SHA256, nil)
 	if err != nil {
 		t.Errorf("unexpected error creating verifier with nil opts: %v", err)
 	}
@@ -116,7 +118,8 @@ func TestRSAPSSSignerVerifierUnsupportedHash(t *testing.T) {
 	if err != nil {
 		t.Errorf("unexpected error unmarshalling public key: %v", err)
 	}
-	_, err = LoadRSAPSSVerifier(publicKey.(*rsa.PublicKey), crypto.SHA1, nil)
+	pk, _ := publicKey.(*rsa.PublicKey)
+	_, err = LoadRSAPSSVerifier(pk, crypto.SHA1, nil)
 	if !strings.Contains(err.Error(), "invalid hash function specified") {
 		t.Errorf("expected error 'invalid hash function specified', got: %v", err.Error())
 	}

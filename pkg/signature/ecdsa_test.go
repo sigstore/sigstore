@@ -52,7 +52,11 @@ func TestECDSASignerVerifier(t *testing.T) {
 	if err != nil {
 		t.Errorf("unexpected error unmarshalling private key: %v", err)
 	}
-	sv, err := LoadECDSASignerVerifier(privateKey.(*ecdsa.PrivateKey), crypto.SHA256)
+	k, ok := privateKey.(*ecdsa.PrivateKey)
+	if !ok {
+		t.Fatalf("error asserting key type")
+	}
+	sv, err := LoadECDSASignerVerifier(k, crypto.SHA256)
 	if err != nil {
 		t.Errorf("unexpected error creating signer/verifier: %v", err)
 	}
@@ -67,7 +71,11 @@ func TestECDSASignerVerifier(t *testing.T) {
 	if err != nil {
 		t.Errorf("unexpected error unmarshalling public key: %v", err)
 	}
-	v, err := LoadECDSAVerifier(publicKey.(*ecdsa.PublicKey), crypto.SHA256)
+	pub, ok := publicKey.(*ecdsa.PublicKey)
+	if !ok {
+		t.Fatalf("error asserting key type")
+	}
+	v, err := LoadECDSAVerifier(pub, crypto.SHA256)
 	if err != nil {
 		t.Errorf("unexpected error creating verifier: %v", err)
 	}
@@ -91,12 +99,14 @@ func TestECDSASignerVerifierUnsupportedHash(t *testing.T) {
 		t.Errorf("unexpected error unmarshalling public key key: %v", err)
 	}
 
-	_, err = LoadECDSASigner(privateKey.(*ecdsa.PrivateKey), crypto.SHA1)
+	privKey, _ := privateKey.(*ecdsa.PrivateKey)
+	_, err = LoadECDSASigner(privKey, crypto.SHA1)
 	if !strings.Contains(err.Error(), "invalid hash function specified") {
 		t.Errorf("expected error 'invalid hash function specified', got: %v", err.Error())
 	}
 
-	_, err = LoadECDSAVerifier(publicKey.(*ecdsa.PublicKey), crypto.SHA1)
+	pubKey, _ := publicKey.(*ecdsa.PublicKey)
+	_, err = LoadECDSAVerifier(pubKey, crypto.SHA1)
 	if !strings.Contains(err.Error(), "invalid hash function specified") {
 		t.Errorf("expected error 'invalid hash function specified', got: %v", err.Error())
 	}

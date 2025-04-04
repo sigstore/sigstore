@@ -82,7 +82,11 @@ func TestKeyHandleToSignerECDSA(t *testing.T) {
 		}
 
 		// sign with signer, verify with key handle
-		sig, err = ecdsa.SignASN1(rand.Reader, signer.(*ecdsa.PrivateKey), digest)
+		pk, ok := signer.(*ecdsa.PrivateKey)
+		if !ok {
+			t.Fatalf("error asserting key type")
+		}
+		sig, err = ecdsa.SignASN1(rand.Reader, pk, digest)
 		if err != nil {
 			t.Fatalf("error signing with crypto signer: %v", err)
 		}
