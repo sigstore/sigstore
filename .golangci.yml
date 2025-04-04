@@ -31,6 +31,7 @@ linters:
     - tparallel
     - unconvert
     - unparam
+    - unused
     - whitespace
   exclusions:
     generated: lax
