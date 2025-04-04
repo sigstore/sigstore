@@ -21,6 +21,7 @@ import (
 	"crypto/ed25519"
 	"crypto/elliptic"
 	"crypto/rsa"
+	"encoding/asn1"
 	"errors"
 	"fmt"
 
@@ -39,6 +40,43 @@ const (
 	ED25519
 )
 
+// From crypto/x509/x509.go
+// OIDs for signature algorithms
+//
+//	pkcs-1 OBJECT IDENTIFIER ::= {
+//		iso(1) member-body(2) us(840) rsadsi(113549) pkcs(1) 1 }
+//
+// RFC 4055 3.1 RSASSA-PSS Public Keys
+//
+//	id-RSASSA-PSS OBJECT IDENTIFIER ::= { pkcs-1 10 }
+//
+// RFC 4055 5 PKCS #1 Version 1.5
+//
+//	sha256WithRSAEncryption OBJECT IDENTIFIER ::= { pkcs-1 11 }
+//
+// RFC 5758 3.2 ECDSA Signature Algorithm
+//
+//	ecdsa-with-SHA256 OBJECT IDENTIFIER ::= { iso(1) member-body(2)
+//		us(840) ansi-X9-62(10045) signatures(4) ecdsa-with-SHA2(3) 2 }
+//
+//	ecdsa-with-SHA384 OBJECT IDENTIFIER ::= { iso(1) member-body(2)
+//		us(840) ansi-X9-62(10045) signatures(4) ecdsa-with-SHA2(3) 3 }
+//
+//	ecdsa-with-SHA512 OBJECT IDENTIFIER ::= { iso(1) member-body(2)
+//		us(840) ansi-X9-62(10045) signatures(4) ecdsa-with-SHA2(3) 4 }
+//
+// RFC 8410 3 Curve25519 and Curve448 Algorithm Identifiers
+//
+//	id-Ed25519   OBJECT IDENTIFIER ::= { 1 3 101 112 }
+var (
+	oidSignatureSHA256WithRSA   = asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 1, 11}
+	oidSignatureRSAPSS          = asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 1, 10}
+	oidSignatureECDSAWithSHA256 = asn1.ObjectIdentifier{1, 2, 840, 10045, 4, 3, 2}
+	oidSignatureECDSAWithSHA384 = asn1.ObjectIdentifier{1, 2, 840, 10045, 4, 3, 3}
+	oidSignatureECDSAWithSHA512 = asn1.ObjectIdentifier{1, 2, 840, 10045, 4, 3, 4}
+	oidSignatureEd25519         = asn1.ObjectIdentifier{1, 3, 101, 112}
+)
+
 // RSAKeySize represents the size of an RSA public key in bits.
 type RSAKeySize int
 
@@ -53,12 +91,15 @@ type AlgorithmDetails struct {
 	// hashType is the hash algorithm being used.
 	hashType crypto.Hash
 
+	// oid is the object identifier for the key algorithm as specified by well-known RFCs
+	oid asn1.ObjectIdentifier
+
 	// extraKeyParams contains any extra parameters required to check a given public key against this entry.
 	//
 	// The underlying type of these parameters is dependent on the keyType.
 	// For example, ECDSA algorithms will store an elliptic curve here whereas, RSA keys will store the key size.
 	// Algorithms that don't require any extra parameters leave this set to nil.
-	extraKeyParams interface{}
+	extraKeyParams any
 
 	// flagValue is a string representation of the signature algorithm that follows the naming conventions of CLI
 	// arguments that are used for Sigstore services.
@@ -75,9 +116,14 @@ func (a AlgorithmDetails) GetKeyType() PublicKeyType {
 	return a.keyType
 }
 
-// GetHashType returns the hash algorithm that should be used with this algorithm
+// GetHashType returns the hash algorithm that should be used with this algorithm.
 func (a AlgorithmDetails) GetHashType() crypto.Hash {
 	return a.hashType
+}
+
+// GetOID returns the RFC-specified OID for this algorithm.
+func (a AlgorithmDetails) GetOID() asn1.ObjectIdentifier {
+	return a.oid
 }
 
 // GetRSAKeySize returns the RSA key size for the algorithm details, if the key type is RSA.
@@ -143,17 +189,17 @@ func (a AlgorithmDetails) checkHash(hashType crypto.Hash) bool {
 // list, including PKCS1v1.5 encoded RSA. Refer to the v1.PublicKeyDetails enum
 // for more details.
 var supportedAlgorithms = []AlgorithmDetails{
-	{v1.PublicKeyDetails_PKIX_RSA_PKCS1V15_2048_SHA256, RSA, crypto.SHA256, RSAKeySize(2048), "rsa-sign-pkcs1-2048-sha256"},
-	{v1.PublicKeyDetails_PKIX_RSA_PKCS1V15_3072_SHA256, RSA, crypto.SHA256, RSAKeySize(3072), "rsa-sign-pkcs1-3072-sha256"},
-	{v1.PublicKeyDetails_PKIX_RSA_PKCS1V15_4096_SHA256, RSA, crypto.SHA256, RSAKeySize(4096), "rsa-sign-pkcs1-4096-sha256"},
-	{v1.PublicKeyDetails_PKIX_RSA_PSS_2048_SHA256, RSA, crypto.SHA256, RSAKeySize(2048), "rsa-sign-pss-2048-sha256"},
-	{v1.PublicKeyDetails_PKIX_RSA_PSS_3072_SHA256, RSA, crypto.SHA256, RSAKeySize(3072), "rsa-sign-pss-3072-sha256"},
-	{v1.PublicKeyDetails_PKIX_RSA_PSS_4096_SHA256, RSA, crypto.SHA256, RSAKeySize(4096), "rsa-sign-pss-4092-sha256"},
-	{v1.PublicKeyDetails_PKIX_ECDSA_P256_SHA_256, ECDSA, crypto.SHA256, elliptic.P256(), "ecdsa-sha2-256-nistp256"},
-	{v1.PublicKeyDetails_PKIX_ECDSA_P384_SHA_384, ECDSA, crypto.SHA384, elliptic.P384(), "ecdsa-sha2-384-nistp384"},
-	{v1.PublicKeyDetails_PKIX_ECDSA_P521_SHA_512, ECDSA, crypto.SHA512, elliptic.P521(), "ecdsa-sha2-512-nistp521"},
-	{v1.PublicKeyDetails_PKIX_ED25519, ED25519, crypto.Hash(0), nil, "ed25519"},
-	{v1.PublicKeyDetails_PKIX_ED25519_PH, ED25519, crypto.SHA512, nil, "ed25519-ph"},
+	{v1.PublicKeyDetails_PKIX_RSA_PKCS1V15_2048_SHA256, RSA, crypto.SHA256, oidSignatureSHA256WithRSA, RSAKeySize(2048), "rsa-sign-pkcs1-2048-sha256"},
+	{v1.PublicKeyDetails_PKIX_RSA_PKCS1V15_3072_SHA256, RSA, crypto.SHA256, oidSignatureSHA256WithRSA, RSAKeySize(3072), "rsa-sign-pkcs1-3072-sha256"},
+	{v1.PublicKeyDetails_PKIX_RSA_PKCS1V15_4096_SHA256, RSA, crypto.SHA256, oidSignatureSHA256WithRSA, RSAKeySize(4096), "rsa-sign-pkcs1-4096-sha256"},
+	{v1.PublicKeyDetails_PKIX_RSA_PSS_2048_SHA256, RSA, crypto.SHA256, oidSignatureRSAPSS, RSAKeySize(2048), "rsa-sign-pss-2048-sha256"},
+	{v1.PublicKeyDetails_PKIX_RSA_PSS_3072_SHA256, RSA, crypto.SHA256, oidSignatureRSAPSS, RSAKeySize(3072), "rsa-sign-pss-3072-sha256"},
+	{v1.PublicKeyDetails_PKIX_RSA_PSS_4096_SHA256, RSA, crypto.SHA256, oidSignatureRSAPSS, RSAKeySize(4096), "rsa-sign-pss-4092-sha256"},
+	{v1.PublicKeyDetails_PKIX_ECDSA_P256_SHA_256, ECDSA, crypto.SHA256, oidSignatureECDSAWithSHA256, elliptic.P256(), "ecdsa-sha2-256-nistp256"},
+	{v1.PublicKeyDetails_PKIX_ECDSA_P384_SHA_384, ECDSA, crypto.SHA384, oidSignatureECDSAWithSHA384, elliptic.P384(), "ecdsa-sha2-384-nistp384"},
+	{v1.PublicKeyDetails_PKIX_ECDSA_P521_SHA_512, ECDSA, crypto.SHA512, oidSignatureECDSAWithSHA512, elliptic.P521(), "ecdsa-sha2-512-nistp521"},
+	{v1.PublicKeyDetails_PKIX_ED25519, ED25519, crypto.Hash(0), oidSignatureEd25519, nil, "ed25519"},
+	{v1.PublicKeyDetails_PKIX_ED25519_PH, ED25519, crypto.SHA512, oidSignatureEd25519, nil, "ed25519-ph"}, // no well-known OID for ed25519-ph
 }
 
 // AlgorithmRegistryConfig represents a set of permitted algorithms for a given Sigstore service or component.
@@ -173,6 +219,41 @@ func GetAlgorithmDetails(knownSignatureAlgorithm v1.PublicKeyDetails) (Algorithm
 		}
 	}
 	return AlgorithmDetails{}, fmt.Errorf("could not find algorithm details for known signature algorithm: %s", knownSignatureAlgorithm)
+}
+
+// GetAlgorithmDetailsByOID retrieves a set of details for a OID that allows users to introspect the
+// public key algorithm, hash algorithm and more. The public key is provided to differentiate between
+// RSA AlgorithmDetails by key size.
+func GetAlgorithmDetailsByOID(oid asn1.ObjectIdentifier, pubKey crypto.PublicKey, opts ...LoadOption) (AlgorithmDetails, error) {
+	var useED25519ph bool
+	for _, o := range opts {
+		o.ApplyED25519ph(&useED25519ph)
+	}
+
+	for _, detail := range supportedAlgorithms {
+		if detail.oid.Equal(oid) {
+			// ed25519 and ed25519-ph use the same OID
+			if useED25519ph && detail.knownAlgorithm != v1.PublicKeyDetails_PKIX_ED25519_PH {
+				continue
+			}
+			// RSAPSS and RSA-PKCS#1v1.5 use different OIDs, but for each use the same OID regardless of key size
+			if detail.keyType == RSA {
+				keySize, err := detail.GetRSAKeySize()
+				if err != nil {
+					return AlgorithmDetails{}, fmt.Errorf("getting RSA key size: %v", err)
+				}
+				rsaPubKey, ok := pubKey.(*rsa.PublicKey)
+				if !ok {
+					return AlgorithmDetails{}, fmt.Errorf("error asserting RSA key type")
+				}
+				if keySize != RSAKeySize(rsaPubKey.Size()*8) {
+					continue
+				}
+			}
+			return detail, nil
+		}
+	}
+	return AlgorithmDetails{}, fmt.Errorf("could not find algorithm details for OID %s", oid)
 }
 
 // NewAlgorithmRegistryConfig creates a new AlgorithmRegistryConfig for a set of permitted signature algorithms.

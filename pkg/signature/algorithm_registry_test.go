@@ -22,6 +22,8 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/rsa"
+	"encoding/asn1"
+	"strings"
 	"testing"
 
 	v1 "github.com/sigstore/protobuf-specs/gen/pb-go/common/v1"
@@ -52,6 +54,145 @@ func TestGetAlgorithmDetails(t *testing.T) {
 	_, err = details.GetRSAKeySize()
 	if err == nil {
 		t.Errorf("unexpected success getting rsa key size")
+	}
+}
+
+func TestGetAlgorithmDetailsByOID(t *testing.T) {
+	rsaKey2048, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatalf("could not generate RSA 2048 key: %v", err)
+	}
+	rsaKey3072, err := rsa.GenerateKey(rand.Reader, 3072)
+	if err != nil {
+		t.Fatalf("could not generate RSA 3072 key: %v", err)
+	}
+	rsaKey4096, err := rsa.GenerateKey(rand.Reader, 4096)
+	if err != nil {
+		t.Fatalf("could not generate RSA 4096 key: %v", err)
+	}
+	// Key with a size not expected to match standard definitions
+	rsaKeyMismatch, err := rsa.GenerateKey(rand.Reader, 2026)
+	if err != nil {
+		t.Fatalf("could not generate RSA 2026 key: %v", err)
+	}
+
+	testCases := []struct {
+		name                 string                // Name for the subtest
+		oid                  asn1.ObjectIdentifier // Input OID
+		key                  crypto.PublicKey      // Input public key (can be nil)
+		opts                 []LoadOption          // Input options (variadic)
+		expectedSigAlg       v1.PublicKeyDetails   // Expected algorithm if successful
+		expectErr            bool                  // Whether an error is expected
+		expectedErrSubstring string                // Substring expected in the error message
+	}{
+		// RSA PKCS#1v1.5 Cases
+		{
+			name:           "RSA-PKCS1v15-2048-SHA256",
+			oid:            oidSignatureSHA256WithRSA,
+			key:            rsaKey2048.Public(),
+			expectedSigAlg: v1.PublicKeyDetails_PKIX_RSA_PKCS1V15_2048_SHA256,
+		},
+		{
+			name:           "RSA-PKCS1v15-3072-SHA256",
+			oid:            oidSignatureSHA256WithRSA,
+			key:            rsaKey3072.Public(),
+			expectedSigAlg: v1.PublicKeyDetails_PKIX_RSA_PKCS1V15_3072_SHA256,
+		},
+		{
+			name:           "RSA-PKCS1v15-4096-SHA256",
+			oid:            oidSignatureSHA256WithRSA,
+			key:            rsaKey4096.Public(),
+			expectedSigAlg: v1.PublicKeyDetails_PKIX_RSA_PKCS1V15_4096_SHA256,
+		},
+		// RSA PSS Cases
+		{
+			name:           "RSA-PSS-2048-SHA256",
+			oid:            oidSignatureRSAPSS,
+			key:            rsaKey2048.Public(),
+			expectedSigAlg: v1.PublicKeyDetails_PKIX_RSA_PSS_2048_SHA256,
+		},
+		{
+			name:           "RSA-PSS-3072-SHA256",
+			oid:            oidSignatureRSAPSS,
+			key:            rsaKey3072.Public(),
+			expectedSigAlg: v1.PublicKeyDetails_PKIX_RSA_PSS_3072_SHA256,
+		},
+		{
+			name:           "RSA-PSS-4096-SHA256",
+			oid:            oidSignatureRSAPSS,
+			key:            rsaKey4096.Public(),
+			expectedSigAlg: v1.PublicKeyDetails_PKIX_RSA_PSS_4096_SHA256,
+		},
+		// RSA Mismatched Key Size Error Case
+		{
+			name:                 "RSA-Error-MismatchedKeySize",
+			oid:                  oidSignatureSHA256WithRSA,
+			key:                  rsaKeyMismatch.Public(),
+			expectErr:            true,
+			expectedErrSubstring: "could not find algorithm details for OID",
+		},
+		// ECDSA Cases (key not needed for these OIDs in the original test)
+		{
+			name:           "ECDSA-P256-SHA256",
+			oid:            oidSignatureECDSAWithSHA256,
+			key:            nil,
+			expectedSigAlg: v1.PublicKeyDetails_PKIX_ECDSA_P256_SHA_256,
+		},
+		{
+			name:           "ECDSA-P384-SHA384",
+			oid:            oidSignatureECDSAWithSHA384,
+			key:            nil,
+			expectedSigAlg: v1.PublicKeyDetails_PKIX_ECDSA_P384_SHA_384,
+		},
+		{
+			name:           "ECDSA-P521-SHA512",
+			oid:            oidSignatureECDSAWithSHA512,
+			key:            nil,
+			expectedSigAlg: v1.PublicKeyDetails_PKIX_ECDSA_P521_SHA_512,
+		},
+		// Ed25519 Cases
+		{
+			name:           "Ed25519",
+			oid:            oidSignatureEd25519,
+			key:            nil,
+			expectedSigAlg: v1.PublicKeyDetails_PKIX_ED25519,
+		},
+		{
+			name:           "Ed25519-ph",
+			oid:            oidSignatureEd25519,
+			key:            nil,
+			opts:           []LoadOption{options.WithED25519ph()},
+			expectedSigAlg: v1.PublicKeyDetails_PKIX_ED25519_PH,
+		},
+		// Unsupported OID Error Case
+		{
+			name:                 "Error-UnsupportedOID",
+			oid:                  asn1.ObjectIdentifier{1, 2, 3, 4},
+			key:                  nil,
+			expectErr:            true,
+			expectedErrSubstring: "could not find algorithm details for OID 1.2.3.4",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			details, err := GetAlgorithmDetailsByOID(tc.oid, tc.key, tc.opts...)
+
+			if tc.expectErr {
+				if err == nil {
+					t.Errorf("expected an error, but got nil")
+				} else if !strings.Contains(err.Error(), tc.expectedErrSubstring) {
+					t.Errorf("expected error message to contain '%s', but got: %v", tc.expectedErrSubstring, err)
+				}
+			} else {
+				if err != nil {
+					t.Fatalf("did not expect an error, but got: %v", err)
+				}
+				if gotSigAlg := details.GetSignatureAlgorithm(); gotSigAlg != tc.expectedSigAlg {
+					t.Errorf("unexpected signature algorithm: got %v, want %v", gotSigAlg, tc.expectedSigAlg)
+				}
+			}
+		})
 	}
 }
 
