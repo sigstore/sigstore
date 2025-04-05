@@ -13,48 +13,59 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+version: "2"
+run:
+  issues-exit-code: 1
 linters:
   enable:
     - asciicheck
-    - errcheck
     - errorlint
     - forcetypeassert
-    - gofmt
-    - gofumpt
-    - goimports
-    - gosec
     - gocritic
+    - gosec
     - importas
+    - misspell
     - prealloc
     - revive
-    - misspell
-    - stylecheck
+    - staticcheck
     - tparallel
     - unconvert
     - unparam
     - unused
     - whitespace
+  exclusions:
+    generated: lax
+    presets:
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    rules:
+      - linters:
+          - errcheck
+          - gosec
+        path: _test\.go
+      - linters:
+          - revive
+        path: pkg/tuf
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
 issues:
-  include:
-    # revive `package-comments` and `exported` rules.
-    - EXC0012
-    - EXC0013
-    - EXC0014
-    - EXC0015
-  exclude-rules:
-    - path: _test\.go
-      linters:
-        - errcheck
-        - gosec
-    - path: pkg/tuf
-      linters:
-        - revive
   max-issues-per-linter: 0
   max-same-issues: 0
   uniq-by-line: false
-linters-settings:
-  gofumpt:
-    extra-rules: true
-run:
-  issues-exit-code: 1
-  timeout: 10m
+formatters:
+  enable:
+    - gofmt
+    - gofumpt
+    - goimports
+  settings:
+    gofumpt:
+      extra-rules: true
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$

@@ -32,7 +32,8 @@ func TestRSAPKCS1v15SignerVerifier(t *testing.T) {
 	if err != nil {
 		t.Errorf("unexpected error unmarshalling private key: %v", err)
 	}
-	sv, err := LoadRSAPKCS1v15SignerVerifier(privateKey.(*rsa.PrivateKey), crypto.SHA256)
+	privKey, _ := privateKey.(*rsa.PrivateKey)
+	sv, err := LoadRSAPKCS1v15SignerVerifier(privKey, crypto.SHA256)
 	if err != nil {
 		t.Errorf("unexpected error creating signer/verifier: %v", err)
 	}
@@ -47,7 +48,8 @@ func TestRSAPKCS1v15SignerVerifier(t *testing.T) {
 	if err != nil {
 		t.Errorf("unexpected error unmarshalling public key: %v", err)
 	}
-	v, err := LoadRSAPKCS1v15Verifier(publicKey.(*rsa.PublicKey), crypto.SHA256)
+	pk, _ := publicKey.(*rsa.PublicKey)
+	v, err := LoadRSAPKCS1v15Verifier(pk, crypto.SHA256)
 	if err != nil {
 		t.Errorf("unexpected error creating verifier: %v", err)
 	}
@@ -59,7 +61,8 @@ func TestRSAPKCS1v15SignerVerifierUnsupportedHash(t *testing.T) {
 	if err != nil {
 		t.Errorf("unexpected error unmarshalling public key: %v", err)
 	}
-	_, err = LoadRSAPKCS1v15Verifier(publicKey.(*rsa.PublicKey), crypto.SHA1)
+	pk, _ := publicKey.(*rsa.PublicKey)
+	_, err = LoadRSAPKCS1v15Verifier(pk, crypto.SHA1)
 	if !strings.Contains(err.Error(), "invalid hash function specified") {
 		t.Errorf("expected error 'invalid hash function specified', got: %v", err.Error())
 	}
