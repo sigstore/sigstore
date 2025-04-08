@@ -42,6 +42,9 @@ func TestGetAlgorithmDetails(t *testing.T) {
 	if details.GetHashType() != crypto.SHA256 {
 		t.Errorf("unexpected hash algorithm")
 	}
+	if details.GetProtoHashType() != v1.HashAlgorithm_SHA2_256 {
+		t.Errorf("unxpected proto hash algorithm")
+	}
 	curve, err := details.GetECDSACurve()
 	if err != nil {
 		t.Errorf("unexpected error getting ecdsa curve")
@@ -293,5 +296,30 @@ func TestGetDefaultPublicKeyDetails(t *testing.T) {
 				t.Errorf("unexpected signature algorithm")
 			}
 		})
+	}
+}
+
+func TestHashingAlgorithmMatches(t *testing.T) {
+	for _, details := range supportedAlgorithms {
+		switch details.hashType {
+		case crypto.SHA256:
+			if details.protoHashType != v1.HashAlgorithm_SHA2_256 {
+				t.Errorf("expected SHA256 to match proto SHA2_256 in: %s", details.flagValue)
+			}
+		case crypto.SHA384:
+			if details.protoHashType != v1.HashAlgorithm_SHA2_384 {
+				t.Errorf("expected SHA384 to match proto SHA2_384 in: %s", details.flagValue)
+			}
+		case crypto.SHA512:
+			if details.protoHashType != v1.HashAlgorithm_SHA2_512 {
+				t.Errorf("expected SHA512 to match proto SHA2_512 in: %s", details.flagValue)
+			}
+		case crypto.Hash(0):
+			if details.protoHashType != v1.HashAlgorithm_HASH_ALGORITHM_UNSPECIFIED {
+				t.Errorf("expected Hash(0) to match proto HASH_ALGORITHM_UNSPECIFIED in: %s", details.flagValue)
+			}
+		default:
+			t.Errorf("unrecognized hash type: %v", details.hashType)
+		}
 	}
 }
