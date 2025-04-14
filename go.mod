@@ -5,7 +5,7 @@ go 1.23.0
 toolchain go1.23.6
 
 require (
-	github.com/coreos/go-oidc/v3 v3.13.0
+	github.com/coreos/go-oidc/v3 v3.14.1
 	github.com/go-jose/go-jose/v4 v4.0.5
 	github.com/go-rod/rod v0.116.2
 	github.com/go-test/deep v1.1.1
