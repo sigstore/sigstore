@@ -19,7 +19,7 @@ require (
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966
 	github.com/stretchr/testify v1.10.0
 	github.com/theupdateframework/go-tuf v0.7.0
-	github.com/tink-crypto/tink-go/v2 v2.3.0
+	github.com/tink-crypto/tink-go/v2 v2.4.0
 	golang.org/x/crypto v0.36.0
 	golang.org/x/oauth2 v0.28.0
 	golang.org/x/term v0.30.0
