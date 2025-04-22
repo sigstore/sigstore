@@ -443,6 +443,9 @@ func TestGetTargetsByMeta(t *testing.T) {
 	if targets[0].Status != Active {
 		t.Fatalf("target without custom metadata not active, got: %v", targets[0].Status)
 	}
+	if targets[0].Name != "fooNoCustom.txt" {
+		t.Fatalf("target has wrong name, expected: %s, got: %s", "fooNoCustom.txt", targets[0].Name)
+	}
 	// Fetch multiple targets with no custom metadata.
 	targets, err = tufObj.GetTargetsByMeta(UnknownUsage, []string{"fooNoCustom.txt", "fooNoCustomOther.txt"})
 	if err != nil {
@@ -477,6 +480,12 @@ func TestGetTargetsByMeta(t *testing.T) {
 	expectedTB := []string{"foo", "foo"}
 	if !reflect.DeepEqual(targetBytes, expectedTB) {
 		t.Fatalf("target metadata mismatched, expected: %v, got: %v", expectedTB, targetBytes)
+	}
+	targetNames := []string{targets[0].Name, targets[1].Name}
+	sort.Strings(targetNames)
+	expectedTN := []string{"fooActive.txt", "fooExpired.txt"}
+	if !reflect.DeepEqual(targetNames, expectedTN) {
+		t.Fatalf("target names mismatched, expected: %v, got: %v", expectedTN, targetNames)
 	}
 	targetStatuses := []StatusKind{targets[0].Status, targets[1].Status}
 	sort.Slice(targetStatuses, func(i, j int) bool {
