@@ -21,7 +21,7 @@ type Logger interface {
 }
 
 // ConfigureOpenTelemetryTracer configures the global OpenTelemetry trace
-// provider and propagator for baggages and trace context.
+// provider and trace context.
 //
 // The function uses the following environment variables for the tracer
 // configuration:
@@ -36,27 +36,26 @@ type Logger interface {
 //
 // An error is returned if an environment value is set to an unhandled value.
 //
-// If no environment variable are set, a no-op tracer is setup.
+// The initalization will have no effect when no trace exporter using
+// the `OTEL_TRACES_EXPORTER` environment variable is set.
 func ConfigureOpenTelemetryTracer(ctx context.Context, logger Logger, resourceAttrs ...attribute.KeyValue) (func(context.Context) error, error) {
-	if v, ok := os.LookupEnv("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT"); !ok || v == "" {
-		logger.Info("skipping OpenTelemetry SDK initialization...")
+	if v, ok := os.LookupEnv("OTEL_TRACES_EXPORTER"); !ok || v == "" {
+		logger.Info("no exporter configured, skipping OpenTelemetry SDK initialization...")
 		return func(context.Context) error { return nil }, nil
 	}
 
 	logger.Info("initializing OpenTelemetry SDK...")
 
-	exp, err := autoexport.NewSpanExporter(ctx, autoexport.WithFallbackSpanExporter(newNoopFactory))
+	exp, err := autoexport.NewSpanExporter(ctx)
 	if err != nil {
 		return nil, errors.Errorf("failed to create OTEL exporter: %s", err)
 	}
 
-	var isNoop bool
-	if _, isNoop = exp.(*noopSpanExporter); !isNoop || autoexport.IsNoneSpanExporter(exp) {
-		isNoop = true
+	if autoexport.IsNoneSpanExporter(exp) {
+		logger.Info("initializing OpenTelemetry tracer: noop")
 	}
-	logger.Info("initializing OpenTelemetry tracer:", "isNoop", isNoop)
 
-	opts := []resource.Option{resource.WithHost()}
+	opts := []resource.Option{resource.WithFromEnv()}
 	if len(resourceAttrs) > 0 {
 		opts = append(opts, resource.WithAttributes(resourceAttrs...))
 	}
@@ -77,7 +76,7 @@ func ConfigureOpenTelemetryTracer(ctx context.Context, logger Logger, resourceAt
 		return tp.Shutdown(ctx)
 	}
 
-	propagator := propagation.NewCompositeTextMapPropagator(propagation.Baggage{}, propagation.TraceContext{})
+	propagator := propagation.NewCompositeTextMapPropagator(propagation.TraceContext{})
 	otel.SetTextMapPropagator(propagator)
 
 	otel.SetErrorHandler(otelErrorHandlerFunc(func(err error) {
@@ -92,23 +91,4 @@ type otelErrorHandlerFunc func(error)
 // Handle implements otel.ErrorHandler
 func (f otelErrorHandlerFunc) Handle(err error) {
 	f(err)
-}
-
-func newNoopFactory(_ context.Context) (tracesdk.SpanExporter, error) {
-	return &noopSpanExporter{}, nil
-}
-
-var _ tracesdk.SpanExporter = noopSpanExporter{}
-
-// noopSpanExporter is an implementation of trace.SpanExporter that performs no operations.
-type noopSpanExporter struct{}
-
-// ExportSpans is part of trace.SpanExporter interface.
-func (e noopSpanExporter) ExportSpans(ctx context.Context, spans []tracesdk.ReadOnlySpan) error {
-	return nil
-}
-
-// Shutdown is part of trace.SpanExporter interface.
-func (e noopSpanExporter) Shutdown(ctx context.Context) error {
-	return nil
 }
