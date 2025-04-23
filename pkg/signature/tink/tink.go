@@ -58,9 +58,16 @@ func KeyHandleToSigner(kh *keyset.Handle) (crypto.Signer, error) {
 		if err != nil {
 			return nil, err
 		}
-		ecdsaPublicKey := publicKey.(*tinkecdsa.PublicKey)
+		ecdsaPublicKey, ok := publicKey.(*tinkecdsa.PublicKey)
+		if !ok {
+			return nil, fmt.Errorf("error asserting ecdsa public key")
+		}
 
-		curve, err := curveFromTinkECDSACurveType(ecdsaPublicKey.Parameters().(*tinkecdsa.Parameters).CurveType())
+		curveParams, ok := ecdsaPublicKey.Parameters().(*tinkecdsa.Parameters)
+		if !ok {
+			return nil, fmt.Errorf("error asserting ecdsa parameters")
+		}
+		curve, err := curveFromTinkECDSACurveType(curveParams.CurveType())
 		if err != nil {
 			return nil, err
 		}

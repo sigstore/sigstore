@@ -73,12 +73,20 @@ func TestKeyHandleToSignerECDSA(t *testing.T) {
 			}
 			tc.h.Write(msg)
 			digest := tc.h.Sum(nil)
-			if !ecdsa.VerifyASN1(signer.Public().(*ecdsa.PublicKey), digest, sig) {
+			publicKey, ok := signer.Public().(*ecdsa.PublicKey)
+			if !ok {
+				t.Fatalf("error asserting ecdsa public key")
+			}
+			if !ecdsa.VerifyASN1(publicKey, digest, sig) {
 				t.Fatalf("signature from tink signer did not match")
 			}
 
 			// sign with signer, verify with key handle
-			sig, err = ecdsa.SignASN1(rand.Reader, signer.(*ecdsa.PrivateKey), digest)
+			privKey, ok := signer.(*ecdsa.PrivateKey)
+			if !ok {
+				t.Fatalf("error asserting ecdsa private key")
+			}
+			sig, err = ecdsa.SignASN1(rand.Reader, privKey, digest)
 			if err != nil {
 				t.Fatalf("error signing with crypto signer: %v", err)
 			}
@@ -118,12 +126,20 @@ func TestKeyHandleToSignerED25519(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error signing with tink signer: %v", err)
 	}
-	if !ed25519.Verify(signer.Public().(ed25519.PublicKey), msg, sig) {
+	publicKey, ok := signer.Public().(ed25519.PublicKey)
+	if !ok {
+		t.Fatalf("error asserting ed25519 public key")
+	}
+	if !ed25519.Verify(publicKey, msg, sig) {
 		t.Fatalf("signature from tink signer did not match")
 	}
 
 	// sign with signer, verify with key handle
-	sig = ed25519.Sign(signer.(ed25519.PrivateKey), msg)
+	privKey, ok := signer.(ed25519.PrivateKey)
+	if !ok {
+		t.Fatalf("error asserting ed25519 private key")
+	}
+	sig = ed25519.Sign(privKey, msg)
 	if err != nil {
 		t.Fatalf("error signing with crypto signer: %v", err)
 	}
