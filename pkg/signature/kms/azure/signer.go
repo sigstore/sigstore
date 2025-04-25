@@ -87,7 +87,7 @@ func LoadSignerVerifier(defaultCtx context.Context, referenceStr string) (*Signe
 // All other options are ignored if specified.
 func (a *SignerVerifier) SignMessage(message io.Reader, opts ...signature.SignOption) ([]byte, error) {
 	var digest []byte
-	ctx := context.Background()
+	ctx := a.defaultCtx
 
 	for _, opt := range opts {
 		opt.ApplyContext(&ctx)
