@@ -333,7 +333,27 @@ func (h hashivaultClient) verify(sig, digest []byte, alg crypto.Hash, opts ...si
 			if h.keyVersion > 0 {
 				vaultDataPrefix = fmt.Sprintf("vault:v%d:", h.keyVersion)
 			} else {
-				vaultDataPrefix = vaultV1DataPrefix
+				// use hashivault client to grab the latest version of the key and use that as the prefix
+				/*				vaultDataPrefix = vaultV1DataPrefix*/
+
+				client := h.client.Logical()
+
+				path := fmt.Sprintf("/%s/keys/%s", h.transitSecretEnginePath, h.keyPath)
+
+				keyResult, err := client.Read(path)
+				if err != nil {
+					return fmt.Errorf("public key: %w", err)
+				}
+
+				if keyResult == nil {
+					return fmt.Errorf("could not read data from transit key path: %s", path)
+				}
+
+				latestVersion, hasVersion := keyResult.Data["latest_version"]
+				if !hasVersion {
+					return errors.New("failed to read transit key keys: corrupted response")
+				}
+				vaultDataPrefix = fmt.Sprintf("vault:v%s:", latestVersion.(json.Number))
 			}
 		}
 	}
