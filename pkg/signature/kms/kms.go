@@ -90,4 +90,5 @@ type SignerVerifier interface {
 	CryptoSigner(ctx context.Context, errFunc func(error)) (crypto.Signer, crypto.SignerOpts, error)
 	SupportedAlgorithms() []string
 	DefaultAlgorithm() string
+	HashFunc() crypto.Hash
 }
