@@ -425,7 +425,7 @@ func (suite *VaultSuite) TestVerify() {
 }
 
 func (suite *VaultSuite) TestED25519() {
-	provider := suite.GetProvider("testverify")
+	provider := suite.GetProvider("tested25519")
 
 	key, err := provider.CreateKey(context.Background(), AlgorithmED25519)
 	assert.Nil(suite.T(), err)
