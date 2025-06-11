@@ -37,6 +37,8 @@ const (
 	ECDSA
 	// ED25519 public key
 	ED25519
+	// MLDSA public key
+	MLDSA
 )
 
 // RSAKeySize represents the size of an RSA public key in bits.
@@ -165,6 +167,8 @@ var supportedAlgorithms = []AlgorithmDetails{
 	{v1.PublicKeyDetails_PKIX_ECDSA_P521_SHA_256, ECDSA, crypto.SHA256, v1.HashAlgorithm_SHA2_256, elliptic.P521(), "ecdsa-sha2-256-nistp521"}, //nolint:staticcheck
 	{v1.PublicKeyDetails_PKIX_ED25519, ED25519, crypto.Hash(0), v1.HashAlgorithm_HASH_ALGORITHM_UNSPECIFIED, nil, "ed25519"},
 	{v1.PublicKeyDetails_PKIX_ED25519_PH, ED25519, crypto.SHA512, v1.HashAlgorithm_SHA2_512, nil, "ed25519-ph"},
+	{v1.PublicKeyDetails_ML_DSA_65, MLDSA, crypto.Hash(0), v1.HashAlgorithm_HASH_ALGORITHM_UNSPECIFIED, nil, "mldsa-65"},
+	{v1.PublicKeyDetails_ML_DSA_87, MLDSA, crypto.Hash(0), v1.HashAlgorithm_HASH_ALGORITHM_UNSPECIFIED, nil, "mldsa-87"}, 
 }
 
 // AlgorithmRegistryConfig represents a set of permitted algorithms for a given Sigstore service or component.
