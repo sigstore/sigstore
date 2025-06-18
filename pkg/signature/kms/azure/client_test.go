@@ -145,7 +145,7 @@ func generatePublicKey(azureKeyType string) (azkeys.JSONWebKey, error) {
 
 		return key, nil
 	case azkeys.KeyTypeRSA, azkeys.KeyTypeRSAHSM:
-		privKey, err := rsa.GenerateKey(rand.Reader, 256)
+		privKey, err := rsa.GenerateKey(rand.Reader, 1024)
 		if err != nil {
 			return azkeys.JSONWebKey{}, err
 		}
