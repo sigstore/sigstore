@@ -6,7 +6,7 @@ go 1.24
 
 require (
 	cloud.google.com/go/kms v1.21.2
-	github.com/jellydator/ttlcache/v3 v3.3.0
+	github.com/jellydator/ttlcache/v3 v3.4.0
 	github.com/sigstore/sigstore v1.6.4
 	golang.org/x/oauth2 v0.30.0
 	google.golang.org/api v0.238.0
