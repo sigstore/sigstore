@@ -20,6 +20,8 @@ import (
 	"crypto"
 	"crypto/rsa"
 	"io"
+
+	googleoption "google.golang.org/api/option"
 )
 
 // NoOpOptionImpl implements the RPCOption, SignOption, VerifyOption interfaces as no-ops.
@@ -57,3 +59,6 @@ func (NoOpOptionImpl) ApplyED25519ph(_ *bool) {}
 
 // ApplyRSAPSS is a no-op required to fully implement the requisite interfaces
 func (NoOpOptionImpl) ApplyRSAPSS(_ **rsa.PSSOptions) {}
+
+// ApplyRSAPSS is a no-op required to fully implement the requisite interfaces
+func (NoOpOptionImpl) ApplyGoogleAPIClientOption(_ *googleoption.ClientOption) {}

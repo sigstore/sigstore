@@ -42,8 +42,16 @@ import (
 )
 
 func init() {
-	sigkms.AddProvider(ReferenceScheme, func(ctx context.Context, keyResourceID string, _ crypto.Hash, _ ...signature.RPCOption) (sigkms.SignerVerifier, error) {
-		return LoadSignerVerifier(ctx, keyResourceID)
+	sigkms.AddProvider(ReferenceScheme, func(ctx context.Context, keyResourceID string, _ crypto.Hash, opts ...signature.RPCOption) (sigkms.SignerVerifier, error) {
+		clientOpts := make([]option.ClientOption, 0)
+		for _, opt := range opts {
+			var cOpt option.ClientOption
+			opt.ApplyGoogleAPIClientOption(&cOpt)
+			if cOpt != nil {
+				clientOpts = append(clientOpts, cOpt)
+			}
+		}
+		return LoadSignerVerifier(ctx, keyResourceID, clientOpts...)
 	})
 }
 
