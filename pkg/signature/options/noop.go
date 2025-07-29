@@ -60,5 +60,5 @@ func (NoOpOptionImpl) ApplyED25519ph(_ *bool) {}
 // ApplyRSAPSS is a no-op required to fully implement the requisite interfaces
 func (NoOpOptionImpl) ApplyRSAPSS(_ **rsa.PSSOptions) {}
 
-// ApplyRSAPSS is a no-op required to fully implement the requisite interfaces
+// ApplyGoogleAPIClientOption is a no-op required to fully implement the requisite interfaces
 func (NoOpOptionImpl) ApplyGoogleAPIClientOption(_ *googleoption.ClientOption) {}

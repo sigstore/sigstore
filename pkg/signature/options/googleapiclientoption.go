@@ -26,12 +26,12 @@ type RequestGoogleAPIClientOption struct {
 	opt googleoption.ClientOption
 }
 
-// ApplyContext sets the specified context as the functional option
+// ApplyGoogleAPIClientOption sets the specified context as the functional option
 func (r RequestGoogleAPIClientOption) ApplyGoogleAPIClientOption(opt *googleoption.ClientOption) {
 	*opt = r.opt
 }
 
-// WithContext specifies that the given context should be used in RPC to external services
+// WithGoogleAPIClientOption specifies that the given context should be used in RPC to external services
 func WithGoogleAPIClientOption(opt googleoption.ClientOption) RequestGoogleAPIClientOption {
 	return RequestGoogleAPIClientOption{opt: opt}
 }
