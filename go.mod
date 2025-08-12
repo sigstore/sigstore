@@ -18,9 +18,9 @@ require (
 	github.com/stretchr/testify v1.10.0
 	github.com/theupdateframework/go-tuf v0.7.0
 	github.com/tink-crypto/tink-go/v2 v2.4.0
-	golang.org/x/crypto v0.40.0
+	golang.org/x/crypto v0.41.0
 	golang.org/x/oauth2 v0.30.0
-	golang.org/x/term v0.33.0
+	golang.org/x/term v0.34.0
 )
 
 require (
@@ -36,7 +36,7 @@ require (
 	github.com/ysmood/got v0.40.0 // indirect
 	github.com/ysmood/gson v0.7.3 // indirect
 	github.com/ysmood/leakless v0.9.0 // indirect
-	golang.org/x/sys v0.34.0 // indirect
+	golang.org/x/sys v0.35.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20250505200425-f936aa4a68b2 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250603155806-513f23925822 // indirect
 	google.golang.org/grpc v1.73.0 // indirect
