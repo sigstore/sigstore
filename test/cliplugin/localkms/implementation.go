@@ -29,6 +29,7 @@ import (
 	"os"
 	"slices"
 
+	"github.com/sigstore/sigstore/pkg/cryptoutils"
 	"github.com/sigstore/sigstore/pkg/signature"
 )
 
@@ -209,17 +210,17 @@ func loadRSAPrivateKey(path string) (*rsa.PrivateKey, error) {
 	if err != nil {
 		return nil, err
 	}
-	privateKeyBlock, _ := pem.Decode(privateKeyBytes)
-	if privateKeyBlock == nil || privateKeyBlock.Type != "RSA PRIVATE KEY" {
-		return nil, fmt.Errorf("invalid private key PEM block")
-	}
 
-	privateKey, err := x509.ParsePKCS1PrivateKey(privateKeyBlock.Bytes)
+	priv, err := cryptoutils.UnmarshalPEMToPrivateKey(privateKeyBytes, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	return privateKey, nil
+	rsaKey, ok := priv.(*rsa.PrivateKey)
+	if !ok {
+		return nil, errors.New("only RSA keys are supported")
+	}
+	return rsaKey, nil
 }
 
 // computeDigest computes the message digest with the hash function.
