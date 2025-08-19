@@ -4,7 +4,7 @@ go 1.24.0
 
 require (
 	github.com/coreos/go-oidc/v3 v3.15.0
-	github.com/go-jose/go-jose/v4 v4.1.1
+	github.com/go-jose/go-jose/v4 v4.1.2
 	github.com/go-rod/rod v0.116.2
 	github.com/go-test/deep v1.1.1
 	github.com/google/go-cmp v0.7.0
