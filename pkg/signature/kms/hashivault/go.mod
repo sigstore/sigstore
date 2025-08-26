@@ -11,7 +11,7 @@ require (
 	github.com/jellydator/ttlcache/v3 v3.4.0
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/sigstore/sigstore v1.6.4
-	github.com/stretchr/testify v1.10.0
+	github.com/stretchr/testify v1.11.0
 )
 
 require (
