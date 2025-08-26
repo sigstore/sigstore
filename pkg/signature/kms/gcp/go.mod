@@ -12,7 +12,7 @@ require (
 	github.com/sigstore/sigstore v1.6.4
 	golang.org/x/oauth2 v0.30.0
 	google.golang.org/api v0.248.0
-	google.golang.org/protobuf v1.36.7
+	google.golang.org/protobuf v1.36.8
 )
 
 require (
