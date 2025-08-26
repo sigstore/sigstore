@@ -1,6 +1,6 @@
 module github.com/sigstore/sigstore
 
-go 1.24.0
+go 1.25.0
 
 require (
 	github.com/coreos/go-oidc/v3 v3.15.0
@@ -9,7 +9,7 @@ require (
 	github.com/go-test/deep v1.1.1
 	github.com/google/go-cmp v0.7.0
 	github.com/google/go-containerregistry v0.20.6
-	github.com/letsencrypt/boulder v0.20250721.0
+	github.com/letsencrypt/boulder v0.20250825.0
 	github.com/pkg/browser v0.0.0-20210911075715-681adbf594b8
 	github.com/secure-systems-lab/go-securesystemslib v0.9.1
 	github.com/segmentio/ksuid v1.0.4
