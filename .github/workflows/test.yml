@@ -15,9 +15,6 @@
 
 name: test
 
-permissions:
-  contents: read
-
 on:
   push:
     branches:
@@ -26,16 +23,21 @@ on:
     branches:
       - main
 
+permissions: {}
+
 jobs:
   unit_test:
     name: unit tests
     runs-on: ubuntu-latest
 
+    permissions:
+      contents: read
+
     strategy:
       matrix:
         go-version:
-          - 1.22.x
-          - 1.23.x
+          - 1.24.x
+          - 1.25.x
 
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
@@ -47,6 +49,7 @@ jobs:
         with:
           go-version: ${{ matrix.go-version }}
           check-latest: true
+          cache: false
 
       - name: Cache Modules
         uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
