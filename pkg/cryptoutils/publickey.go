@@ -26,7 +26,6 @@ import (
 	"crypto/x509/pkix"
 	"encoding/asn1"
 	"encoding/hex"
-	"encoding/pem"
 	"errors"
 	"fmt"
 
@@ -49,36 +48,22 @@ type subjectPublicKeyInfo struct {
 
 // UnmarshalPEMToPublicKey converts a PEM-encoded byte slice into a crypto.PublicKey
 func UnmarshalPEMToPublicKey(pemBytes []byte) (crypto.PublicKey, error) {
-	derBytes, _ := pem.Decode(pemBytes)
-	if derBytes == nil {
-		return nil, errors.New("PEM decoding failed")
-	}
-	switch derBytes.Type {
-	case string(PublicKeyPEMType):
-		return x509.ParsePKIXPublicKey(derBytes.Bytes)
-	case string(PKCS1PublicKeyPEMType):
-		return x509.ParsePKCS1PublicKey(derBytes.Bytes)
-	default:
-		return nil, fmt.Errorf("unknown Public key PEM file type: %v. Are you passing the correct public key?",
-			derBytes.Type)
-	}
+	return GetKeyMarshaller().UnmarshalPEMToPublicKey(pemBytes)
+}
+
+// UnmarshalDERToPublicKey converts DER bytes to crypto.PublicKey
+func UnmarshalDERToPublicKey(derBytes []byte) (crypto.PublicKey, error) {
+	return GetKeyMarshaller().UnmarshalDERToPublicKey(derBytes)
 }
 
 // MarshalPublicKeyToDER converts a crypto.PublicKey into a PKIX, ASN.1 DER byte slice
 func MarshalPublicKeyToDER(pub crypto.PublicKey) ([]byte, error) {
-	if pub == nil {
-		return nil, errors.New("empty key")
-	}
-	return x509.MarshalPKIXPublicKey(pub)
+	return GetKeyMarshaller().MarshalPublicKeyToDER(pub)
 }
 
 // MarshalPublicKeyToPEM converts a crypto.PublicKey into a PEM-encoded byte slice
 func MarshalPublicKeyToPEM(pub crypto.PublicKey) ([]byte, error) {
-	derBytes, err := MarshalPublicKeyToDER(pub)
-	if err != nil {
-		return nil, err
-	}
-	return PEMEncode(PublicKeyPEMType, derBytes), nil
+	return GetKeyMarshaller().MarshalPublicKeyToPEM(pub)
 }
 
 // SKID generates a 160-bit SHA-1 hash of the value of the BIT STRING

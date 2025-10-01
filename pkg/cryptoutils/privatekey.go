@@ -22,9 +22,7 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
-	"encoding/pem"
 	"errors"
-	"fmt"
 
 	"github.com/secure-systems-lab/go-securesystemslib/encrypted"
 )
@@ -103,35 +101,12 @@ func MarshalPrivateKeyToEncryptedDER(priv crypto.PrivateKey, pf PassFunc) ([]byt
 
 // UnmarshalPEMToPrivateKey converts a PEM-encoded byte slice into a crypto.PrivateKey
 func UnmarshalPEMToPrivateKey(pemBytes []byte, pf PassFunc) (crypto.PrivateKey, error) {
-	derBlock, _ := pem.Decode(pemBytes)
-	if derBlock == nil {
-		return nil, errors.New("PEM decoding failed")
-	}
-	switch derBlock.Type {
-	case string(PrivateKeyPEMType):
-		return x509.ParsePKCS8PrivateKey(derBlock.Bytes)
-	case string(PKCS1PrivateKeyPEMType):
-		return x509.ParsePKCS1PrivateKey(derBlock.Bytes)
-	case string(ECPrivateKeyPEMType):
-		return x509.ParseECPrivateKey(derBlock.Bytes)
-	case string(EncryptedSigstorePrivateKeyPEMType), string(encryptedCosignPrivateKeyPEMType):
-		derBytes := derBlock.Bytes
-		if pf != nil {
-			password, err := pf(false)
-			if err != nil {
-				return nil, err
-			}
-			if password != nil {
-				derBytes, err = encrypted.Decrypt(derBytes, password)
-				if err != nil {
-					return nil, err
-				}
-			}
-		}
+	return GetKeyMarshaller().UnmarshalPEMToPrivateKey(pemBytes, pf)
+}
 
-		return x509.ParsePKCS8PrivateKey(derBytes)
-	}
-	return nil, fmt.Errorf("unknown private key PEM file type: %v", derBlock.Type)
+// UnmarshalDERToPrivateKey converts DER bytes to crypto.PrivateKey
+func UnmarshalDERToPrivateKey(derBytes []byte) (crypto.PrivateKey, error) {
+	return GetKeyMarshaller().UnmarshalDERToPrivateKey(derBytes)
 }
 
 // MarshalPrivateKeyToDER converts a crypto.PrivateKey into a PKCS8 ASN.1 DER byte slice
@@ -144,9 +119,5 @@ func MarshalPrivateKeyToDER(priv crypto.PrivateKey) ([]byte, error) {
 
 // MarshalPrivateKeyToPEM converts a crypto.PrivateKey into a PKCS#8 PEM-encoded byte slice
 func MarshalPrivateKeyToPEM(priv crypto.PrivateKey) ([]byte, error) {
-	derBytes, err := MarshalPrivateKeyToDER(priv)
-	if err != nil {
-		return nil, err
-	}
-	return PEMEncode(PrivateKeyPEMType, derBytes), nil
+	return GetKeyMarshaller().MarshalPrivateKeyToPEM(priv)
 }
