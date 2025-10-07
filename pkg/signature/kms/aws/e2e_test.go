@@ -34,7 +34,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/aws/retry"
 	"github.com/aws/aws-sdk-go-v2/config"
-	awskms "github.com/aws/aws-sdk-go/service/kms"
+	awskms "github.com/aws/aws-sdk-go-v2/service/kms/types"
 	"github.com/sigstore/sigstore/pkg/signature"
 	"github.com/sigstore/sigstore/pkg/signature/options"
 )
@@ -84,11 +84,11 @@ func (suite *AWSSuite) TestInvalidProvider() {
 func (suite *AWSSuite) TestCreateKey() {
 	provider := suite.GetProvider("alias/provider")
 
-	key, err := provider.CreateKey(context.Background(), awskms.CustomerMasterKeySpecEccNistP256)
+	key, err := provider.CreateKey(context.Background(), string(awskms.CustomerMasterKeySpecEccNistP256))
 	require.Nil(suite.T(), err)
 	require.NotNil(suite.T(), key)
 
-	key2, err := provider.CreateKey(context.Background(), awskms.CustomerMasterKeySpecEccNistP256)
+	key2, err := provider.CreateKey(context.Background(), string(awskms.CustomerMasterKeySpecEccNistP256))
 	require.Nil(suite.T(), err)
 	require.NotNil(suite.T(), key)
 
@@ -100,7 +100,7 @@ func (suite *AWSSuite) TestCreateKeyByID() {
 	provider := suite.GetProvider("1234abcd-12ab-34cd-56ef-1234567890ab")
 
 	// CreateKey can only work with aliases, not IDs
-	key, err := provider.CreateKey(context.Background(), awskms.CustomerMasterKeySpecEccNistP256)
+	key, err := provider.CreateKey(context.Background(), string(awskms.CustomerMasterKeySpecEccNistP256))
 	require.Error(suite.T(), err)
 	require.Nil(suite.T(), key)
 }
@@ -108,7 +108,7 @@ func (suite *AWSSuite) TestCreateKeyByID() {
 func (suite *AWSSuite) TestSign() {
 	provider := suite.GetProvider("alias/TestSign")
 
-	key, err := provider.CreateKey(context.Background(), awskms.CustomerMasterKeySpecEccNistP256)
+	key, err := provider.CreateKey(context.Background(), string(awskms.CustomerMasterKeySpecEccNistP256))
 	require.Nil(suite.T(), err)
 	require.NotNil(suite.T(), key)
 
@@ -125,7 +125,7 @@ func (suite *AWSSuite) TestSign() {
 func (suite *AWSSuite) TestSHA384() {
 	provider := suite.GetProvider("alias/TestSHA384")
 
-	key, err := provider.CreateKey(context.Background(), awskms.CustomerMasterKeySpecEccNistP384)
+	key, err := provider.CreateKey(context.Background(), string(awskms.CustomerMasterKeySpecEccNistP384))
 	require.Nil(suite.T(), err)
 	require.NotNil(suite.T(), key)
 
@@ -149,7 +149,7 @@ func (suite *AWSSuite) TestSHA384() {
 func (suite *AWSSuite) TestPublicKey() {
 	provider := suite.GetProvider("alias/TestPubKeyVerify")
 
-	key, err := provider.CreateKey(context.Background(), awskms.CustomerMasterKeySpecEccNistP256)
+	key, err := provider.CreateKey(context.Background(), string(awskms.CustomerMasterKeySpecEccNistP256))
 	require.Nil(suite.T(), err)
 	require.NotNil(suite.T(), key)
 
@@ -173,7 +173,7 @@ func (suite *AWSSuite) TestPublicKey() {
 func (suite *AWSSuite) TestVerify() {
 	provider := suite.GetProvider("alias/TestVerify")
 
-	key, err := provider.CreateKey(context.Background(), awskms.CustomerMasterKeySpecEccNistP256)
+	key, err := provider.CreateKey(context.Background(), string(awskms.CustomerMasterKeySpecEccNistP256))
 	require.Nil(suite.T(), err)
 	require.NotNil(suite.T(), key)
 
@@ -193,7 +193,7 @@ func (suite *AWSSuite) TestTwoProviders() {
 	provider1 := suite.GetProvider("alias/TestTwoProviders")
 	provider2 := suite.GetProvider("alias/TestTwoProviders")
 
-	key, err := provider1.CreateKey(context.Background(), awskms.CustomerMasterKeySpecEccNistP256)
+	key, err := provider1.CreateKey(context.Background(), string(awskms.CustomerMasterKeySpecEccNistP256))
 	require.Nil(suite.T(), err)
 	require.NotNil(suite.T(), key)
 
@@ -210,11 +210,11 @@ func (suite *AWSSuite) TestBadSignature() {
 	provider1 := suite.GetProvider("alias/TestBadSignature1")
 	provider2 := suite.GetProvider("alias/TestBadSignature2")
 
-	key1, err := provider1.CreateKey(context.Background(), awskms.CustomerMasterKeySpecEccNistP256)
+	key1, err := provider1.CreateKey(context.Background(), string(awskms.CustomerMasterKeySpecEccNistP256))
 	require.Nil(suite.T(), err)
 	require.NotNil(suite.T(), key1)
 
-	key2, err := provider2.CreateKey(context.Background(), awskms.CustomerMasterKeySpecEccNistP256)
+	key2, err := provider2.CreateKey(context.Background(), string(awskms.CustomerMasterKeySpecEccNistP256))
 	require.Nil(suite.T(), err)
 	require.NotNil(suite.T(), key2)
 
@@ -232,12 +232,12 @@ func (suite *AWSSuite) TestBadSignature() {
 
 func (suite *AWSSuite) TestKeyTypes() {
 	for _, cmkSpec := range []string{
-		awskms.CustomerMasterKeySpecRsa2048,
-		awskms.CustomerMasterKeySpecRsa3072,
-		awskms.CustomerMasterKeySpecRsa4096,
-		awskms.CustomerMasterKeySpecEccNistP256,
-		awskms.CustomerMasterKeySpecEccNistP384,
-		awskms.CustomerMasterKeySpecEccNistP521,
+		string(awskms.CustomerMasterKeySpecRsa2048),
+		string(awskms.CustomerMasterKeySpecRsa3072),
+		string(awskms.CustomerMasterKeySpecRsa4096),
+		string(awskms.CustomerMasterKeySpecEccNistP256),
+		string(awskms.CustomerMasterKeySpecEccNistP384),
+		string(awskms.CustomerMasterKeySpecEccNistP521),
 		// awskms.CustomerMasterKeySpecEccSecgP256k1, // unsupported by localstack at the moment
 	} {
 		suite.T().Run(fmt.Sprintf("KeyType-%s", cmkSpec), func(t *testing.T) {
@@ -262,7 +262,7 @@ func (suite *AWSSuite) TestCancelContext() {
 	cancel()
 
 	provider := suite.GetProvider("alias/TestCancelContext")
-	key, err := provider.CreateKey(ctx, awskms.CustomerMasterKeySpecEccNistP256)
+	key, err := provider.CreateKey(ctx, string(awskms.CustomerMasterKeySpecEccNistP256))
 	assert.Error(suite.T(), err)
 	assert.Contains(suite.T(), err.Error(), context.Canceled.Error())
 	assert.Nil(suite.T(), key)
