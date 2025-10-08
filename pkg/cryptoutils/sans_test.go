@@ -210,21 +210,24 @@ func TestGetSubjectAltnernativeNames(t *testing.T) {
 	}
 
 	// generate with all other SANs
-	leafCert, _, _ = test.GenerateLeafCertWithSubjectAlternateNames([]string{"subject-dns"}, []string{"subject-email"}, []net.IP{{1, 2, 3, 4}}, []*url.URL{{Path: "testURL"}}, "oidc-issuer", subCert, subKey)
+	leafCert, _, err = test.GenerateLeafCertWithSubjectAlternateNames([]string{"subject-dns.example.com"}, []string{"subject-email@domain.com"}, []net.IP{{1, 2, 3, 4}}, []*url.URL{{Scheme: "https", Path: "testURL"}}, "oidc-issuer", subCert, subKey)
+	if err != nil {
+		t.Fatalf("unexpected error generating cert: %v", err)
+	}
 	sans = GetSubjectAlternateNames(leafCert)
 	if len(sans) != 4 {
 		t.Fatalf("expected 1 SAN field, got %d", len(sans))
 	}
-	if sans[0] != "subject-dns" {
-		t.Fatalf("unexpected DNS SAN value")
+	if sans[0] != "subject-dns.example.com" {
+		t.Fatalf("unexpected DNS SAN value: %v", sans[0])
 	}
-	if sans[1] != "subject-email" {
-		t.Fatalf("unexpected email SAN value")
+	if sans[1] != "subject-email@domain.com" {
+		t.Fatalf("unexpected email SAN value: %v", sans[1])
 	}
 	if sans[2] != "1.2.3.4" {
-		t.Fatalf("unexpected IP SAN value")
+		t.Fatalf("unexpected IP SAN value: %v", sans[2])
 	}
-	if sans[3] != "testURL" {
-		t.Fatalf("unexpected URL SAN value")
+	if sans[3] != "https://testURL" {
+		t.Fatalf("unexpected URL SAN value: %v", sans[3])
 	}
 }
