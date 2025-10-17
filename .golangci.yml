@@ -47,6 +47,9 @@ linters:
       - linters:
           - revive
         path: pkg/tuf
+      - linters:
+          - revive
+        path: pkg/signature/kms/cliplugin/common
     paths:
       - third_party$
       - builtin$
