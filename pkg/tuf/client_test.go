@@ -519,7 +519,7 @@ func makeMapFS(repo string) (fs fstest.MapFS) {
 			}
 			return nil
 		})
-	return
+	return fs
 }
 
 // Regression test for failure to fetch a target that does not exist in the embedded
