@@ -21,6 +21,7 @@ import (
 	"regexp"
 
 	coreoidc "github.com/coreos/go-oidc/v3/oidc"
+	"github.com/sigstore/sigstore/pkg/cryptoutils"
 	"golang.org/x/oauth2"
 )
 
@@ -65,9 +66,10 @@ func NewPKCE(provider *coreoidc.Provider) (*PKCE, error) {
 		}
 	}
 
-	// we use two 27 character strings to meet requirements of RFC 7636:
+	// The value must meet requirements of RFC 7636:
 	// (minimum length of 43 characters and a maximum length of 128 characters)
-	value := newKSUID() + newKSUID()
+	// 384 bits of entropy (48 bytes) to be encoded in base64 URL-safe without padding yields 64 characters.
+	value := cryptoutils.GenerateRandomURLSafeString(384)
 
 	h := sha256.Sum256([]byte(value))
 	challenge := base64.RawURLEncoding.EncodeToString(h[:])
