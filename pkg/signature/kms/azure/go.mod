@@ -2,9 +2,7 @@ module github.com/sigstore/sigstore/pkg/signature/kms/azure
 
 replace github.com/sigstore/sigstore => ../../../../
 
-go 1.24.0
-
-toolchain go1.24.5
+go 1.25.0
 
 require (
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.18.2
@@ -25,7 +23,7 @@ require (
 	github.com/google/go-containerregistry v0.20.6 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/kylelemons/godebug v1.1.0 // indirect
-	github.com/letsencrypt/boulder v0.20250721.0 // indirect
+	github.com/letsencrypt/boulder v0.20250825.0 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c // indirect
 	github.com/secure-systems-lab/go-securesystemslib v0.9.1 // indirect

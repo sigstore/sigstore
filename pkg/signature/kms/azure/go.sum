@@ -42,8 +42,8 @@ github.com/keybase/go-keychain v0.0.1 h1:way+bWYa6lDppZoZcgMbYsvC7GxljxrskdNInRt
 github.com/keybase/go-keychain v0.0.1/go.mod h1:PdEILRW3i9D8JcdM+FmY6RwkHGnhHxXwkPPMeUgOK1k=
 github.com/kylelemons/godebug v1.1.0 h1:RPNrshWIDI6G2gRW9EHilWtl7Z6Sb1BR0xunSBf0SNc=
 github.com/kylelemons/godebug v1.1.0/go.mod h1:9/0rRGxNHcop5bhtWyNeEfOS8JIWk580+fNqagV/RAw=
-github.com/letsencrypt/boulder v0.20250721.0 h1:zXQpr7C7hlNxDzP9N0oC5KWZ7/g3xnS/+C30ImRxaVw=
-github.com/letsencrypt/boulder v0.20250721.0/go.mod h1:pF04h1wm4jvF17m5vGRzOYBr+NHgZQ+9pLOxkAOoz6w=
+github.com/letsencrypt/boulder v0.20250825.0 h1:0m8LZLQ6/xjQgNf8XGEfA3x7DOGS4tmGdHqBfiw29JI=
+github.com/letsencrypt/boulder v0.20250825.0/go.mod h1:62YoxTTNWjfDr0pV7ZPhyV4j/0/OT1QEf/sWwul/XqE=
 github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 h1:C3w9PqII01/Oq1c1nUAm88MOHcQC9l5mIlSMApZMrHA=
 github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822/go.mod h1:+n7T8mK8HuQTcFwEeznm/DIxMOiR9yIdICNftLE1DvQ=
 github.com/opencontainers/go-digest v1.0.0 h1:apOUWs51W5PlhuyGyz9FCeeBIOUDA/6nW8Oi/yOhh5U=

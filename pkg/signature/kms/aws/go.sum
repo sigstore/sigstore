@@ -53,8 +53,8 @@ github.com/jmespath/go-jmespath/internal/testify v1.5.1 h1:shLQSRRSCCPj3f2gpwzGw
 github.com/jmespath/go-jmespath/internal/testify v1.5.1/go.mod h1:L3OGu8Wl2/fWfCI6z80xFu9LTZmf1ZRjMHUOPmWr69U=
 github.com/jmhodges/clock v1.2.0 h1:eq4kys+NI0PLngzaHEe7AmPT90XMGIEySD1JfV1PDIs=
 github.com/jmhodges/clock v1.2.0/go.mod h1:qKjhA7x7u/lQpPB1XAqX1b1lCI/w3/fNuYpI/ZjLynI=
-github.com/letsencrypt/boulder v0.20250721.0 h1:zXQpr7C7hlNxDzP9N0oC5KWZ7/g3xnS/+C30ImRxaVw=
-github.com/letsencrypt/boulder v0.20250721.0/go.mod h1:pF04h1wm4jvF17m5vGRzOYBr+NHgZQ+9pLOxkAOoz6w=
+github.com/letsencrypt/boulder v0.20250825.0 h1:0m8LZLQ6/xjQgNf8XGEfA3x7DOGS4tmGdHqBfiw29JI=
+github.com/letsencrypt/boulder v0.20250825.0/go.mod h1:62YoxTTNWjfDr0pV7ZPhyV4j/0/OT1QEf/sWwul/XqE=
 github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 h1:C3w9PqII01/Oq1c1nUAm88MOHcQC9l5mIlSMApZMrHA=
 github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822/go.mod h1:+n7T8mK8HuQTcFwEeznm/DIxMOiR9yIdICNftLE1DvQ=
 github.com/opencontainers/go-digest v1.0.0 h1:apOUWs51W5PlhuyGyz9FCeeBIOUDA/6nW8Oi/yOhh5U=

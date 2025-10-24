@@ -1,8 +1,6 @@
 module sigstore-kms-localkms
 
-go 1.24.0
-
-toolchain go1.24.5
+go 1.25.0
 
 replace github.com/sigstore/sigstore => ../../..
 
@@ -14,7 +12,7 @@ require (
 require (
 	github.com/go-jose/go-jose/v4 v4.1.2 // indirect
 	github.com/google/go-containerregistry v0.20.6 // indirect
-	github.com/letsencrypt/boulder v0.20250721.0 // indirect
+	github.com/letsencrypt/boulder v0.20250825.0 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/secure-systems-lab/go-securesystemslib v0.9.1 // indirect
 	github.com/sigstore/protobuf-specs v0.5.0 // indirect

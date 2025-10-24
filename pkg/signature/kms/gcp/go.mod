@@ -2,9 +2,7 @@ module github.com/sigstore/sigstore/pkg/signature/kms/gcp
 
 replace github.com/sigstore/sigstore => ../../../../
 
-go 1.24.0
-
-toolchain go1.24.5
+go 1.25.0
 
 require (
 	cloud.google.com/go/kms v1.22.0
@@ -30,7 +28,7 @@ require (
 	github.com/google/s2a-go v0.1.9 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.6 // indirect
 	github.com/googleapis/gax-go/v2 v2.15.0 // indirect
-	github.com/letsencrypt/boulder v0.20250721.0 // indirect
+	github.com/letsencrypt/boulder v0.20250825.0 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/secure-systems-lab/go-securesystemslib v0.9.1 // indirect
 	github.com/sigstore/protobuf-specs v0.5.0 // indirect

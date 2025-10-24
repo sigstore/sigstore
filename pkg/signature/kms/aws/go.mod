@@ -2,9 +2,7 @@ module github.com/sigstore/sigstore/pkg/signature/kms/aws
 
 replace github.com/sigstore/sigstore => ../../../../
 
-go 1.24.0
-
-toolchain go1.24.5
+go 1.25.0
 
 require (
 	github.com/aws/aws-sdk-go v1.55.8
@@ -32,7 +30,7 @@ require (
 	github.com/go-jose/go-jose/v4 v4.1.2 // indirect
 	github.com/google/go-containerregistry v0.20.6 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
-	github.com/letsencrypt/boulder v0.20250721.0 // indirect
+	github.com/letsencrypt/boulder v0.20250825.0 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/secure-systems-lab/go-securesystemslib v0.9.1 // indirect

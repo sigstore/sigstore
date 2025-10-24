@@ -2,9 +2,7 @@ module github.com/sigstore/sigstore/pkg/signature/kms/hashivault
 
 replace github.com/sigstore/sigstore => ../../../../
 
-go 1.24.0
-
-toolchain go1.24.5
+go 1.25.0
 
 require (
 	github.com/hashicorp/vault/api v1.20.0
@@ -28,7 +26,7 @@ require (
 	github.com/hashicorp/go-secure-stdlib/strutil v0.1.2 // indirect
 	github.com/hashicorp/go-sockaddr v1.0.2 // indirect
 	github.com/hashicorp/hcl v1.0.1-vault-7 // indirect
-	github.com/letsencrypt/boulder v0.20250721.0 // indirect
+	github.com/letsencrypt/boulder v0.20250825.0 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect

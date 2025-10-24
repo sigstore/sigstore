@@ -51,8 +51,8 @@ github.com/jellydator/ttlcache/v3 v3.4.0 h1:YS4P125qQS0tNhtL6aeYkheEaB/m8HCqdMMP
 github.com/jellydator/ttlcache/v3 v3.4.0/go.mod h1:Hw9EgjymziQD3yGsQdf1FqFdpp7YjFMd4Srg5EJlgD4=
 github.com/jmhodges/clock v1.2.0 h1:eq4kys+NI0PLngzaHEe7AmPT90XMGIEySD1JfV1PDIs=
 github.com/jmhodges/clock v1.2.0/go.mod h1:qKjhA7x7u/lQpPB1XAqX1b1lCI/w3/fNuYpI/ZjLynI=
-github.com/letsencrypt/boulder v0.20250721.0 h1:zXQpr7C7hlNxDzP9N0oC5KWZ7/g3xnS/+C30ImRxaVw=
-github.com/letsencrypt/boulder v0.20250721.0/go.mod h1:pF04h1wm4jvF17m5vGRzOYBr+NHgZQ+9pLOxkAOoz6w=
+github.com/letsencrypt/boulder v0.20250825.0 h1:0m8LZLQ6/xjQgNf8XGEfA3x7DOGS4tmGdHqBfiw29JI=
+github.com/letsencrypt/boulder v0.20250825.0/go.mod h1:62YoxTTNWjfDr0pV7ZPhyV4j/0/OT1QEf/sWwul/XqE=
 github.com/mattn/go-colorable v0.0.9/go.mod h1:9vuHe8Xs5qXnSaW/c/ABM9alt+Vo+STaOChaDxuIBZU=
 github.com/mattn/go-colorable v0.1.13 h1:fFA4WZxdEF4tXPZVKMLwD8oUnCTTo08duU7wxecdEvA=
 github.com/mattn/go-colorable v0.1.13/go.mod h1:7S9/ev0klgBDR4GtXTXX8a3vIGJpMovkB8vQcUbaXHg=
