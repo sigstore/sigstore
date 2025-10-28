@@ -27,7 +27,7 @@ import (
 
 	coreoidc "github.com/coreos/go-oidc/v3/oidc"
 	"github.com/pkg/browser"
-	"github.com/segmentio/ksuid"
+	"github.com/sigstore/sigstore/pkg/cryptoutils"
 	"github.com/sigstore/sigstore/pkg/oauth"
 	"golang.org/x/oauth2"
 )
@@ -119,11 +119,6 @@ func getCode(codeCh chan string, errCh chan error) (string, error) {
 	}
 }
 
-// newKSUID returns a globally unique, base62 (URL-safe) encoded, 27 character string.
-func newKSUID() string {
-	return ksuid.New().String()
-}
-
 type interactiveIDTokenSource struct {
 	cfg               oauth2.Config
 	oidp              *coreoidc.Provider
@@ -144,8 +139,8 @@ func (idts *interactiveIDTokenSource) IDToken(ctx context.Context) (*IDToken, er
 	p := idts.oidp
 
 	// generate random fields and save them for comparison after OAuth2 dance
-	stateToken := newKSUID()
-	nonce := newKSUID()
+	stateToken := cryptoutils.GenerateRandomURLSafeString(128)
+	nonce := cryptoutils.GenerateRandomURLSafeString(128)
 
 	codeCh := make(chan string)
 	errCh := make(chan error)

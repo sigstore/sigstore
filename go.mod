@@ -11,7 +11,6 @@ require (
 	github.com/letsencrypt/boulder v0.20250721.0
 	github.com/pkg/browser v0.0.0-20210911075715-681adbf594b8
 	github.com/secure-systems-lab/go-securesystemslib v0.9.1
-	github.com/segmentio/ksuid v1.0.4
 	github.com/sigstore/protobuf-specs v0.5.0
 	github.com/stretchr/testify v1.11.0
 	github.com/theupdateframework/go-tuf v0.7.0
