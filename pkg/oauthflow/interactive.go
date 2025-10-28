@@ -27,14 +27,14 @@ import (
 	"time"
 
 	"github.com/coreos/go-oidc/v3/oidc"
+	"github.com/pkg/browser"
 	"github.com/segmentio/ksuid"
-	"github.com/skratchdot/open-golang/open"
 	"golang.org/x/oauth2"
 )
 
 const oobRedirectURI = "urn:ietf:wg:oauth:2.0:oob"
 
-var browserOpener = open.Run
+var browserOpener = browser.OpenURL
 
 // InteractiveIDTokenGetter is a type to get ID tokens for oauth flows
 type InteractiveIDTokenGetter struct {
