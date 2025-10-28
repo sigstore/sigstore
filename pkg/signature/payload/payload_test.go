@@ -19,7 +19,8 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/go-test/deep"
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/google/go-containerregistry/pkg/name"
 )
 
@@ -157,8 +158,15 @@ func TestUnmarshalCosign(t *testing.T) {
 			if tc.expectErr {
 				t.Fatalf("json.Unmarshal returned %v, expected an error", imgPayload)
 			}
-			if diff := deep.Equal(tc.expected, imgPayload); diff != nil {
-				t.Errorf("Cosign unmarshalled incorrectly: %v", diff)
+			// Use IgnoreUnexported to handle unexported fields in name.Digest and nested types
+			opts := cmp.Options{
+				cmpopts.IgnoreUnexported(name.Registry{}, name.Repository{}, name.Digest{}),
+				cmp.Comparer(func(a, b name.Digest) bool {
+					return a.String() == b.String()
+				}),
+			}
+			if diff := cmp.Diff(tc.expected, imgPayload, opts); diff != "" {
+				t.Errorf("Cosign unmarshalled incorrectly (-want +got):\n%s", diff)
 			}
 		})
 	}
