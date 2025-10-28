@@ -13,7 +13,6 @@ require (
 	github.com/secure-systems-lab/go-securesystemslib v0.9.1
 	github.com/segmentio/ksuid v1.0.4
 	github.com/sigstore/protobuf-specs v0.5.0
-	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966
 	github.com/stretchr/testify v1.11.0
 	github.com/theupdateframework/go-tuf v0.7.0
 	github.com/tink-crypto/tink-go/v2 v2.4.0
