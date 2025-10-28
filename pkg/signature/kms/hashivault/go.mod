@@ -9,7 +9,6 @@ toolchain go1.24.5
 require (
 	github.com/hashicorp/vault/api v1.22.0
 	github.com/jellydator/ttlcache/v3 v3.4.0
-	github.com/mitchellh/go-homedir v1.1.0
 	github.com/sigstore/sigstore v1.6.4
 	github.com/stretchr/testify v1.11.1
 )
@@ -29,6 +28,7 @@ require (
 	github.com/hashicorp/go-sockaddr v1.0.7 // indirect
 	github.com/hashicorp/hcl v1.0.1-vault-7 // indirect
 	github.com/letsencrypt/boulder v0.20250721.0 // indirect
+	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/natefinch/atomic v1.0.1 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
