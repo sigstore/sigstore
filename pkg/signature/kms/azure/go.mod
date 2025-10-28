@@ -10,7 +10,7 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.19.0
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.11.0
 	github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azkeys v1.4.0
-	github.com/go-jose/go-jose/v4 v4.1.2
+	github.com/go-jose/go-jose/v4 v4.1.3
 	github.com/google/go-cmp v0.7.0
 	github.com/jellydator/ttlcache/v3 v3.4.0
 	github.com/sigstore/sigstore v1.6.4
