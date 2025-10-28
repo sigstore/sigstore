@@ -27,8 +27,8 @@ import (
 	"time"
 
 	"github.com/coreos/go-oidc/v3/oidc"
-	"github.com/sigstore/sigstore/pkg/cryptoutils"
 	"github.com/pkg/browser"
+	"github.com/sigstore/sigstore/pkg/cryptoutils"
 	"golang.org/x/oauth2"
 )
 
