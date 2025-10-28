@@ -18,7 +18,7 @@ package signature
 import (
 	"testing"
 
-	"github.com/go-test/deep"
+	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-containerregistry/pkg/name"
 )
 
@@ -83,8 +83,8 @@ func TestProviderRoundtrip(t *testing.T) {
 			if tc.digest.Name() != rtDigest.Name() {
 				t.Errorf("got digest %q, wanted %q", rtDigest.Name(), tc.digest.Name())
 			}
-			if diff := deep.Equal(tc.claims, rtClaims); diff != nil {
-				t.Errorf("claims were altered during the roundtrip: %v", diff)
+			if diff := cmp.Diff(tc.claims, rtClaims); diff != "" {
+				t.Errorf("claims were altered during the roundtrip (-want +got):\n%s", diff)
 			}
 		})
 	}
