@@ -95,7 +95,7 @@ func TestValidatePubKeyEcdsa(t *testing.T) {
 			t.Errorf("expected error when validating public key")
 		}
 	}
-	// Fails with smalller curve
+	// Fails with smaller curve
 	priv, err := ecdsa.GenerateKey(elliptic.P224(), rand.Reader)
 	if err != nil {
 		t.Fatalf("ecdsa.GenerateKey failed: %v", err)
