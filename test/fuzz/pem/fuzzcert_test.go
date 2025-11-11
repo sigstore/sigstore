@@ -130,15 +130,7 @@ func FuzzPublicKey(f *testing.F) {
 		if err != nil {
 			return
 		}
-		err = cryptoutils.ValidatePubKey(first)
-		if err != nil {
-			return
-		}
 		second, err := cryptoutils.UnmarshalPEMToPublicKey(secondKeyBytes)
-		if err != nil {
-			return
-		}
-		err = cryptoutils.ValidatePubKey(first)
 		if err != nil {
 			return
 		}
