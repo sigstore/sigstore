@@ -24,7 +24,7 @@ import (
 	"crypto/rsa" // nolint:gosec
 	"errors"
 
-	"github.com/letsencrypt/boulder/goodkey"
+	"github.com/sigstore/sigstore/internal/goodkey"
 )
 
 // ValidatePubKey validates the parameters of an RSA, ECDSA, or ED25519 public key.
