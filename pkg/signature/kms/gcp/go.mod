@@ -30,7 +30,6 @@ require (
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/secure-systems-lab/go-securesystemslib v0.9.1 // indirect
 	github.com/sigstore/protobuf-specs v0.5.0 // indirect
-	github.com/titanous/rocacheck v0.0.0-20171023193734-afe73141d399 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.61.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.61.0 // indirect
@@ -49,3 +48,5 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20251103181224-f26f9409b101 // indirect
 	google.golang.org/grpc v1.76.0 // indirect
 )
+
+retract v1.10.1 // License issue

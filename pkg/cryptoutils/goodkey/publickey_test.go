@@ -23,7 +23,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/sigstore/sigstore/internal/goodkey"
+	"github.com/letsencrypt/boulder/goodkey"
 )
 
 func TestValidatePubKeyUnsupported(t *testing.T) {
