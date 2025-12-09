@@ -28,6 +28,8 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+
+	"github.com/sigstore/sigstore/pkg/cryptoutils/goodkey"
 )
 
 const (
@@ -129,4 +131,9 @@ func genErrMsg(first, second crypto.PublicKey, keyType string) string {
 		return msg
 	}
 	return fmt.Sprintf("%s (%s, %s)", msg, hex.EncodeToString(firstSKID), hex.EncodeToString(secondSKID))
+}
+
+// ValidatePubKey validates the parameters of an RSA, ECDSA, or ED25519 public key.
+func ValidatePubKey(pub crypto.PublicKey) error {
+	return goodkey.ValidatePubKey(pub)
 }
