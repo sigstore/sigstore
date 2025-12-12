@@ -23,6 +23,7 @@ import (
 	"crypto/ed25519"
 	"crypto/rsa" // nolint:gosec
 	"errors"
+	"fmt"
 
 	"github.com/letsencrypt/boulder/goodkey"
 )
@@ -70,7 +71,7 @@ func ValidatePubKey(pub crypto.PublicKey) error {
 	case ed25519.PublicKey:
 		return validateEd25519Key(pk)
 	}
-	return errors.New("unsupported public key type")
+	return fmt.Errorf("unsupported public key type: %T", pub)
 }
 
 // No validations currently, ED25519 supports only one key size.

@@ -30,7 +30,7 @@ func TestValidatePubKeyUnsupported(t *testing.T) {
 	// Fails with unexpected key type
 	type PublicKey struct{}
 	err := ValidatePubKey(PublicKey{})
-	if err == nil || err.Error() != "unsupported public key type" {
+	if err == nil || err.Error() != "unsupported public key type: goodkey.PublicKey" {
 		t.Errorf("expected unsupported public key type, got %v", err)
 	}
 }

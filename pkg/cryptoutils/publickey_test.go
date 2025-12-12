@@ -223,3 +223,83 @@ func TestUnmarshalPEMToPublicKey(t *testing.T) {
 		t.Fatalf("expected error unmarshalling invalid PEM block, got: %v", err)
 	}
 }
+
+func TestValidatePubKey(t *testing.T) {
+	// Valid keys
+	rsa2048, _ := rsa.GenerateKey(rand.Reader, 2048)
+	rsa3072, _ := rsa.GenerateKey(rand.Reader, 3072)
+	rsa4096, _ := rsa.GenerateKey(rand.Reader, 4096)
+	ecdsaP256, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	ecdsaP384, _ := ecdsa.GenerateKey(elliptic.P384(), rand.Reader)
+	ecdsaP521, _ := ecdsa.GenerateKey(elliptic.P521(), rand.Reader)
+	ed25519Key, _, _ := ed25519.GenerateKey(rand.Reader)
+
+	// Invalid keys
+	rsa1024, _ := rsa.GenerateKey(rand.Reader, 1024)
+	ecdsaP224, _ := ecdsa.GenerateKey(elliptic.P224(), rand.Reader)
+	type TestPublicKey struct{}
+
+	testCases := []struct {
+		name    string
+		key     crypto.PublicKey
+		wantErr bool
+	}{
+		{
+			name: "valid rsa 2048",
+			key:  &rsa2048.PublicKey,
+		},
+		{
+			name: "valid rsa 3072",
+			key:  &rsa3072.PublicKey,
+		},
+		{
+			name: "valid rsa 4096",
+			key:  &rsa4096.PublicKey,
+		},
+		{
+			name: "valid ecdsa p256",
+			key:  &ecdsaP256.PublicKey,
+		},
+		{
+			name: "valid ecdsa p384",
+			key:  &ecdsaP384.PublicKey,
+		},
+		{
+			name: "valid ecdsa p521",
+			key:  &ecdsaP521.PublicKey,
+		},
+		{
+			name: "valid ed25519",
+			key:  ed25519Key,
+		},
+		{
+			name:    "invalid rsa 1024",
+			key:     &rsa1024.PublicKey,
+			wantErr: true,
+		},
+		{
+			name:    "invalid ecdsa p224",
+			key:     &ecdsaP224.PublicKey,
+			wantErr: true,
+		},
+		{
+			name:    "unsupported key type",
+			key:     TestPublicKey{},
+			wantErr: true,
+		},
+		{
+			name:    "nil key",
+			key:     nil,
+			wantErr: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			err := ValidatePubKey(tc.key)
+			if (err != nil) != tc.wantErr {
+				t.Errorf("ValidatePubKey() error = %v, wantErr %v", err, tc.wantErr)
+			}
+		})
+	}
+}
