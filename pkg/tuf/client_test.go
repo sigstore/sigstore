@@ -894,3 +894,93 @@ func Test_remoteFromMirror(t *testing.T) {
 		t.Fatalf("unexpected error with GCS mirror: %v", err)
 	}
 }
+
+func TestDiskCache_safePath(t *testing.T) {
+	tests := []struct {
+		name     string
+		base     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "simple filename",
+			base:     "/tmp/cache",
+			input:    "target.json",
+			expected: filepath.Join("/tmp/cache", "target.json"),
+		},
+		{
+			name:     "path with subdirectory",
+			base:     "/tmp/cache",
+			input:    "subdir/target.json",
+			expected: filepath.Join("/tmp/cache", "subdir%2Ftarget.json"),
+		},
+		{
+			name:     "path traversal attempt with ..",
+			base:     "/tmp/cache",
+			input:    "../../../etc/passwd",
+			expected: filepath.Join("/tmp/cache", "..%2F..%2F..%2Fetc%2Fpasswd"),
+		},
+		{
+			name:     "path with leading slash",
+			base:     "/tmp/cache",
+			input:    "/etc/passwd",
+			expected: filepath.Join("/tmp/cache", "%2Fetc%2Fpasswd"),
+		},
+		{
+			name:     "path with special characters",
+			base:     "/tmp/cache",
+			input:    "file with spaces.json",
+			expected: filepath.Join("/tmp/cache", "file%20with%20spaces.json"),
+		},
+		{
+			name:     "path with URL-encoded characters",
+			base:     "/tmp/cache",
+			input:    "file%2Fname.json",
+			expected: filepath.Join("/tmp/cache", "file%252Fname.json"),
+		},
+		{
+			name:     "empty input",
+			base:     "/tmp/cache",
+			input:    "",
+			expected: filepath.Join("/tmp/cache", ""),
+		},
+		{
+			name:     "path with backslash",
+			base:     "/tmp/cache",
+			input:    "..\\..\\etc\\passwd",
+			expected: filepath.Join("/tmp/cache", "..%5C..%5Cetc%5Cpasswd"),
+		},
+		{
+			name:     "path with null byte",
+			base:     "/tmp/cache",
+			input:    "file\x00.json",
+			expected: filepath.Join("/tmp/cache", "file%00.json"),
+		},
+		{
+			name:     "deeply nested path traversal",
+			base:     "/tmp/cache",
+			input:    "a/../b/../c/../../../etc/passwd",
+			expected: filepath.Join("/tmp/cache", "a%2F..%2Fb%2F..%2Fc%2F..%2F..%2F..%2Fetc%2Fpasswd"),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			d := &diskCache{
+				base:   tt.base,
+				memory: &memoryCache{},
+			}
+
+			result := d.safePath(tt.input)
+			if result != tt.expected {
+				t.Errorf("safePath(%q) = %q, want %q", tt.input, result, tt.expected)
+			}
+
+			// Verify the result doesn't escape the base directory
+			// by checking if the result starts with the base path
+			if !strings.HasPrefix(result, tt.base) {
+				t.Errorf("safePath(%q) = %q escapes base directory %q", tt.input, result, tt.base)
+			}
+		})
+	}
+}
