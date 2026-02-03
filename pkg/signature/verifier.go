@@ -47,6 +47,12 @@ func LoadVerifier(publicKey crypto.PublicKey, hashFunc crypto.Hash) (Verifier, e
 // LoadVerifierWithOpts returns a signature.Verifier based on the algorithm of the public key
 // provided that will use the hash function specified when computing digests.
 func LoadVerifierWithOpts(publicKey crypto.PublicKey, opts ...LoadOption) (Verifier, error) {
+	return loadVerifierWithOptsImpl(publicKey, opts...)
+}
+
+var loadVerifierWithOptsImpl = loadVerifierWithOpts
+
+func loadVerifierWithOpts(publicKey crypto.PublicKey, opts ...LoadOption) (Verifier, error) {
 	var rsaPSSOptions *rsa.PSSOptions
 	var useED25519ph bool
 	hashFunc := crypto.SHA256

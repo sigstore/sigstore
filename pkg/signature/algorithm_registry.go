@@ -251,6 +251,12 @@ func ParseSignatureAlgorithmFlag(flag string) (v1.PublicKeyDetails, error) {
 // with Ed25519ph. The Hash option is ignored if passed, because each of the
 // supported algorithms already has a default hash.
 func GetDefaultPublicKeyDetails(publicKey crypto.PublicKey, opts ...LoadOption) (v1.PublicKeyDetails, error) {
+	return getDefaultPublicKeyDetailsImpl(publicKey, opts...)
+}
+
+var getDefaultPublicKeyDetailsImpl = getDefaultPublicKeyDetails
+
+func getDefaultPublicKeyDetails(publicKey crypto.PublicKey, opts ...LoadOption) (v1.PublicKeyDetails, error) {
 	var rsaPSSOptions *rsa.PSSOptions
 	var useED25519ph bool
 	for _, o := range opts {
