@@ -37,20 +37,31 @@ var gcpSupportedHashFuncs = []crypto.Hash{
 type SignerVerifier struct {
 	defaultCtx context.Context
 	client     *gcpClient
+	hashFunc   crypto.Hash
+}
+
+func (sv SignerVerifier) HashFunc() crypto.Hash {
+	return sv.hashFunc
 }
 
 // LoadSignerVerifier generates signatures using the specified key object in GCP KMS and hash algorithm.
 //
 // It also can verify signatures locally using the public key. hashFunc must not be crypto.Hash(0).
 func LoadSignerVerifier(defaultCtx context.Context, referenceStr string, opts ...option.ClientOption) (*SignerVerifier, error) {
-	g := &SignerVerifier{
-		defaultCtx: defaultCtx,
-	}
-
-	var err error
-	g.client, err = newGCPClient(defaultCtx, referenceStr, opts...)
+	gcpClient, err := newGCPClient(defaultCtx, referenceStr, opts...)
 	if err != nil {
 		return nil, err
+	}
+
+	hashFunc, err := gcpClient.getHashFunc()
+	if err != nil {
+		return nil, err
+	}
+
+	g := &SignerVerifier{
+		defaultCtx: defaultCtx,
+		client:     gcpClient,
+		hashFunc:   hashFunc,
 	}
 
 	return g, nil
@@ -139,6 +150,10 @@ type cryptoSignerWrapper struct {
 	hashFunc crypto.Hash
 	sv       *SignerVerifier
 	errFunc  func(error)
+}
+
+func (c cryptoSignerWrapper) HashFunc() crypto.Hash {
+	return c.hashFunc
 }
 
 func (c cryptoSignerWrapper) Public() crypto.PublicKey {
