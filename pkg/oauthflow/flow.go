@@ -20,6 +20,8 @@ import (
 	"encoding/json"
 	"errors"
 	"log"
+	"os"
+	"strings"
 
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/go-jose/go-jose/v4"
@@ -35,6 +37,16 @@ const (
 	// PublicInstanceMicrosoftAuthSubURL Default connector ids used by `oauth2.sigstore.dev` for Microsoft
 	PublicInstanceMicrosoftAuthSubURL = "https://login.microsoftonline.com"
 )
+
+// defaultScopes returns the OAuth scopes to request. It checks the
+// SIGSTORE_OAUTH_SCOPES environment variable first (space-separated),
+// falling back to "openid email".
+func defaultScopes() []string {
+	if env := os.Getenv("SIGSTORE_OAUTH_SCOPES"); env != "" {
+		return strings.Split(env, " ")
+	}
+	return []string{oidc.ScopeOpenID, "email"}
+}
 
 // TokenGetter provides a way to get an OIDC ID Token from an OIDC IdP
 type TokenGetter interface {
@@ -107,7 +119,7 @@ func OIDConnect(issuer, id, secret, redirectURL string, tg TokenGetter) (*OIDCID
 		ClientID:     id,
 		ClientSecret: secret,
 		Endpoint:     provider.Endpoint(),
-		Scopes:       []string{oidc.ScopeOpenID, "email"},
+		Scopes:       defaultScopes(),
 		RedirectURL:  redirectURL,
 	}
 
