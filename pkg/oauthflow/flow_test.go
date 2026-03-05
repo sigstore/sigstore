@@ -32,6 +32,25 @@ import (
 	"golang.org/x/oauth2"
 )
 
+func TestDefaultScopes(t *testing.T) {
+	t.Run("returns default when env unset", func(t *testing.T) {
+		t.Setenv("SIGSTORE_OAUTH_SCOPES", "")
+		got := defaultScopes()
+		want := []string{oidc.ScopeOpenID, "email"}
+		if !reflect.DeepEqual(got, want) {
+			t.Errorf("defaultScopes() = %v, want %v", got, want)
+		}
+	})
+	t.Run("returns env override", func(t *testing.T) {
+		t.Setenv("SIGSTORE_OAUTH_SCOPES", "openid email profile")
+		got := defaultScopes()
+		want := []string{"openid", "email", "profile"}
+		if !reflect.DeepEqual(got, want) {
+			t.Errorf("defaultScopes() = %v, want %v", got, want)
+		}
+	})
+}
+
 func TestGetCodeWorking(t *testing.T) {
 	desiredState := "foo"
 	desiredCode := "code"

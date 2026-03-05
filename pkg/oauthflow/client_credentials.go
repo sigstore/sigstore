@@ -92,7 +92,7 @@ func (d *DefaultFlowClientCredentials) clientCredentialsFlow(_ *oidc.Provider, c
 	data := url.Values{
 		"client_id":     []string{clientID},
 		"client_secret": []string{clientSecret},
-		"scope":         []string{"openid email"},
+		"scope":         []string{strings.Join(defaultScopes(), " ")},
 		"grant_type":    []string{"client_credentials"},
 	}
 	if redirectURL != "" {

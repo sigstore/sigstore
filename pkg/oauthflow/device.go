@@ -92,7 +92,7 @@ func (d *DeviceFlowTokenGetter) deviceFlow(p *oidc.Provider, clientID, redirectU
 
 	data := url.Values{
 		"client_id":             []string{clientID},
-		"scope":                 []string{"openid email"},
+		"scope":                 []string{strings.Join(defaultScopes(), " ")},
 		"code_challenge_method": []string{pkce.Method},
 		"code_challenge":        []string{pkce.Challenge},
 	}
@@ -137,7 +137,7 @@ func (d *DeviceFlowTokenGetter) deviceFlow(p *oidc.Provider, clientID, redirectU
 			"grant_type":    []string{"urn:ietf:params:oauth:grant-type:device_code"},
 			"client_id":     []string{clientID},
 			"device_code":   []string{parsed.DeviceCode},
-			"scope":         []string{"openid email"},
+			"scope":         []string{strings.Join(defaultScopes(), " ")},
 			"code_verifier": []string{pkce.Value},
 		}
 
