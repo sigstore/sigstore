@@ -71,7 +71,7 @@ const (
 
 	// ReferenceScheme schemes for various KMS services are copied from https://github.com/google/go-cloud/tree/master/secrets
 	ReferenceScheme = "hashivault://"
-	
+
 	// AlternativeScheme scheme for OpenBao KMS.
 	AlternativeScheme = "openbao://"
 )
@@ -108,11 +108,11 @@ func newHashivaultClient(address, token, transitSecretEnginePath, keyResourceID 
 	if address == "" {
 		address = os.Getenv("VAULT_ADDR")
 	}
-	
+
 	if address == "" {
 		address = os.Getenv("BAO_ADDR")
 	}
-	
+
 	if address == "" {
 		return nil, errors.New("VAULT_ADDR or BAO_ADDR is not set")
 	}
@@ -123,13 +123,13 @@ func newHashivaultClient(address, token, transitSecretEnginePath, keyResourceID 
 	if err != nil {
 		return nil, fmt.Errorf("new vault client: %w", err)
 	}
-	
+
 	if token == "" {
-			token = os.Getenv("VAULT_TOKEN")
+		token = os.Getenv("VAULT_TOKEN")
 	}
-	
+
 	if token == "" {
-			token = os.Getenv("BAO_TOKEN")
+		token = os.Getenv("BAO_TOKEN")
 	}
 
 	if token == "" {
