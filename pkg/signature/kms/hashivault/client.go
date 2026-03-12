@@ -72,7 +72,7 @@ const (
 	// ReferenceScheme schemes for various KMS services are copied from https://github.com/google/go-cloud/tree/master/secrets
 	ReferenceScheme = "hashivault://"
 	
-	// Scheme for OpenBao KMS.
+	// AlternativeScheme scheme for OpenBao KMS.
 	AlternativeScheme = "openbao://"
 )
 
