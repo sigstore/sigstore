@@ -44,6 +44,9 @@ func init() {
 	sigkms.AddProvider(ReferenceScheme, func(_ context.Context, keyResourceID string, hashFunc crypto.Hash, opts ...signature.RPCOption) (sigkms.SignerVerifier, error) {
 		return LoadSignerVerifier(keyResourceID, hashFunc, opts...)
 	})
+	sigkms.AddProvider(AlternativeScheme, func(_ context.Context, keyResourceID string, hashFunc crypto.Hash, opts ...signature.RPCOption) (sigkms.SignerVerifier, error) {
+		return LoadSignerVerifier(keyResourceID, hashFunc, opts...)
+	})
 }
 
 type hashivaultClient struct {
@@ -56,7 +59,7 @@ type hashivaultClient struct {
 
 var (
 	errReference   = errors.New("kms specification should be in the format hashivault://<key>")
-	referenceRegex = regexp.MustCompile(`^hashivault://(?P<path>\w(([\w-.]+)?\w)?)$`)
+	referenceRegex = regexp.MustCompile(`^(?:hashivault|openbao)://(?P<path>\w(([\w-.]+)?\w)?)$`)
 	prefixRegex    = regexp.MustCompile("^vault:v[0-9]+:")
 )
 
@@ -68,6 +71,9 @@ const (
 
 	// ReferenceScheme schemes for various KMS services are copied from https://github.com/google/go-cloud/tree/master/secrets
 	ReferenceScheme = "hashivault://"
+
+	// AlternativeScheme scheme for OpenBao KMS.
+	AlternativeScheme = "openbao://"
 )
 
 // ValidReference returns a non-nil error if the reference string is invalid
@@ -102,8 +108,13 @@ func newHashivaultClient(address, token, transitSecretEnginePath, keyResourceID 
 	if address == "" {
 		address = os.Getenv("VAULT_ADDR")
 	}
+
 	if address == "" {
-		return nil, errors.New("VAULT_ADDR is not set")
+		address = os.Getenv("BAO_ADDR")
+	}
+
+	if address == "" {
+		return nil, errors.New("VAULT_ADDR or BAO_ADDR is not set")
 	}
 
 	client, err := vault.NewClient(&vault.Config{
@@ -118,7 +129,11 @@ func newHashivaultClient(address, token, transitSecretEnginePath, keyResourceID 
 	}
 
 	if token == "" {
-		log.Printf("VAULT_TOKEN not set, trying to find token helper")
+		token = os.Getenv("BAO_TOKEN")
+	}
+
+	if token == "" {
+		log.Printf("VAULT_TOKEN or BAO_TOKEN not set, trying to find token helper")
 
 		// try token helper
 		tokenHelper, err := config.DefaultTokenHelper()
@@ -179,7 +194,10 @@ func oidcLogin(_ context.Context, address, path, role, token string) (string, er
 		address = os.Getenv("VAULT_ADDR")
 	}
 	if address == "" {
-		return "", errors.New("VAULT_ADDR is not set")
+		address = os.Getenv("BAO_ADDR")
+	}
+	if address == "" {
+		return "", errors.New("VAULT_ADDR or BAO_ADDR is not set")
 	}
 	if path == "" {
 		path = "jwt"
