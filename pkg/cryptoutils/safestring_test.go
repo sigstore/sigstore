@@ -129,7 +129,7 @@ func TestGenerateRandomURLSafeString_Uniqueness(t *testing.T) {
 	generated := make(map[string]bool, iterations)
 	entropy := uint(128) // High entropy for virtually zero collision chance
 
-	for i := 0; i < iterations; i++ {
+	for i := range iterations {
 		str := GenerateRandomURLSafeString(entropy)
 		if str == "" {
 			t.Fatalf("Generated empty string on iteration %d", i)

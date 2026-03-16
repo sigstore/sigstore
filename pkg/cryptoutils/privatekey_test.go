@@ -77,7 +77,6 @@ func TestGeneratePEMEncodedRSAKeyPair(t *testing.T) {
 		},
 	}
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			privPEM, pubPEM, err := GeneratePEMEncodedRSAKeyPair(testKeyBits, tc.initialPassFunc)
@@ -148,7 +147,6 @@ func TestGeneratePEMEncodedECDSAKeyPair(t *testing.T) {
 		},
 	}
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			privPEM, pubPEM, err := GeneratePEMEncodedECDSAKeyPair(testCurve, tc.initialPassFunc)

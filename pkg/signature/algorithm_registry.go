@@ -62,7 +62,7 @@ type AlgorithmDetails struct {
 	// The underlying type of these parameters is dependent on the keyType.
 	// For example, ECDSA algorithms will store an elliptic curve here whereas, RSA keys will store the key size.
 	// Algorithms that don't require any extra parameters leave this set to nil.
-	extraKeyParams interface{}
+	extraKeyParams any
 
 	// flagValue is a string representation of the signature algorithm that follows the naming conventions of CLI
 	// arguments that are used for Sigstore services.
