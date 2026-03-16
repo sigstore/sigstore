@@ -78,7 +78,7 @@ func parseJSONAccessTokenSuccess(body []byte) (token *oauth2.Token, err error) {
 	if tj.ExpiresIn != 0 {
 		token.Expiry = currentTime().Add(time.Duration(tj.ExpiresIn) * time.Second)
 	}
-	raw := map[string]interface{}{}
+	raw := map[string]any{}
 	if err = json.Unmarshal(body, &raw); err != nil {
 		return nil, err
 	}

@@ -116,7 +116,7 @@ func GetInteractiveSuccessHTML(autoclose bool, timeout int) (string, error) {
 	sb.WriteString(successTemplateHead)
 
 	if autoclose {
-		sb.WriteString(fmt.Sprintf(autocloseScript, timeout))
+		fmt.Fprintf(&sb, autocloseScript, timeout)
 	}
 
 	sb.WriteString(successTemplateTail)

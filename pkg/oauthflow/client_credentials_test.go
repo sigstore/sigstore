@@ -28,7 +28,7 @@ import (
 )
 
 type testccDriver struct {
-	respCh chan interface{}
+	respCh chan any
 	t      *testing.T
 }
 
@@ -56,7 +56,7 @@ func (td *testccDriver) handler(w http.ResponseWriter, r *http.Request) {
 
 func TestClientCredentialsFlowTokenGetter_ccFlow(t *testing.T) {
 	td := testccDriver{
-		respCh: make(chan interface{}, 3),
+		respCh: make(chan any, 3),
 		t:      t,
 	}
 

@@ -195,9 +195,9 @@ func TestCertificatesFromPEM(t *testing.T) {
 }
 
 func TestUnmarshalCertificatesFromPEMLimited(t *testing.T) {
-	var pemCerts []byte
 	iterations := 10
-	for i := 0; i < iterations; i++ {
+	pemCerts := make([]byte, 0, len(cert1PEM)*iterations+len(cert1PEM))
+	for range iterations {
 		pemCerts = append(pemCerts, []byte(cert1PEM)...)
 	}
 	certs, err := UnmarshalCertificatesFromPEMLimited(pemCerts, iterations)

@@ -106,7 +106,7 @@ func TestStaticTokenGetter_GetIDToken(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		payload interface{}
+		payload any
 		want    *OIDCIDToken
 		wantErr bool
 	}{
@@ -192,7 +192,7 @@ func TestSubjectFromToken(t *testing.T) {
 	tests := map[string]struct {
 		Subject         string
 		Email           string
-		EmailVerified   interface{}
+		EmailVerified   any
 		ExpectedSubject string
 		WantErr         bool
 	}{
@@ -230,7 +230,7 @@ func TestSubjectFromToken(t *testing.T) {
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			inputClaims := map[string]interface{}{
+			inputClaims := map[string]any{
 				"email": test.Email,
 				"sub":   test.Subject,
 			}
@@ -272,7 +272,7 @@ func TestSubjectFromUnverifiedToken(t *testing.T) {
 	tests := map[string]struct {
 		Subject         string
 		Email           string
-		EmailVerified   interface{}
+		EmailVerified   any
 		ExpectedSubject string
 		WantErr         bool
 	}{
@@ -310,7 +310,7 @@ func TestSubjectFromUnverifiedToken(t *testing.T) {
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			inputClaims := map[string]interface{}{
+			inputClaims := map[string]any{
 				"email": test.Email,
 				"sub":   test.Subject,
 			}

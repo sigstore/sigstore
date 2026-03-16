@@ -16,7 +16,6 @@
 // Package cliplugin implements the plugin functionality.
 
 //go:build signer_program
-// +build signer_program
 
 package cliplugin
 

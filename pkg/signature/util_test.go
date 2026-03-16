@@ -47,13 +47,13 @@ func TestProviderRoundtrip(t *testing.T) {
 		desc   string
 		sv     SignerVerifier
 		digest name.Digest
-		claims map[string]interface{}
+		claims map[string]any
 	}{
 		{
 			desc:   "ECDSA",
 			sv:     ecdsaSV,
 			digest: mustParseDigest(t, "example.com/ecdsa@"+validDigest),
-			claims: map[string]interface{}{
+			claims: map[string]any{
 				"creator":  "ECDSA",
 				"optional": "extras",
 			},
@@ -62,7 +62,7 @@ func TestProviderRoundtrip(t *testing.T) {
 			desc:   "RSA",
 			sv:     rsaSV,
 			digest: mustParseDigest(t, "example.com/rsa@"+validDigest),
-			claims: map[string]interface{}{
+			claims: map[string]any{
 				"creator":            "RSA",
 				"Floaty McFloatface": 6.022e23,
 			},

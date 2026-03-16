@@ -156,7 +156,7 @@ func generatePublicKey(azureKeyType string) (azkeys.JSONWebKey, error) {
 		}
 
 		key.N = rsaPub.N.Bytes()
-		key.E = []byte(fmt.Sprint(rsaPub.E))
+		key.E = fmt.Append(nil, rsaPub.E)
 
 		return key, nil
 	default:

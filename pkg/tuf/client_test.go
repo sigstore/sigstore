@@ -27,6 +27,7 @@ import (
 	"path"
 	"path/filepath"
 	"reflect"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -488,9 +489,7 @@ func TestGetTargetsByMeta(t *testing.T) {
 		t.Fatalf("target names mismatched, expected: %v, got: %v", expectedTN, targetNames)
 	}
 	targetStatuses := []StatusKind{targets[0].Status, targets[1].Status}
-	sort.Slice(targetStatuses, func(i, j int) bool {
-		return targetStatuses[i] < targetStatuses[j]
-	})
+	slices.Sort(targetStatuses)
 	expectedTS := []StatusKind{Active, Expired}
 	if !reflect.DeepEqual(targetStatuses, expectedTS) {
 		t.Fatalf("unexpected target status with custom metadata, expected %v, got: %v", expectedTS, targetStatuses)
@@ -794,10 +793,8 @@ func updateTufRepo(t *testing.T, td string, r *tuf.Repo, targetData string) {
 func TestConcurrentAccessNewFromEnv(t *testing.T) {
 	var wg sync.WaitGroup
 
-	for i := 0; i < 20; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+	for range 20 {
+		wg.Go(func() {
 			tufObj, err := NewFromEnv(context.Background())
 			if err != nil {
 				t.Errorf("Failed to construct NewFromEnv: %s", err)
@@ -806,7 +803,7 @@ func TestConcurrentAccessNewFromEnv(t *testing.T) {
 				t.Error("Got back nil tufObj")
 			}
 			time.Sleep(1 * time.Second)
-		}()
+		})
 	}
 	wg.Wait()
 	resetForTests()
@@ -815,16 +812,14 @@ func TestConcurrentAccessNewFromEnv(t *testing.T) {
 func TestConcurrentAccessInitialize(t *testing.T) {
 	var wg sync.WaitGroup
 
-	for i := 0; i < 20; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+	for range 20 {
+		wg.Go(func() {
 			err := Initialize(context.Background(), DefaultRemoteRoot, nil)
 			if err != nil {
 				t.Errorf("Failed to construct NewFromEnv: %s", err)
 			}
 			time.Sleep(1 * time.Second)
-		}()
+		})
 	}
 	wg.Wait()
 	resetForTests()

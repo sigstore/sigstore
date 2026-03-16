@@ -41,7 +41,7 @@ func TestParseAccessTokenSuccessResponse(t *testing.T) {
 		wantRefreshToken string
 		wantTokenType    string
 		wantExpiry       time.Time
-		mustHaveExtras   map[string]interface{}
+		mustHaveExtras   map[string]any
 
 		wantError error
 	}{
@@ -61,7 +61,7 @@ func TestParseAccessTokenSuccessResponse(t *testing.T) {
 			wantRefreshToken: "json refresh_token",
 			wantTokenType:    "Bearer",
 			wantExpiry:       now.Add(3600 * time.Second),
-			mustHaveExtras: map[string]interface{}{
+			mustHaveExtras: map[string]any{
 				"scope": "foo bar",
 			},
 		},
@@ -97,7 +97,7 @@ func TestParseAccessTokenSuccessResponse(t *testing.T) {
 			wantRefreshToken: "urlencoded refresh_token",
 			wantTokenType:    "MAC",
 			wantExpiry:       now.Add(420 * time.Second),
-			mustHaveExtras: map[string]interface{}{
+			mustHaveExtras: map[string]any{
 				"scope": "bar baz",
 			},
 		},

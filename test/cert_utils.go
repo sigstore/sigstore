@@ -50,7 +50,7 @@ opts := x509.VerifyOptions{
 _, err := leafCert.Verify(opts)
 */
 
-func createCertificate(template, parent *x509.Certificate, pub interface{}, priv crypto.Signer) (*x509.Certificate, error) {
+func createCertificate(template, parent *x509.Certificate, pub any, priv crypto.Signer) (*x509.Certificate, error) {
 	certBytes, err := x509.CreateCertificate(rand.Reader, template, parent, pub, priv)
 	if err != nil {
 		return nil, err

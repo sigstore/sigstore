@@ -53,7 +53,7 @@ func TestMarshalCosign(t *testing.T) {
 			desc: "standard atomic signature",
 			imgPayload: Cosign{
 				Image: mustParseDigest(t, "example.com/atomic/test/image@"+validDigest),
-				Annotations: map[string]interface{}{
+				Annotations: map[string]any{
 					"creator":   "atomic",
 					"timestamp": 1458239713,
 				},
@@ -64,9 +64,9 @@ func TestMarshalCosign(t *testing.T) {
 			desc: "arbitrary claims",
 			imgPayload: Cosign{
 				Image: mustParseDigest(t, "example.com/cosign/test/image@"+validDigest),
-				Annotations: map[string]interface{}{
+				Annotations: map[string]any{
 					"creator": "anyone",
-					"some_struct": map[string]interface{}{
+					"some_struct": map[string]any{
 						"foo":     "bar",
 						"false":   true,
 						"nothing": nil,
@@ -125,9 +125,9 @@ func TestUnmarshalCosign(t *testing.T) {
 			expected: Cosign{
 				Image:           mustParseDigest(t, "example.com/cosign/test/image@"+validDigest),
 				ClaimedIdentity: "example.com/cosign/test/image",
-				Annotations: map[string]interface{}{
+				Annotations: map[string]any{
 					"creator": "anyone",
-					"some_struct": map[string]interface{}{
+					"some_struct": map[string]any{
 						"foo":     "bar",
 						"false":   true,
 						"nothing": nil,
