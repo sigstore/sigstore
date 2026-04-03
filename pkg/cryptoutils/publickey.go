@@ -30,6 +30,9 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+
+	"filippo.io/mldsa"
+	mldsax509 "filippo.io/mldsa/x509"
 )
 
 const (
@@ -54,7 +57,7 @@ func UnmarshalPEMToPublicKey(pemBytes []byte) (crypto.PublicKey, error) {
 	}
 	switch derBytes.Type {
 	case string(PublicKeyPEMType):
-		return x509.ParsePKIXPublicKey(derBytes.Bytes)
+		return mldsax509.ParsePKIXPublicKey(derBytes.Bytes)
 	case string(PKCS1PublicKeyPEMType):
 		return x509.ParsePKCS1PublicKey(derBytes.Bytes)
 	default:
@@ -68,7 +71,7 @@ func MarshalPublicKeyToDER(pub crypto.PublicKey) ([]byte, error) {
 	if pub == nil {
 		return nil, errors.New("empty key")
 	}
-	return x509.MarshalPKIXPublicKey(pub)
+	return mldsax509.MarshalPKIXPublicKey(pub)
 }
 
 // MarshalPublicKeyToPEM converts a crypto.PublicKey into a PEM-encoded byte slice
@@ -84,7 +87,7 @@ func MarshalPublicKeyToPEM(pub crypto.PublicKey) ([]byte, error) {
 // subjectPublicKey (excluding the tag, length, and number of unused bits).
 // https://tools.ietf.org/html/rfc5280#section-4.2.1.2
 func SKID(pub crypto.PublicKey) ([]byte, error) {
-	derPubBytes, err := x509.MarshalPKIXPublicKey(pub)
+	derPubBytes, err := MarshalPublicKeyToDER(pub)
 	if err != nil {
 		return nil, err
 	}
@@ -111,6 +114,10 @@ func EqualKeys(first, second crypto.PublicKey) error {
 	case ed25519.PublicKey:
 		if !pub.Equal(second) {
 			return errors.New(genErrMsg(first, second, "ed25519"))
+		}
+	case *mldsa.PublicKey:
+		if !pub.Equal(second) {
+			return errors.New(genErrMsg(first, second, "mldsa"))
 		}
 	default:
 		return errors.New("unsupported key type")
@@ -152,6 +159,9 @@ func ValidatePubKey(pub crypto.PublicKey) error {
 		return nil
 	case ed25519.PublicKey:
 		// Nothing to validate for Ed25519
+		return nil
+	case *mldsa.PublicKey:
+		// Nothing to validate for ML-DSA
 		return nil
 	}
 	return fmt.Errorf("unsupported public key type: %T", pub)

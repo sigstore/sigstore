@@ -21,6 +21,7 @@ import (
 	"crypto/ed25519"
 	"crypto/rsa"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -29,6 +30,7 @@ import (
 	_ "crypto/sha256"
 	_ "crypto/sha512"
 
+	"filippo.io/mldsa"
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
 	"github.com/sigstore/sigstore/pkg/signature/options"
 )
@@ -85,8 +87,10 @@ func LoadSignerWithOpts(privateKey crypto.PrivateKey, opts ...LoadOption) (Signe
 			return LoadED25519phSigner(pk)
 		}
 		return LoadED25519Signer(pk)
+	case *mldsa.PrivateKey:
+		return LoadMLDSASigner(pk)
 	}
-	return nil, errors.New("unsupported public key type")
+	return nil, fmt.Errorf("unsupported private key type: %T", privateKey)
 }
 
 // LoadSignerFromPEMFile returns a signature.Signer based on the algorithm of the private key

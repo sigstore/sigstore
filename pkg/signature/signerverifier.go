@@ -24,6 +24,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"filippo.io/mldsa"
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
 	"github.com/sigstore/sigstore/pkg/signature/options"
 )
@@ -68,6 +69,8 @@ func LoadSignerVerifierWithOpts(privateKey crypto.PrivateKey, opts ...LoadOption
 			return LoadED25519phSignerVerifier(pk)
 		}
 		return LoadED25519SignerVerifier(pk)
+	case *mldsa.PrivateKey:
+		return LoadMLDSASignerVerifier(pk)
 	}
 	return nil, errors.New("unsupported public key type")
 }
