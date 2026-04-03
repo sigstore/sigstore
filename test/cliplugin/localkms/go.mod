@@ -10,6 +10,7 @@ require (
 )
 
 require (
+	filippo.io/mldsa v0.0.0-20260711112038-ff3f469cee29 // indirect
 	github.com/google/go-containerregistry v0.21.7 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/secure-systems-lab/go-securesystemslib v0.11.0 // indirect

@@ -14,6 +14,7 @@ require (
 )
 
 require (
+	filippo.io/mldsa v0.0.0-20260711112038-ff3f469cee29 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.19.30 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.18.31 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/configsources v1.4.31 // indirect
