@@ -24,6 +24,8 @@ import (
 	"crypto/rsa"
 	"testing"
 
+	"filippo.io/mldsa"
+
 	v1 "github.com/sigstore/protobuf-specs/gen/pb-go/common/v1"
 	"github.com/sigstore/sigstore/pkg/signature/options"
 )
@@ -56,6 +58,30 @@ func TestGetAlgorithmDetails(t *testing.T) {
 	if err == nil {
 		t.Errorf("unexpected success getting rsa key size")
 	}
+
+	mldsaDetails, err := GetAlgorithmDetails(v1.PublicKeyDetails_ML_DSA_65)
+	if err != nil {
+		t.Errorf("unexpected error getting mldsa algorithm details: %v", err)
+	}
+	if mldsaDetails.GetSignatureAlgorithm() != v1.PublicKeyDetails_ML_DSA_65 {
+		t.Errorf("unexpected signature algorithm")
+	}
+	if mldsaDetails.GetKeyType() != MLDSA {
+		t.Errorf("unexpected key algorithm")
+	}
+	if mldsaDetails.GetHashType() != crypto.Hash(0) {
+		t.Errorf("unexpected hash algorithm for mldsa")
+	}
+	if mldsaDetails.GetProtoHashType() != v1.HashAlgorithm_HASH_ALGORITHM_UNSPECIFIED {
+		t.Errorf("unexpected proto hash algorithm for mldsa")
+	}
+	params, err := mldsaDetails.GetMLDSAParameters()
+	if err != nil {
+		t.Errorf("unexpected error getting mldsa parameters")
+	}
+	if params != mldsa.MLDSA65() {
+		t.Errorf("unexpected mldsa parameters")
+	}
 }
 
 func TestAlgorithmRegistryConfig(t *testing.T) {
@@ -63,6 +89,7 @@ func TestAlgorithmRegistryConfig(t *testing.T) {
 		v1.PublicKeyDetails_PKIX_ECDSA_P256_SHA_256,
 		v1.PublicKeyDetails_PKIX_ED25519,
 		v1.PublicKeyDetails_PKIX_RSA_PKCS1V15_2048_SHA256,
+		v1.PublicKeyDetails_ML_DSA_87,
 	})
 	if err != nil {
 		t.Errorf("unexpected error creating algorithm registry config: %v", err)
@@ -103,6 +130,18 @@ func TestAlgorithmRegistryConfig(t *testing.T) {
 	}
 	if !isPermitted {
 		t.Errorf("unexpected error permitting rsa-sign-pkcs1-2048-sha256")
+	}
+
+	mldsaKey, err := mldsa.GenerateKey(mldsa.MLDSA87())
+	if err != nil {
+		t.Errorf("unexpected error creating mldsa key: %v", err)
+	}
+	isPermitted, err = config.IsAlgorithmPermitted(mldsaKey.PublicKey(), crypto.Hash(0))
+	if err != nil {
+		t.Errorf("unexpected error checking registry for mldsa-87: %v", err)
+	}
+	if !isPermitted {
+		t.Errorf("unexpected error permitting mldsa-87")
 	}
 
 	// Try some permitted public key algorithms with incorrect hash algorithms.
@@ -160,6 +199,7 @@ func TestSignatureAlgorithmFlagRoundtrip(t *testing.T) {
 		v1.PublicKeyDetails_PKIX_ECDSA_P521_SHA_512,
 		v1.PublicKeyDetails_PKIX_RSA_PKCS1V15_2048_SHA256,
 		v1.PublicKeyDetails_PKIX_ED25519_PH,
+		v1.PublicKeyDetails_ML_DSA_65,
 	}
 
 	// Format enums as flags.
@@ -173,7 +213,7 @@ func TestSignatureAlgorithmFlagRoundtrip(t *testing.T) {
 	}
 
 	// Check that the flags look ok.
-	expectedFlags := []string{"ecdsa-sha2-512-nistp521", "rsa-sign-pkcs1-2048-sha256", "ed25519-ph"}
+	expectedFlags := []string{"ecdsa-sha2-512-nistp521", "rsa-sign-pkcs1-2048-sha256", "ed25519-ph", "mldsa-65"}
 	for i, actualFlag := range actualFlags {
 		expectedFlag := expectedFlags[i]
 		if actualFlag != expectedFlag {
@@ -274,6 +314,28 @@ func TestGetDefaultPublicKeyDetails(t *testing.T) {
 			},
 			opts:     []LoadOption{options.WithRSAPSS(&rsa.PSSOptions{SaltLength: rsa.PSSSaltLengthAuto, Hash: crypto.SHA256})},
 			expected: v1.PublicKeyDetails_PKIX_RSA_PSS_2048_SHA256,
+		},
+		{
+			name: "mldsa-65",
+			key: func() crypto.PublicKey {
+				key, err := mldsa.GenerateKey(mldsa.MLDSA65())
+				if err != nil {
+					t.Errorf("unexpected error creating mldsa key: %v", err)
+				}
+				return key.PublicKey()
+			},
+			expected: v1.PublicKeyDetails_ML_DSA_65,
+		},
+		{
+			name: "mldsa-87",
+			key: func() crypto.PublicKey {
+				key, err := mldsa.GenerateKey(mldsa.MLDSA87())
+				if err != nil {
+					t.Errorf("unexpected error creating mldsa key: %v", err)
+				}
+				return key.PublicKey()
+			},
+			expected: v1.PublicKeyDetails_ML_DSA_87,
 		},
 	}
 

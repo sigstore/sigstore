@@ -31,7 +31,7 @@ import (
 func testingSigner(t *testing.T, s Signer, alg string, hashFunc crypto.Hash, message []byte) { // nolint: unparam
 	t.Helper()
 
-	isPreHashed := alg != "ed25519"
+	isPreHashed := alg != "ed25519" && alg != "mldsa"
 
 	var digest []byte
 	if isPreHashed {
@@ -132,7 +132,7 @@ func assertPublicKeyIsx509Marshalable(t *testing.T, pub crypto.PublicKey) {
 func testingVerifier(t *testing.T, v Verifier, alg string, hashFunc crypto.Hash, signature, message []byte) { // nolint: unparam
 	t.Helper()
 
-	isPreHashed := alg != "ed25519"
+	isPreHashed := alg != "ed25519" && alg != "mldsa"
 
 	var digest []byte
 	if isPreHashed {
