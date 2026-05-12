@@ -92,8 +92,13 @@ type wrappedMultiVerifier struct {
 	cfg        wrapConfig
 }
 
-// WrapMultiVerifier returns a signature.Verifier that uses the DSSE encoding format
+// WrapMultiVerifier returns a signature.Verifier that uses the DSSE encoding format.
+// If payloadType is non-empty, WithExpectedPayloadType is automatically applied
+// before any caller-supplied options.
 func WrapMultiVerifier(payloadType string, threshold int, vL []signature.Verifier, opts ...Option) signature.Verifier {
+	if payloadType != "" {
+		opts = append([]Option{WithExpectedPayloadType(payloadType)}, opts...)
+	}
 	verifierAdapterL := make([]dsse.Verifier, 0, len(vL))
 	for _, v := range vL {
 		pub, err := v.PublicKey()
@@ -161,10 +166,8 @@ func (wL *wrappedMultiVerifier) VerifySignature(s, _ io.Reader, _ ...signature.V
 
 // WrapMultiSignerVerifier returns a signature.SignerVerifier that uses the DSSE encoding format.
 // The payloadType is automatically enforced during verification via
-// WithExpectedPayloadType; callers may supply additional Option values
-// which are applied after the implicit payload-type option.
+// WrapMultiVerifier; callers may supply additional Option values.
 func WrapMultiSignerVerifier(payloadType string, threshold int, svL []signature.SignerVerifier, opts ...Option) signature.SignerVerifier {
-	opts = append([]Option{WithExpectedPayloadType(payloadType)}, opts...)
 	signerL := make([]signature.Signer, 0, len(svL))
 	verifierL := make([]signature.Verifier, 0, len(svL))
 	for _, sv := range svL {
