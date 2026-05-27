@@ -97,7 +97,7 @@ func TestMultiRoundTrip(t *testing.T) {
 	data := "sometestdata"
 	payloadType := "foo"
 
-	wsv := WrapMultiSignerVerifier(payloadType, 2, []signature.SignerVerifier{sv, sv2})
+	wsv := WrapMultiSignerVerifier(payloadType, 2, sv, sv2)
 
 	sig, err := wsv.SignMessage(strings.NewReader(data))
 	if err != nil {
@@ -157,7 +157,7 @@ func TestInvalidThresholdMultiRoundTrip(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	wv := WrapMultiVerifier(payloadType, 2, []signature.Verifier{sv})
+	wv := WrapMultiVerifier(payloadType, 2, sv)
 
 	if err := wv.VerifySignature(bytes.NewReader(sig), nil); err == nil {
 		t.Fatalf("Did not fail verification on bogus signature")
@@ -219,14 +219,14 @@ func TestMultiRoundTripWithDecodedPayload(t *testing.T) {
 	data := "sometestdata"
 	payloadType := "foo"
 
-	wsv := WrapMultiSignerVerifier(payloadType, 2, []signature.SignerVerifier{sv, sv2})
+	wsv := WrapMultiSignerVerifierWithOpts(payloadType, 2, []signature.SignerVerifier{sv, sv2})
 	sig, err := wsv.SignMessage(strings.NewReader(data))
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	var decoded []byte
-	wv := WrapMultiVerifier(payloadType, 2, []signature.Verifier{sv, sv2}, WithDecodedPayload(&decoded))
+	wv := WrapMultiVerifierWithOpts(payloadType, 2, []signature.Verifier{sv, sv2}, WithDecodedPayload(&decoded))
 	if err := wv.VerifySignature(bytes.NewReader(sig), nil); err != nil {
 		t.Fatal(err)
 	}
@@ -341,7 +341,7 @@ func TestMultiExpectedPayloadTypeMismatch(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	wv := WrapMultiVerifier("foo", 1, []signature.Verifier{sv}, WithExpectedPayloadType("bar"))
+	wv := WrapMultiVerifierWithOpts("foo", 1, []signature.Verifier{sv}, WithExpectedPayloadType("bar"))
 	err = wv.VerifySignature(bytes.NewReader(sig), nil)
 	if err == nil {
 		t.Fatal("expected verification to fail with mismatched payload type")
@@ -372,7 +372,7 @@ func TestMultiSignerVerifierEnforcesPayloadType(t *testing.T) {
 	}
 
 	// WrapMultiSignerVerifier with payloadType "bar" should reject the envelope
-	wsv := WrapMultiSignerVerifier("bar", 1, []signature.SignerVerifier{sv})
+	wsv := WrapMultiSignerVerifierWithOpts("bar", 1, []signature.SignerVerifier{sv})
 	err = wsv.VerifySignature(bytes.NewReader(sig), nil)
 	if err == nil {
 		t.Fatal("expected verification to fail when MultiSignerVerifier payloadType mismatches envelope")

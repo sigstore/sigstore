@@ -93,9 +93,16 @@ type wrappedMultiVerifier struct {
 }
 
 // WrapMultiVerifier returns a signature.Verifier that uses the DSSE encoding format.
+//
+// Deprecated: Use WrapMultiVerifierWithOpts instead.
+func WrapMultiVerifier(payloadType string, threshold int, vL ...signature.Verifier) signature.Verifier {
+	return WrapMultiVerifierWithOpts(payloadType, threshold, vL)
+}
+
+// WrapMultiVerifierWithOpts returns a signature.Verifier that uses the DSSE encoding format.
 // If payloadType is non-empty, WithExpectedPayloadType is automatically applied
 // before any caller-supplied options.
-func WrapMultiVerifier(payloadType string, threshold int, vL []signature.Verifier, opts ...Option) signature.Verifier {
+func WrapMultiVerifierWithOpts(payloadType string, threshold int, vL []signature.Verifier, opts ...Option) signature.Verifier {
 	if payloadType != "" {
 		opts = append([]Option{WithExpectedPayloadType(payloadType)}, opts...)
 	}
@@ -165,9 +172,16 @@ func (wL *wrappedMultiVerifier) VerifySignature(s, _ io.Reader, _ ...signature.V
 }
 
 // WrapMultiSignerVerifier returns a signature.SignerVerifier that uses the DSSE encoding format.
+//
+// Deprecated: Use WrapMultiSignerVerifierWithOpts instead.
+func WrapMultiSignerVerifier(payloadType string, threshold int, svL ...signature.SignerVerifier) signature.SignerVerifier {
+	return WrapMultiSignerVerifierWithOpts(payloadType, threshold, svL)
+}
+
+// WrapMultiSignerVerifierWithOpts returns a signature.SignerVerifier that uses the DSSE encoding format.
 // The payloadType is automatically enforced during verification via
-// WrapMultiVerifier; callers may supply additional Option values.
-func WrapMultiSignerVerifier(payloadType string, threshold int, svL []signature.SignerVerifier, opts ...Option) signature.SignerVerifier {
+// WrapMultiVerifierWithOpts; callers may supply additional Option values.
+func WrapMultiSignerVerifierWithOpts(payloadType string, threshold int, svL []signature.SignerVerifier, opts ...Option) signature.SignerVerifier {
 	signerL := make([]signature.Signer, 0, len(svL))
 	verifierL := make([]signature.Verifier, 0, len(svL))
 	for _, sv := range svL {
@@ -176,7 +190,7 @@ func WrapMultiSignerVerifier(payloadType string, threshold int, svL []signature.
 	}
 
 	sL := WrapMultiSigner(payloadType, signerL...)
-	vL := WrapMultiVerifier(payloadType, threshold, verifierL, opts...)
+	vL := WrapMultiVerifierWithOpts(payloadType, threshold, verifierL, opts...)
 
 	return &wrappedMultiSignerVerifier{
 		signer:   sL,

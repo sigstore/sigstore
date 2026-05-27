@@ -15,8 +15,8 @@
 
 package dsse
 
-// Option is a functional option for WrapVerifier, WrapMultiVerifier,
-// WrapSignerVerifier, and WrapMultiSignerVerifier.
+// Option is a functional option for WrapVerifier, WrapSignerVerifier,
+// WrapMultiVerifierWithOpts, and WrapMultiSignerVerifierWithOpts.
 type Option func(*wrapConfig)
 
 type wrapConfig struct {
