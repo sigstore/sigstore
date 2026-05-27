@@ -291,4 +291,33 @@ func TestUnmarshalPEMToPrivateKey(t *testing.T) {
 	if err == nil || !strings.Contains(err.Error(), "unknown private key PEM file type") {
 		t.Fatalf("expected error unmarshalling invalid PEM block, got: %v", err)
 	}
+
+	// test legacy encrypted private keys (RSA)
+	legacyPassword := []byte("legacy-password")
+	encRSABlock, err := x509.EncryptPEMBlock(rand.Reader, "RSA PRIVATE KEY", rsaPrivKey, legacyPassword, x509.PEMCipherAES256) //nolint:staticcheck
+	if err != nil {
+		t.Fatalf("failed to encrypt PEM block: %v", err)
+	}
+	encRSAPEM := pem.EncodeToMemory(encRSABlock)
+
+	// Decrypting without password should fail
+	_, err = UnmarshalPEMToPrivateKey(encRSAPEM, nil)
+	if err == nil {
+		t.Fatal("expected decryption failure without password function")
+	}
+
+	// Decrypting with incorrect password should fail
+	_, err = UnmarshalPEMToPrivateKey(encRSAPEM, StaticPasswordFunc([]byte("wrong-password")))
+	if err == nil {
+		t.Fatal("expected decryption failure with wrong password")
+	}
+
+	// Decrypting with correct password should succeed
+	decryptedKey, err := UnmarshalPEMToPrivateKey(encRSAPEM, StaticPasswordFunc(legacyPassword))
+	if err != nil {
+		t.Fatalf("UnmarshalPEMToPrivateKey failed: %v", err)
+	}
+	if !priv.Equal(decryptedKey) {
+		t.Fatal("decrypted private key does not match original key")
+	}
 }
