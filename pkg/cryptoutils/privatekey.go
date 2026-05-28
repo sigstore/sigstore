@@ -107,6 +107,26 @@ func UnmarshalPEMToPrivateKey(pemBytes []byte, pf PassFunc) (crypto.PrivateKey, 
 	if derBlock == nil {
 		return nil, errors.New("PEM decoding failed")
 	}
+
+	// Handle legacy encrypted PEM blocks
+	if x509.IsEncryptedPEMBlock(derBlock) { //nolint:staticcheck
+		if pf == nil {
+			return nil, errors.New("private key is encrypted, but no password function was provided")
+		}
+		password, err := pf(false)
+		if err != nil {
+			return nil, err
+		}
+		decryptedBytes, err := x509.DecryptPEMBlock(derBlock, password) //nolint:staticcheck
+		if err != nil {
+			return nil, fmt.Errorf("failed to decrypt legacy PEM block: %w", err)
+		}
+		derBlock = &pem.Block{
+			Type:  derBlock.Type,
+			Bytes: decryptedBytes,
+		}
+	}
+
 	switch derBlock.Type {
 	case string(PrivateKeyPEMType):
 		return x509.ParsePKCS8PrivateKey(derBlock.Bytes)
