@@ -164,6 +164,224 @@ func TestInvalidThresholdMultiRoundTrip(t *testing.T) {
 	}
 }
 
+func TestRoundTripWithDecodedPayload(t *testing.T) {
+	p, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	sv, err := signature.LoadECDSASignerVerifier(p, crypto.SHA256)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	data := "sometestdata"
+	payloadType := "foo"
+
+	ws := WrapSigner(sv, payloadType)
+	sig, err := ws.SignMessage(strings.NewReader(data))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var decoded []byte
+	wv := WrapVerifier(sv, WithDecodedPayload(&decoded))
+	if err := wv.VerifySignature(bytes.NewReader(sig), nil); err != nil {
+		t.Fatal(err)
+	}
+
+	if string(decoded) != data {
+		t.Errorf("Expected decoded payload %q, got %q", data, string(decoded))
+	}
+}
+
+func TestMultiRoundTripWithDecodedPayload(t *testing.T) {
+	p, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	sv, err := signature.LoadECDSASignerVerifier(p, crypto.SHA256)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	p2, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	sv2, err := signature.LoadECDSASignerVerifier(p2, crypto.SHA256)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	data := "sometestdata"
+	payloadType := "foo"
+
+	wsv := WrapMultiSignerVerifierWithOpts(payloadType, 2, []signature.SignerVerifier{sv, sv2})
+	sig, err := wsv.SignMessage(strings.NewReader(data))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var decoded []byte
+	wv := WrapMultiVerifierWithOpts(payloadType, 2, []signature.Verifier{sv, sv2}, WithDecodedPayload(&decoded))
+	if err := wv.VerifySignature(bytes.NewReader(sig), nil); err != nil {
+		t.Fatal(err)
+	}
+
+	if string(decoded) != data {
+		t.Errorf("Expected decoded payload %q, got %q", data, string(decoded))
+	}
+}
+
+func TestExpectedPayloadTypeMatch(t *testing.T) {
+	p, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	sv, err := signature.LoadECDSASignerVerifier(p, crypto.SHA256)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	data := "sometestdata"
+	payloadType := "foo"
+
+	ws := WrapSigner(sv, payloadType)
+	sig, err := ws.SignMessage(strings.NewReader(data))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	wv := WrapVerifier(sv, WithExpectedPayloadType("foo"))
+	if err := wv.VerifySignature(bytes.NewReader(sig), nil); err != nil {
+		t.Fatalf("expected verification to pass with matching payload type: %v", err)
+	}
+}
+
+func TestExpectedPayloadTypeMismatch(t *testing.T) {
+	p, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	sv, err := signature.LoadECDSASignerVerifier(p, crypto.SHA256)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	data := "sometestdata"
+
+	ws := WrapSigner(sv, "foo")
+	sig, err := ws.SignMessage(strings.NewReader(data))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	wv := WrapVerifier(sv, WithExpectedPayloadType("bar"))
+	err = wv.VerifySignature(bytes.NewReader(sig), nil)
+	if err == nil {
+		t.Fatal("expected verification to fail with mismatched payload type")
+	}
+	if !strings.Contains(err.Error(), "unexpected payload type") {
+		t.Fatalf("expected payload type mismatch error, got: %v", err)
+	}
+}
+
+func TestSignerVerifierEnforcesPayloadType(t *testing.T) {
+	p, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	sv, err := signature.LoadECDSASignerVerifier(p, crypto.SHA256)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	data := "sometestdata"
+
+	// Sign with payloadType "foo"
+	ws := WrapSigner(sv, "foo")
+	sig, err := ws.SignMessage(strings.NewReader(data))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// WrapSignerVerifier with payloadType "bar" should reject the envelope
+	wsv := WrapSignerVerifier(sv, "bar")
+	err = wsv.VerifySignature(bytes.NewReader(sig), nil)
+	if err == nil {
+		t.Fatal("expected verification to fail when SignerVerifier payloadType mismatches envelope")
+	}
+	if !strings.Contains(err.Error(), "unexpected payload type") {
+		t.Fatalf("expected payload type mismatch error, got: %v", err)
+	}
+}
+
+func TestMultiExpectedPayloadTypeMismatch(t *testing.T) {
+	p, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	sv, err := signature.LoadECDSASignerVerifier(p, crypto.SHA256)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	data := "sometestdata"
+
+	ws := WrapMultiSigner("foo", sv)
+	sig, err := ws.SignMessage(strings.NewReader(data))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	wv := WrapMultiVerifierWithOpts("foo", 1, []signature.Verifier{sv}, WithExpectedPayloadType("bar"))
+	err = wv.VerifySignature(bytes.NewReader(sig), nil)
+	if err == nil {
+		t.Fatal("expected verification to fail with mismatched payload type")
+	}
+	if !strings.Contains(err.Error(), "unexpected payload type") {
+		t.Fatalf("expected payload type mismatch error, got: %v", err)
+	}
+}
+
+func TestMultiSignerVerifierEnforcesPayloadType(t *testing.T) {
+	p, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	sv, err := signature.LoadECDSASignerVerifier(p, crypto.SHA256)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	data := "sometestdata"
+
+	// Sign with payloadType "foo"
+	ws := WrapMultiSigner("foo", sv)
+	sig, err := ws.SignMessage(strings.NewReader(data))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// WrapMultiSignerVerifier with payloadType "bar" should reject the envelope
+	wsv := WrapMultiSignerVerifierWithOpts("bar", 1, []signature.SignerVerifier{sv})
+	err = wsv.VerifySignature(bytes.NewReader(sig), nil)
+	if err == nil {
+		t.Fatal("expected verification to fail when MultiSignerVerifier payloadType mismatches envelope")
+	}
+	if !strings.Contains(err.Error(), "unexpected payload type") {
+		t.Fatalf("expected payload type mismatch error, got: %v", err)
+	}
+}
+
 func TestInvalidSignature(t *testing.T) {
 	p, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {
