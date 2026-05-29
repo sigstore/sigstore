@@ -15,6 +15,7 @@ require (
 	github.com/stretchr/testify v1.11.1
 	github.com/theupdateframework/go-tuf v0.7.0
 	github.com/tink-crypto/tink-go/v2 v2.6.0
+	github.com/youmark/pkcs8 v0.0.0-20240726163527-a2c0da244d78
 	golang.org/x/crypto v0.50.0
 	golang.org/x/oauth2 v0.35.0
 	golang.org/x/term v0.42.0
