@@ -27,6 +27,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/youmark/pkcs8"
 )
 
 func verifyRSAKeyPEMs(t *testing.T, privPEM, pubPEM []byte, expectedKeyLengthBits int, testPassFunc PassFunc) {
@@ -319,5 +320,100 @@ func TestUnmarshalPEMToPrivateKey(t *testing.T) {
 	}
 	if !priv.Equal(decryptedKey) {
 		t.Fatal("decrypted private key does not match original key")
+	}
+
+	// test standard encrypted private keys using PKCS#8 ("ENCRYPTED PRIVATE KEY")
+	pkcs8Password := []byte("pkcs8-password")
+	encBytes, err := pkcs8.ConvertPrivateKeyToPKCS8(priv, pkcs8Password)
+	if err != nil {
+		t.Fatalf("failed to convert private key to encrypted PKCS#8: %v", err)
+	}
+	encBlock := pem.EncodeToMemory(&pem.Block{
+		Type:  "ENCRYPTED PRIVATE KEY",
+		Bytes: encBytes,
+	})
+
+	// Decrypting without password should fail
+	_, err = UnmarshalPEMToPrivateKey(encBlock, nil)
+	if err == nil {
+		t.Fatal("expected decryption failure without password function")
+	}
+
+	// Decrypting with incorrect password should fail
+	_, err = UnmarshalPEMToPrivateKey(encBlock, StaticPasswordFunc([]byte("wrong-password")))
+	if err == nil {
+		t.Fatal("expected decryption failure with wrong password")
+	}
+
+	// Decrypting with correct password should succeed
+	decryptedPKCS8Key, err := UnmarshalPEMToPrivateKey(encBlock, StaticPasswordFunc(pkcs8Password))
+	if err != nil {
+		t.Fatalf("UnmarshalPEMToPrivateKey failed: %v", err)
+	}
+	if !priv.Equal(decryptedPKCS8Key) {
+		t.Fatal("decrypted private key does not match original key")
+	}
+
+	// test legacy encrypted ECDSA private key (EC PRIVATE KEY)
+	ecdsaPrivKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		t.Fatalf("failed to generate ECDSA key: %v", err)
+	}
+	derECDSA, err := x509.MarshalECPrivateKey(ecdsaPrivKey)
+	if err != nil {
+		t.Fatalf("failed to marshal EC private key: %v", err)
+	}
+	encECDSABlock, err := x509.EncryptPEMBlock(rand.Reader, "EC PRIVATE KEY", derECDSA, legacyPassword, x509.PEMCipherAES256) //nolint:staticcheck
+	if err != nil {
+		t.Fatalf("failed to encrypt EC PEM block: %v", err)
+	}
+	encECDSAPEM := pem.EncodeToMemory(encECDSABlock)
+
+	decryptedECDSAKey, err := UnmarshalPEMToPrivateKey(encECDSAPEM, StaticPasswordFunc(legacyPassword))
+	if err != nil {
+		t.Fatalf("UnmarshalPEMToPrivateKey failed for legacy EC: %v", err)
+	}
+	if !ecdsaPrivKey.Equal(decryptedECDSAKey) {
+		t.Fatal("decrypted legacy EC private key does not match original key")
+	}
+
+	// test standard encrypted ECDSA private key using PKCS#8 ("ENCRYPTED PRIVATE KEY")
+	encECDSAPBytes, err := pkcs8.ConvertPrivateKeyToPKCS8(ecdsaPrivKey, pkcs8Password)
+	if err != nil {
+		t.Fatalf("failed to convert EC private key to encrypted PKCS#8: %v", err)
+	}
+	encECDSABlockPKCS8 := pem.EncodeToMemory(&pem.Block{
+		Type:  "ENCRYPTED PRIVATE KEY",
+		Bytes: encECDSAPBytes,
+	})
+
+	decryptedECDSAPKCS8Key, err := UnmarshalPEMToPrivateKey(encECDSABlockPKCS8, StaticPasswordFunc(pkcs8Password))
+	if err != nil {
+		t.Fatalf("UnmarshalPEMToPrivateKey failed for EC PKCS8: %v", err)
+	}
+	if !ecdsaPrivKey.Equal(decryptedECDSAPKCS8Key) {
+		t.Fatal("decrypted EC PKCS8 private key does not match original key")
+	}
+
+	// test standard encrypted Ed25519 private key using PKCS#8 ("ENCRYPTED PRIVATE KEY")
+	_, ed25519PrivKey, err := ed25519.GenerateKey(rand.Reader)
+	if err != nil {
+		t.Fatalf("failed to generate Ed25519 key: %v", err)
+	}
+	encEdBytes, err := pkcs8.ConvertPrivateKeyToPKCS8(ed25519PrivKey, pkcs8Password)
+	if err != nil {
+		t.Fatalf("failed to convert Ed25519 private key to encrypted PKCS#8: %v", err)
+	}
+	encEdBlock := pem.EncodeToMemory(&pem.Block{
+		Type:  "ENCRYPTED PRIVATE KEY",
+		Bytes: encEdBytes,
+	})
+
+	decryptedEdKey, err := UnmarshalPEMToPrivateKey(encEdBlock, StaticPasswordFunc(pkcs8Password))
+	if err != nil {
+		t.Fatalf("UnmarshalPEMToPrivateKey failed for Ed25519: %v", err)
+	}
+	if !ed25519PrivKey.Equal(decryptedEdKey) {
+		t.Fatal("decrypted Ed25519 private key does not match original key")
 	}
 }
