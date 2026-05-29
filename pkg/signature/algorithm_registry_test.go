@@ -59,6 +59,14 @@ func TestGetAlgorithmDetails(t *testing.T) {
 		t.Errorf("unexpected success getting rsa key size")
 	}
 
+	mldsa44Details, err := GetAlgorithmDetails(v1.PublicKeyDetails_ML_DSA_44)
+	if err != nil {
+		t.Errorf("unexpected error getting mldsa44 algorithm details: %v", err)
+	}
+	if mldsa44Details.GetSignatureAlgorithm() != v1.PublicKeyDetails_ML_DSA_44 {
+		t.Errorf("unexpected signature algorithm")
+	}
+
 	mldsaDetails, err := GetAlgorithmDetails(v1.PublicKeyDetails_ML_DSA_65)
 	if err != nil {
 		t.Errorf("unexpected error getting mldsa algorithm details: %v", err)
@@ -314,6 +322,17 @@ func TestGetDefaultPublicKeyDetails(t *testing.T) {
 			},
 			opts:     []LoadOption{options.WithRSAPSS(&rsa.PSSOptions{SaltLength: rsa.PSSSaltLengthAuto, Hash: crypto.SHA256})},
 			expected: v1.PublicKeyDetails_PKIX_RSA_PSS_2048_SHA256,
+		},
+		{
+			name: "mldsa-44",
+			key: func() crypto.PublicKey {
+				key, err := mldsa.GenerateKey(mldsa.MLDSA44())
+				if err != nil {
+					t.Errorf("unexpected error creating mldsa key: %v", err)
+				}
+				return key.PublicKey()
+			},
+			expected: v1.PublicKeyDetails_ML_DSA_44,
 		},
 		{
 			name: "mldsa-65",

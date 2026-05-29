@@ -192,6 +192,7 @@ var supportedAlgorithms = []AlgorithmDetails{
 	{v1.PublicKeyDetails_PKIX_ECDSA_P521_SHA_256, ECDSA, crypto.SHA256, v1.HashAlgorithm_SHA2_256, elliptic.P521(), "ecdsa-sha2-256-nistp521"}, //nolint:staticcheck
 	{v1.PublicKeyDetails_PKIX_ED25519, ED25519, crypto.Hash(0), v1.HashAlgorithm_HASH_ALGORITHM_UNSPECIFIED, nil, "ed25519"},
 	{v1.PublicKeyDetails_PKIX_ED25519_PH, ED25519, crypto.SHA512, v1.HashAlgorithm_SHA2_512, nil, "ed25519-ph"},
+	{v1.PublicKeyDetails_ML_DSA_44, MLDSA, crypto.Hash(0), v1.HashAlgorithm_HASH_ALGORITHM_UNSPECIFIED, mldsa.MLDSA44(), "mldsa-44"},
 	{v1.PublicKeyDetails_ML_DSA_65, MLDSA, crypto.Hash(0), v1.HashAlgorithm_HASH_ALGORITHM_UNSPECIFIED, mldsa.MLDSA65(), "mldsa-65"},
 	{v1.PublicKeyDetails_ML_DSA_87, MLDSA, crypto.Hash(0), v1.HashAlgorithm_HASH_ALGORITHM_UNSPECIFIED, mldsa.MLDSA87(), "mldsa-87"},
 }
@@ -273,6 +274,7 @@ func ParseSignatureAlgorithmFlag(flag string) (v1.PublicKeyDetails, error) {
 // ECDSA P384 => v1.PublicKeyDetails_PKIX_ECDSA_P384_SHA_384
 // ECDSA P521 => v1.PublicKeyDetails_PKIX_ECDSA_P521_SHA_512
 // ED25519 => v1.PublicKeyDetails_PKIX_ED25519_PH
+// MLDSA44 => v1.PublicKeyDetails_ML_DSA_44
 // MLDSA65 => v1.PublicKeyDetails_ML_DSA_65
 // MLDSA87 => v1.PublicKeyDetails_ML_DSA_87
 //
@@ -326,6 +328,8 @@ func GetDefaultPublicKeyDetails(publicKey crypto.PublicKey, opts ...LoadOption) 
 		return v1.PublicKeyDetails_PKIX_ED25519, nil
 	case *mldsa.PublicKey:
 		switch pk.Parameters() {
+		case mldsa.MLDSA44():
+			return v1.PublicKeyDetails_ML_DSA_44, nil
 		case mldsa.MLDSA65():
 			return v1.PublicKeyDetails_ML_DSA_65, nil
 		case mldsa.MLDSA87():
