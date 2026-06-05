@@ -16,7 +16,7 @@ require (
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/go-jose/go-jose/v4 v4.1.4 // indirect
-	github.com/google/go-containerregistry v0.20.7 // indirect
+	github.com/google/go-containerregistry v0.21.6 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
@@ -37,7 +37,7 @@ require (
 	golang.org/x/crypto v0.50.0 // indirect
 	golang.org/x/net v0.52.0 // indirect
 	golang.org/x/sync v0.20.0 // indirect
-	golang.org/x/sys v0.43.0 // indirect
+	golang.org/x/sys v0.44.0 // indirect
 	golang.org/x/term v0.42.0 // indirect
 	golang.org/x/text v0.36.0 // indirect
 	golang.org/x/time v0.12.0 // indirect
