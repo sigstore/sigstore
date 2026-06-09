@@ -29,7 +29,9 @@ var mldsaSupportedHashFuncs = []crypto.Hash{
 	crypto.Hash(0),
 }
 
-// MLDSASigner is a signature.Signer that uses the ML-DSA post-quantum signature system
+// MLDSASigner is a signature.Signer that uses the ML-DSA post-quantum signature scheme.
+//
+// WARNING: This is experimental and may change.
 type MLDSASigner struct {
 	priv *mldsa.PrivateKey
 }
@@ -84,7 +86,9 @@ func (m MLDSASigner) Sign(_ io.Reader, message []byte, _ crypto.SignerOpts) ([]b
 	return m.SignMessage(bytes.NewReader(message))
 }
 
-// MLDSAVerifier is a signature.Verifier that uses the ML-DSA post-quantum signature system
+// MLDSAVerifier is a signature.Verifier that uses the ML-DSA post-quantum signature system.
+//
+// WARNING: This is experimental and may change.
 type MLDSAVerifier struct {
 	publicKey *mldsa.PublicKey
 }

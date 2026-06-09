@@ -30,7 +30,7 @@ var (
 	oidMLDSA87 = asn1.ObjectIdentifier{2, 16, 840, 1, 101, 3, 4, 3, 19}
 )
 
-type pkcs8 struct {
+type pkcs8PrivKeyInfo struct {
 	Version    int
 	Algo       pkix.AlgorithmIdentifier
 	PrivateKey []byte
@@ -59,7 +59,7 @@ func MarshalMLDSAPrivateKey(key *mldsa.PrivateKey) ([]byte, error) {
 		return nil, fmt.Errorf("failed to marshal ML-DSA private key bytes: %w", err)
 	}
 
-	privKey := pkcs8{
+	privKey := pkcs8PrivKeyInfo{
 		Version: 0,
 		Algo: pkix.AlgorithmIdentifier{
 			Algorithm: oid,
@@ -72,7 +72,7 @@ func MarshalMLDSAPrivateKey(key *mldsa.PrivateKey) ([]byte, error) {
 
 // UnmarshalMLDSAPrivateKey converts a PKCS8 ASN.1 DER byte slice into an mldsa.PrivateKey
 func UnmarshalMLDSAPrivateKey(derBytes []byte) (*mldsa.PrivateKey, error) {
-	var privKey pkcs8
+	var privKey pkcs8PrivKeyInfo
 	if remain, err := asn1.Unmarshal(derBytes, &privKey); err != nil {
 		return nil, err
 	} else if len(remain) > 0 {
