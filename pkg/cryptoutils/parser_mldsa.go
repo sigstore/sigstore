@@ -57,7 +57,7 @@ func verifyCertificateSignatureMLDSA(cert, issuerCert *x509.Certificate) error {
 // VerifyChainMLDSA attempts to verify a chain for an ML-DSA leaf certificate.
 // It accepts slices of certificates for intermediates and roots because x509.CertPool
 // does not allow external iteration.
-func VerifyChainMLDSA(leaf *x509.Certificate, intermediates []*x509.Certificate, roots []*x509.Certificate, opts x509.VerifyOptions) ([][]*x509.Certificate, error) {
+func VerifyChainMLDSA(leaf *x509.Certificate, intermediates, roots []*x509.Certificate, opts x509.VerifyOptions) ([][]*x509.Certificate, error) {
 	var result [][]*x509.Certificate
 
 	now := opts.CurrentTime
@@ -65,8 +65,8 @@ func VerifyChainMLDSA(leaf *x509.Certificate, intermediates []*x509.Certificate,
 		now = time.Now()
 	}
 
-	var build func(chain []*x509.Certificate) error
-	build = func(chain []*x509.Certificate) error {
+	var build func(chain []*x509.Certificate)
+	build = func(chain []*x509.Certificate) {
 		current := chain[len(chain)-1]
 
 		// Check if current is a root
@@ -76,7 +76,7 @@ func VerifyChainMLDSA(leaf *x509.Certificate, intermediates []*x509.Certificate,
 				if err := verifySig(current, root); err == nil {
 					// Found a valid chain to root!
 					result = append(result, appendToFreshChain(chain, root))
-					return nil
+					return
 				}
 			}
 		}
@@ -104,7 +104,6 @@ func VerifyChainMLDSA(leaf *x509.Certificate, intermediates []*x509.Certificate,
 				build(appendToFreshChain(chain, inter))
 			}
 		}
-		return nil
 	}
 
 	// Verify leaf validity
