@@ -181,7 +181,7 @@ func TestGetKeyVaultHashFunc(t *testing.T) {
 		t.Fatalf("LoadSignerVerifier unexpectedly returned non-nil error: %v", err)
 	}
 
-	_, _, err = sv.client.getKeyVaultHashFunc(context.Background())
+	_, _, _, err = sv.client.getKeyVaultHashFunc(context.Background())
 	if err != nil {
 		t.Errorf("failed to get crypto hash and signature algorithm associated with key: %v", err)
 	}
