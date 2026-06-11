@@ -23,6 +23,7 @@ import (
 	"io"
 	"math/big"
 
+	"github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azkeys"
 	"golang.org/x/crypto/cryptobyte"
 	"golang.org/x/crypto/cryptobyte/asn1"
 
@@ -36,17 +37,10 @@ var azureSupportedHashFuncs = []crypto.Hash{
 	crypto.SHA512,
 }
 
-//nolint:revive
-const (
-	AlgorithmES256 = "ES256"
-	AlgorithmES384 = "ES384"
-	AlgorithmES512 = "ES512"
-)
-
 var azureSupportedAlgorithms = []string{
-	AlgorithmES256,
-	AlgorithmES384,
-	AlgorithmES512,
+	string(azkeys.SignatureAlgorithmES256),
+	string(azkeys.SignatureAlgorithmES384),
+	string(azkeys.SignatureAlgorithmES512),
 }
 
 // SignerVerifier creates and verifies digital signatures over a message using Azure KMS service
@@ -257,5 +251,5 @@ func (*SignerVerifier) SupportedAlgorithms() []string {
 
 // DefaultAlgorithm returns the default algorithm for the Azure KMS service
 func (*SignerVerifier) DefaultAlgorithm() string {
-	return AlgorithmES256
+	return string(azkeys.SignatureAlgorithmES256)
 }
