@@ -41,6 +41,9 @@ var azureSupportedAlgorithms = []string{
 	string(azkeys.SignatureAlgorithmES256),
 	string(azkeys.SignatureAlgorithmES384),
 	string(azkeys.SignatureAlgorithmES512),
+	string(azkeys.SignatureAlgorithmRS256),
+	string(azkeys.SignatureAlgorithmRS384),
+	string(azkeys.SignatureAlgorithmRS512),
 }
 
 // SignerVerifier creates and verifies digital signatures over a message using Azure KMS service
