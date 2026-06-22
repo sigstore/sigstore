@@ -14,6 +14,7 @@ The following KMS systems are available:
 * HashiCorp Vault
 * Google Cloud Platform Key Management Service
 * OpenBao
+* [OVHcloud KMS](https://github.com/ovh/sigstore-kms-ovhcloud) (as external plugin)
 
 For example code, look at the relevant test code for each main code file.
 

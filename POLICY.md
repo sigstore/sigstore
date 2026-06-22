@@ -69,6 +69,7 @@ Sigstore currently supports the following KMS providers:
 * Hashicorp Vault
 * Microsoft Azure
 * OpenBao
+* [OVHcloud KMS](https://github.com/ovh/sigstore-kms-ovhcloud) (as external plugin)
 
 We offer a plugin interface for new KMS providers. Organizations can independently develop & distribute their plugins without needing downstream updates to libraries like Cosign to support the additional KMS providers. See https://github.com/sigstore/sigstore/tree/main/pkg/signature/kms/cliplugin for more information and https://github.com/sigstore/sigstore/tree/main/test/cliplugin/localkms for an example implementation.
 
