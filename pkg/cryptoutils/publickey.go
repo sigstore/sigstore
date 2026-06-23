@@ -30,6 +30,8 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+
+	"filippo.io/mldsa"
 )
 
 const (
@@ -54,7 +56,15 @@ func UnmarshalPEMToPublicKey(pemBytes []byte) (crypto.PublicKey, error) {
 	}
 	switch derBytes.Type {
 	case string(PublicKeyPEMType):
-		return x509.ParsePKIXPublicKey(derBytes.Bytes)
+		key, err := x509.ParsePKIXPublicKey(derBytes.Bytes)
+		if err == nil {
+			return key, nil
+		}
+		// Fallback for mldsa which isn't supported natively
+		if mldsaKey, mldsaErr := UnmarshalMLDSAPublicKey(derBytes.Bytes); mldsaErr == nil {
+			return mldsaKey, nil
+		}
+		return nil, err
 	case string(PKCS1PublicKeyPEMType):
 		return x509.ParsePKCS1PublicKey(derBytes.Bytes)
 	default:
@@ -67,6 +77,9 @@ func UnmarshalPEMToPublicKey(pemBytes []byte) (crypto.PublicKey, error) {
 func MarshalPublicKeyToDER(pub crypto.PublicKey) ([]byte, error) {
 	if pub == nil {
 		return nil, errors.New("empty key")
+	}
+	if mldsaKey, ok := pub.(*mldsa.PublicKey); ok {
+		return MarshalMLDSAPublicKey(mldsaKey)
 	}
 	return x509.MarshalPKIXPublicKey(pub)
 }
@@ -84,7 +97,7 @@ func MarshalPublicKeyToPEM(pub crypto.PublicKey) ([]byte, error) {
 // subjectPublicKey (excluding the tag, length, and number of unused bits).
 // https://tools.ietf.org/html/rfc5280#section-4.2.1.2
 func SKID(pub crypto.PublicKey) ([]byte, error) {
-	derPubBytes, err := x509.MarshalPKIXPublicKey(pub)
+	derPubBytes, err := MarshalPublicKeyToDER(pub)
 	if err != nil {
 		return nil, err
 	}
@@ -111,6 +124,10 @@ func EqualKeys(first, second crypto.PublicKey) error {
 	case ed25519.PublicKey:
 		if !pub.Equal(second) {
 			return errors.New(genErrMsg(first, second, "ed25519"))
+		}
+	case *mldsa.PublicKey:
+		if !pub.Equal(second) {
+			return errors.New(genErrMsg(first, second, "mldsa"))
 		}
 	default:
 		return errors.New("unsupported key type")
@@ -152,6 +169,9 @@ func ValidatePubKey(pub crypto.PublicKey) error {
 		return nil
 	case ed25519.PublicKey:
 		// Nothing to validate for Ed25519
+		return nil
+	case *mldsa.PublicKey:
+		// Nothing to validate for ML-DSA
 		return nil
 	}
 	return fmt.Errorf("unsupported public key type: %T", pub)

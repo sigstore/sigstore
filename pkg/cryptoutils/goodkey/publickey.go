@@ -25,6 +25,7 @@ import (
 	"errors"
 	"fmt"
 
+	"filippo.io/mldsa"
 	"github.com/letsencrypt/boulder/goodkey"
 )
 
@@ -70,6 +71,9 @@ func ValidatePubKey(pub crypto.PublicKey) error {
 		return p.GoodKey(context.Background(), pub)
 	case ed25519.PublicKey:
 		return validateEd25519Key(pk)
+	case *mldsa.PublicKey:
+		// Nothing to validate
+		return nil
 	}
 	return fmt.Errorf("unsupported public key type: %T", pub)
 }

@@ -69,7 +69,7 @@ func UnmarshalCertificatesFromPEM(pemBytes []byte) ([]*x509.Certificate, error) 
 			return nil, errors.New("error during PEM decoding")
 		}
 
-		cert, err := x509.ParseCertificate(certDer.Bytes)
+		cert, err := ParseCertificateMLDSA(certDer.Bytes)
 		if err != nil {
 			return nil, err
 		}
@@ -98,7 +98,7 @@ func UnmarshalCertificatesFromPEMLimited(pemBytes []byte, iterations int) ([]*x5
 			return nil, errors.New("error during PEM decoding")
 		}
 
-		cert, err := x509.ParseCertificate(certDer.Bytes)
+		cert, err := ParseCertificateMLDSA(certDer.Bytes)
 		if err != nil {
 			return nil, err
 		}

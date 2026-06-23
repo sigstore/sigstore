@@ -26,6 +26,7 @@ import (
 	"errors"
 	"fmt"
 
+	"filippo.io/mldsa"
 	"github.com/secure-systems-lab/go-securesystemslib/encrypted"
 	"github.com/youmark/pkcs8"
 )
@@ -130,7 +131,7 @@ func UnmarshalPEMToPrivateKey(pemBytes []byte, pf PassFunc) (crypto.PrivateKey, 
 
 	switch derBlock.Type {
 	case string(PrivateKeyPEMType):
-		return x509.ParsePKCS8PrivateKey(derBlock.Bytes)
+		return UnmarshalPrivateKeyFromDER(derBlock.Bytes)
 	case string(PKCS1PrivateKeyPEMType):
 		return x509.ParsePKCS1PrivateKey(derBlock.Bytes)
 	case string(ECPrivateKeyPEMType):
@@ -163,15 +164,31 @@ func UnmarshalPEMToPrivateKey(pemBytes []byte, pf PassFunc) (crypto.PrivateKey, 
 			}
 		}
 
-		return x509.ParsePKCS8PrivateKey(derBytes)
+		return UnmarshalPrivateKeyFromDER(derBytes)
 	}
 	return nil, fmt.Errorf("unknown private key PEM file type: %v", derBlock.Type)
+}
+
+// UnmarshalPrivateKeyFromDER unmarshals a DER-encoded private key into a crypto.PrivateKey
+func UnmarshalPrivateKeyFromDER(derBytes []byte) (crypto.PrivateKey, error) {
+	key, err := x509.ParsePKCS8PrivateKey(derBytes)
+	if err == nil {
+		return key, nil
+	}
+	// Fallback for mldsa which isn't supported yet in x509
+	if mldsaKey, mldsaErr := UnmarshalMLDSAPrivateKey(derBytes); mldsaErr == nil {
+		return mldsaKey, nil
+	}
+	return nil, err
 }
 
 // MarshalPrivateKeyToDER converts a crypto.PrivateKey into a PKCS8 ASN.1 DER byte slice
 func MarshalPrivateKeyToDER(priv crypto.PrivateKey) ([]byte, error) {
 	if priv == nil {
 		return nil, errors.New("empty key")
+	}
+	if mldsaKey, ok := priv.(*mldsa.PrivateKey); ok {
+		return MarshalMLDSAPrivateKey(mldsaKey)
 	}
 	return x509.MarshalPKCS8PrivateKey(priv)
 }
