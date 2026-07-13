@@ -16,6 +16,7 @@
 package options
 
 import (
+	"context"
 	"crypto"
 	"crypto/rsa"
 )
@@ -73,4 +74,22 @@ func (r RequestPSSOptions) ApplyRSAPSS(opts **rsa.PSSOptions) {
 // the hash function specified with WithHash.
 func WithRSAPSS(opts *rsa.PSSOptions) RequestPSSOptions {
 	return RequestPSSOptions{opts: opts}
+}
+
+type CaaSOptions struct {
+	ConfigFilePath string
+	Context        context.Context
+}
+
+type RequestCaaSOptions struct {
+	NoOpOptionImpl
+	caasOpts *CaaSOptions
+}
+
+func (r RequestCaaSOptions) ApplyCaaS(caasOpts **CaaSOptions) {
+	*caasOpts = r.caasOpts
+}
+
+func WithCaaS(opts *CaaSOptions) RequestCaaSOptions {
+	return RequestCaaSOptions{caasOpts: opts}
 }

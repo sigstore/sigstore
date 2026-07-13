@@ -62,4 +62,5 @@ type LoadOption interface {
 	ApplyHash(*crypto.Hash)
 	ApplyED25519ph(*bool)
 	ApplyRSAPSS(**rsa.PSSOptions)
+	ApplyCaaS(**options.CaaSOptions)
 }

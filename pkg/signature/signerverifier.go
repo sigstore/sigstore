@@ -26,6 +26,8 @@ import (
 
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
 	"github.com/sigstore/sigstore/pkg/signature/options"
+	caascrypto "github.ibm.com/citius/go-sdk/client/crypto"
+	"github.ibm.com/citius/go-sdk/client/keymanagement"
 )
 
 // SignerVerifier creates and verifies digital signatures over a message using a specified key pair
@@ -49,13 +51,28 @@ func LoadSignerVerifierWithOpts(privateKey crypto.PrivateKey, opts ...LoadOption
 	var rsaPSSOptions *rsa.PSSOptions
 	var useED25519ph bool
 	hashFunc := crypto.SHA256
+	var caasOpts *options.CaaSOptions
 	for _, o := range opts {
 		o.ApplyED25519ph(&useED25519ph)
 		o.ApplyHash(&hashFunc)
 		o.ApplyRSAPSS(&rsaPSSOptions)
+		o.ApplyCaaS(&caasOpts)
 	}
 
 	switch pk := privateKey.(type) {
+	case *CaaSPrivateKey:
+		if caasOpts == nil {
+			return nil, errors.New("CaaS options must be provided when loading a CaaS signer/verifier")
+		}
+		cryptoClient, err := caascrypto.NewClientFromConfigFile(caasOpts.Context, caasOpts.ConfigFilePath)
+		if err != nil {
+			return nil, err
+		}
+		keysClient, err := keymanagement.NewClientFromConfigFile(caasOpts.Context, caasOpts.ConfigFilePath)
+		if err != nil {
+			return nil, err
+		}
+		return LoadCaaSSignerVerifier(caasOpts.Context, pk, cryptoClient, keysClient)
 	case *rsa.PrivateKey:
 		if rsaPSSOptions != nil {
 			return LoadRSAPSSSignerVerifier(pk, hashFunc, rsaPSSOptions)
