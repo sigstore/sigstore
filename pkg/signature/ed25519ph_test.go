@@ -86,3 +86,18 @@ func TestED25519phVerifier(t *testing.T) {
 	}
 	assertPublicKeyIsx509Marshalable(t, pub)
 }
+
+// TestED25519phVerifierRejectsWrongKeySize ensures LoadED25519phVerifier validates
+// the public key length up front and returns an error, instead of accepting a
+// malformed key and letting ed25519.VerifyWithOptions panic during
+// VerifySignature. This mirrors the guard already present in LoadED25519phSigner.
+func TestED25519phVerifierRejectsWrongKeySize(t *testing.T) {
+	for _, size := range []int{0, 16, 31, 33, 64} {
+		if _, err := LoadED25519phVerifier(ed25519.PublicKey(make([]byte, size))); err == nil {
+			t.Errorf("expected error loading verifier with %d-byte key, got nil", size)
+		}
+	}
+	if _, err := LoadED25519phVerifier(ed25519.PublicKey(make([]byte, ed25519.PublicKeySize))); err != nil {
+		t.Errorf("unexpected error loading verifier with valid key size: %v", err)
+	}
+}

@@ -109,6 +109,11 @@ func LoadED25519phVerifier(pub ed25519.PublicKey) (*ED25519phVerifier, error) {
 		return nil, errors.New("invalid ED25519 public key specified")
 	}
 
+	// check this to avoid a panic in ed25519.VerifyWithOptions and throw an error gracefully
+	if len(pub) != ed25519.PublicKeySize {
+		return nil, errors.New("invalid size for ED25519 key")
+	}
+
 	return &ED25519phVerifier{
 		publicKey: pub,
 	}, nil
