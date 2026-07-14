@@ -173,7 +173,7 @@ func (a *SignerVerifier) VerifySignature(sig, message io.Reader, opts ...signatu
 		return errors.New("parsing signature")
 	}
 
-	rawSigBytes := []byte{}
+	rawSigBytes := make([]byte, 0, len(r.Bytes())+len(s.Bytes()))
 	rawSigBytes = append(rawSigBytes, r.Bytes()...)
 	rawSigBytes = append(rawSigBytes, s.Bytes()...)
 	return a.client.verify(a.defaultCtx, rawSigBytes, digest)
