@@ -170,3 +170,60 @@ func tokenResponse(idToken, err string) tokenResp {
 		Error:   err,
 	}
 }
+
+// TestDeviceFlowTokenGetter_deviceFlowDefaultInterval checks that a device
+// authorization response that omits the optional "interval" field falls back to
+// the RFC 8628 section 3.2 default of 5 seconds. Without the default, a missing
+// interval leaves it at 0 and the polling loop busy-loops the token endpoint.
+func TestDeviceFlowTokenGetter_deviceFlowDefaultInterval(t *testing.T) {
+	td := testDriver{
+		respCh: make(chan any, 3),
+		t:      t,
+	}
+
+	ts := httptest.NewServer(http.HandlerFunc(td.handler))
+	defer ts.Close()
+
+	var sleeps []time.Duration
+	dtg := DeviceFlowTokenGetter{
+		MessagePrinter: td.writeMsg,
+		Sleeper:        func(d time.Duration) { sleeps = append(sleeps, d) },
+		Issuer:         ts.URL,
+	}
+	p, pErr := oidc.NewProvider(context.Background(), ts.URL)
+	if pErr != nil {
+		t.Fatal(pErr)
+	}
+
+	tokenCh, errCh := make(chan string), make(chan error)
+	go func() {
+		token, err := dtg.deviceFlow(p, "sigstore", "")
+		tokenCh <- token
+		errCh <- err
+	}()
+
+	// Device-code response with no "interval", then one authorization_pending
+	// (which forces the loop to sleep), then the token.
+	td.respCh <- deviceResp{
+		UserCode:                "mysecret",
+		DeviceCode:              "foobar",
+		VerificationURIComplete: "complete-uri",
+	}
+	td.respCh <- tokenResponse("", "authorization_pending")
+	td.respCh <- tokenResponse("mytoken", "")
+
+	token := <-tokenCh
+	if err := <-errCh; err != nil {
+		t.Fatal(err)
+	}
+	if token != "mytoken" {
+		t.Fatal("expected mytoken")
+	}
+
+	if len(sleeps) == 0 {
+		t.Fatal("expected the polling loop to sleep at least once")
+	}
+	if sleeps[0] != 5*time.Second {
+		t.Fatalf("expected the RFC 8628 default 5s poll interval when the server omits interval, got %s", sleeps[0])
+	}
+}
