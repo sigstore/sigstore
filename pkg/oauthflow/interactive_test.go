@@ -16,6 +16,7 @@ package oauthflow
 
 import (
 	"bytes"
+	"errors"
 	"os"
 	"testing"
 )
@@ -42,6 +43,45 @@ func TestInteractiveFlow_IO(t *testing.T) {
 		}
 		if f.GetOutput() != b {
 			t.Error("expected buffer")
+		}
+	})
+}
+
+func TestOpenURL(t *testing.T) {
+	t.Run("custom opener", func(t *testing.T) {
+		want := errors.New("custom opener called")
+		var gotURL string
+		f := &InteractiveIDTokenGetter{
+			BrowserOpener: func(url string) error {
+				gotURL = url
+				return want
+			},
+		}
+		if err := f.openURL("https://example.com/login"); !errors.Is(err, want) {
+			t.Fatalf("expected custom opener error, got: %v", err)
+		}
+		if gotURL != "https://example.com/login" {
+			t.Errorf("custom opener got url %q, want %q", gotURL, "https://example.com/login")
+		}
+	})
+
+	t.Run("default opener", func(t *testing.T) {
+		// With no BrowserOpener configured, openURL falls back to the package
+		// default. Stub it so we don't actually launch a browser.
+		var gotURL string
+		old := browserOpener
+		browserOpener = func(url string) error {
+			gotURL = url
+			return nil
+		}
+		defer func() { browserOpener = old }()
+
+		f := &InteractiveIDTokenGetter{}
+		if err := f.openURL("https://example.com/default"); err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if gotURL != "https://example.com/default" {
+			t.Errorf("default opener got url %q, want %q", gotURL, "https://example.com/default")
 		}
 	})
 }
