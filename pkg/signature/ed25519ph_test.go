@@ -86,3 +86,14 @@ func TestED25519phVerifier(t *testing.T) {
 	}
 	assertPublicKeyIsx509Marshalable(t, pub)
 }
+
+func TestED25519phVerifierRejectsWrongKeySize(t *testing.T) {
+	for _, size := range []int{0, 16, 31, 33, 64} {
+		if _, err := LoadED25519phVerifier(ed25519.PublicKey(make([]byte, size))); err == nil {
+			t.Errorf("expected error loading verifier with %d-byte key, got nil", size)
+		}
+	}
+	if _, err := LoadED25519phVerifier(ed25519.PublicKey(make([]byte, ed25519.PublicKeySize))); err != nil {
+		t.Errorf("unexpected error loading verifier with valid key size: %v", err)
+	}
+}
