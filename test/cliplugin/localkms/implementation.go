@@ -37,9 +37,7 @@ const (
 	defaultAlgorithm = "rsa-2048"
 )
 
-var (
-	supportedAlgorithms = []string{defaultAlgorithm}
-)
+var supportedAlgorithms = []string{defaultAlgorithm}
 
 // LocalSignerVerifier creates and verifies digital signatures with a key saved at KeyResourceID,
 // and implements signerverifier.SignerVerifier.
@@ -102,7 +100,7 @@ func (i LocalSignerVerifier) CreateKey(ctx context.Context, algorithm string) (c
 		return nil, fmt.Errorf("error encoding private key: %w", err)
 	}
 
-	if err := os.WriteFile(path, privateKeyPEMBuffer.Bytes(), 0400); err != nil {
+	if err := os.WriteFile(path, privateKeyPEMBuffer.Bytes(), 0o400); err != nil {
 		return nil, fmt.Errorf("error creating private key file: %w", err)
 	}
 

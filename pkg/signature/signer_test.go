@@ -20,6 +20,7 @@ import (
 	"crypto/ecdsa"
 	"crypto/ed25519"
 	"crypto/elliptic"
+	"crypto/mldsa"
 	"crypto/rand"
 	"crypto/rsa"
 	"encoding/base64"
@@ -153,6 +154,17 @@ func TestLoadDefaultSigner(t *testing.T) {
 			},
 			expectedType: "ed25519-ph",
 		},
+		{
+			name: "mldsa",
+			key: func() crypto.PrivateKey {
+				priv, err := mldsa.GenerateKey(mldsa.MLDSA44())
+				if err != nil {
+					t.Fatalf("unexpected error creating mldsa key: %v", err)
+				}
+				return priv
+			},
+			expectedType: "mldsa",
+		},
 	}
 
 	for _, tt := range tts {
@@ -182,6 +194,10 @@ func TestLoadDefaultSigner(t *testing.T) {
 			case "ed25519-ph":
 				if _, ok := sv.(*ED25519phSigner); !ok {
 					t.Fatalf("expected signer to be an ed25519-ph signer")
+				}
+			case "mldsa":
+				if _, ok := sv.(*MLDSASigner); !ok {
+					t.Fatalf("expected signer to be an mldsa signer")
 				}
 			}
 		})
