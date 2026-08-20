@@ -2,7 +2,7 @@ module github.com/sigstore/sigstore/pkg/signature/kms/hashivault
 
 replace github.com/sigstore/sigstore => ../../../../
 
-go 1.25.0
+go 1.27.0
 
 require (
 	github.com/hashicorp/vault/api v1.23.0

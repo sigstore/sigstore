@@ -137,11 +137,14 @@ func generatePublicKey(azureKeyType string) (azkeys.JSONWebKey, error) {
 			return azkeys.JSONWebKey{}, fmt.Errorf("failed to cast public key to esdsa public key")
 		}
 
+		pubBytes, err := ecdsaPub.Bytes()
+		if err != nil {
+			return azkeys.JSONWebKey{}, err
+		}
+
 		curveByteSize := 32 // this assumes P256 as coded above
-		key.X = make([]byte, curveByteSize)
-		key.Y = make([]byte, curveByteSize)
-		ecdsaPub.X.FillBytes(key.X)
-		ecdsaPub.Y.FillBytes(key.Y)
+		key.X = pubBytes[1 : 1+curveByteSize]
+		key.Y = pubBytes[1+curveByteSize : 1+2*curveByteSize]
 
 		return key, nil
 	case azkeys.KeyTypeRSA, azkeys.KeyTypeRSAHSM:
