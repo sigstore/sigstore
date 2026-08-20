@@ -1,5 +1,3 @@
-filippo.io/mldsa v0.0.0-20260711112038-ff3f469cee29 h1:11cJmDX5FvZu/znhVjfwxs9jZcos6d8O6Bc9Fpdv87Y=
-filippo.io/mldsa v0.0.0-20260711112038-ff3f469cee29/go.mod h1:32qQ5yj3R24Eu03iWFWchdC3OB653wPvoepWejkefbY=
 github.com/c2sp/wycheproof v0.0.0-20260105152342-fca0d3ba9f12 h1:C34LW7dhWgjAaAOdNB8z2UCyJsXDjC6UTILljHuqOlI=
 github.com/c2sp/wycheproof v0.0.0-20260105152342-fca0d3ba9f12/go.mod h1:U1QjrC6KepOmtVmJn3QsKOTd9HliGr/da5afPEhLRnk=
 github.com/chzyer/logex v1.1.10/go.mod h1:+Ywpsq7O8HXn0nuIou7OrIPyXbp3wmkHB+jjWRnGsAI=

@@ -18,11 +18,10 @@ package signature
 import (
 	"bytes"
 	"crypto"
+	"crypto/mldsa"
 	"errors"
 	"fmt"
 	"io"
-
-	"filippo.io/mldsa"
 )
 
 var mldsaSupportedHashFuncs = []crypto.Hash{
@@ -170,7 +169,7 @@ func NewDefaultMLDSASignerVerifier() (*MLDSASignerVerifier, *mldsa.PrivateKey, e
 
 // NewMLDSASignerVerifier creates a combined signer and verifier using ML-DSA.
 // This creates a new ML-DSA key using the specified parameter set.
-func NewMLDSASignerVerifier(params *mldsa.Parameters) (*MLDSASignerVerifier, *mldsa.PrivateKey, error) {
+func NewMLDSASignerVerifier(params mldsa.Parameters) (*MLDSASignerVerifier, *mldsa.PrivateKey, error) {
 	priv, err := mldsa.GenerateKey(params)
 	if err != nil {
 		return nil, nil, err

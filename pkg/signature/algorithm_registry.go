@@ -20,11 +20,10 @@ import (
 	"crypto/ecdsa"
 	"crypto/ed25519"
 	"crypto/elliptic"
+	"crypto/mldsa"
 	"crypto/rsa"
 	"errors"
 	"fmt"
-
-	"filippo.io/mldsa"
 
 	v1 "github.com/sigstore/protobuf-specs/gen/pb-go/common/v1"
 )
@@ -120,14 +119,14 @@ func (a AlgorithmDetails) GetECDSACurve() (*elliptic.Curve, error) {
 }
 
 // GetMLDSAParameters returns the ML-DSA parameters for the algorithm details, if the key type is MLDSA.
-func (a AlgorithmDetails) GetMLDSAParameters() (*mldsa.Parameters, error) {
+func (a AlgorithmDetails) GetMLDSAParameters() (mldsa.Parameters, error) {
 	if a.keyType != MLDSA {
-		return nil, fmt.Errorf("unable to retrieve ML-DSA parameters for key type: %T", a.keyType)
+		return mldsa.Parameters{}, fmt.Errorf("unable to retrieve ML-DSA parameters for key type: %T", a.keyType)
 	}
-	params, ok := a.extraKeyParams.(*mldsa.Parameters)
+	params, ok := a.extraKeyParams.(mldsa.Parameters)
 	if !ok {
 		// This should be unreachable.
-		return nil, fmt.Errorf("unable to retrieve parameters for ML-DSA, malformed algorithm details?: %T", a.keyType)
+		return mldsa.Parameters{}, fmt.Errorf("unable to retrieve parameters for ML-DSA, malformed algorithm details?: %T", a.keyType)
 	}
 	return params, nil
 }
