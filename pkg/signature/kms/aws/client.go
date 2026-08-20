@@ -260,9 +260,9 @@ func (a *awsClient) createKey(ctx context.Context, algorithm string) (crypto.Pub
 	usage := types.KeyUsageTypeSignVerify
 	description := "Created by Sigstore"
 	key, err := a.client.CreateKey(ctx, &kms.CreateKeyInput{
-		CustomerMasterKeySpec: types.CustomerMasterKeySpec(algorithm),
-		KeyUsage:              usage,
-		Description:           &description,
+		KeySpec:     types.KeySpec(algorithm),
+		KeyUsage:    usage,
+		Description: &description,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("creating key: %w", err)
