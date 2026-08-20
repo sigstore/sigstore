@@ -20,7 +20,6 @@ import (
 	"crypto/ed25519"
 	"crypto/elliptic"
 	"fmt"
-	"math/big"
 
 	"github.com/tink-crypto/tink-go/v2/insecuresecretdataaccess"
 	"github.com/tink-crypto/tink-go/v2/keyset"
@@ -72,16 +71,7 @@ func KeyHandleToSigner(kh *keyset.Handle) (crypto.Signer, error) {
 			return nil, err
 		}
 
-		// Encoded as: 0x04 || X || Y.
-		// See https://github.com/tink-crypto/tink-go/blob/v2.3.0/signature/ecdsa/key.go#L335
-		publicPoint := ecdsaPublicKey.PublicPoint()
-		xy := publicPoint[1:]
-		pk := new(ecdsa.PrivateKey)
-		pk.Curve = curve
-		pk.X = new(big.Int).SetBytes(xy[:len(xy)/2])
-		pk.Y = new(big.Int).SetBytes(xy[len(xy)/2:])
-		pk.D = new(big.Int).SetBytes(privateKey.PrivateKeyValue().Data(insecuresecretdataaccess.Token{}))
-		return pk, err
+		return ecdsa.ParseRawPrivateKey(curve, privateKey.PrivateKeyValue().Data(insecuresecretdataaccess.Token{}))
 	case *tinked25519.PrivateKey:
 		return ed25519.NewKeyFromSeed(privateKey.PrivateKeyBytes().Data(insecuresecretdataaccess.Token{})), err
 	default:

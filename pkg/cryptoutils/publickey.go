@@ -20,6 +20,7 @@ import (
 	"crypto/ecdsa"
 	"crypto/ed25519"
 	"crypto/elliptic"
+	"crypto/mldsa"
 	"crypto/rsa"
 	"crypto/sha1" // nolint:gosec
 	"crypto/x509"
@@ -64,6 +65,8 @@ func UnmarshalPEMToPublicKey(pemBytes []byte) (crypto.PublicKey, error) {
 }
 
 // MarshalPublicKeyToDER converts a crypto.PublicKey into a PKIX, ASN.1 DER byte slice
+//
+// Deprecated: Use x509.MarshalPKIXPublicKey directly
 func MarshalPublicKeyToDER(pub crypto.PublicKey) ([]byte, error) {
 	if pub == nil {
 		return nil, errors.New("empty key")
@@ -73,7 +76,7 @@ func MarshalPublicKeyToDER(pub crypto.PublicKey) ([]byte, error) {
 
 // MarshalPublicKeyToPEM converts a crypto.PublicKey into a PEM-encoded byte slice
 func MarshalPublicKeyToPEM(pub crypto.PublicKey) ([]byte, error) {
-	derBytes, err := MarshalPublicKeyToDER(pub)
+	derBytes, err := x509.MarshalPKIXPublicKey(pub)
 	if err != nil {
 		return nil, err
 	}
@@ -111,6 +114,10 @@ func EqualKeys(first, second crypto.PublicKey) error {
 	case ed25519.PublicKey:
 		if !pub.Equal(second) {
 			return errors.New(genErrMsg(first, second, "ed25519"))
+		}
+	case *mldsa.PublicKey:
+		if !pub.Equal(second) {
+			return errors.New(genErrMsg(first, second, "mldsa"))
 		}
 	default:
 		return errors.New("unsupported key type")
@@ -152,6 +159,9 @@ func ValidatePubKey(pub crypto.PublicKey) error {
 		return nil
 	case ed25519.PublicKey:
 		// Nothing to validate for Ed25519
+		return nil
+	case *mldsa.PublicKey:
+		// Nothing to validate for ML-DSA
 		return nil
 	}
 	return fmt.Errorf("unsupported public key type: %T", pub)
