@@ -7,7 +7,7 @@ go 1.27.0
 require (
 	cloud.google.com/go/kms v1.33.0
 	github.com/jellydator/ttlcache/v3 v3.4.1
-	github.com/sigstore/sigstore v1.6.4
+	github.com/sigstore/sigstore v1.11.0
 	golang.org/x/oauth2 v0.36.0
 	google.golang.org/api v0.295.0
 	google.golang.org/protobuf v1.36.12
