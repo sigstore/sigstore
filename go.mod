@@ -9,23 +9,21 @@ require (
 	github.com/google/go-cmp v0.7.0
 	github.com/google/go-containerregistry v0.21.9
 	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c
-	github.com/secure-systems-lab/go-securesystemslib v0.11.0
-	github.com/sigstore/protobuf-specs v0.5.1
-	github.com/stretchr/testify v1.11.1
+	github.com/secure-systems-lab/go-securesystemslib v0.11.1
+	github.com/sigstore/protobuf-specs v0.5.2
+	github.com/stretchr/testify v1.12.0
 	github.com/theupdateframework/go-tuf v0.7.0
 	github.com/tink-crypto/tink-go/v2 v2.7.0
 	github.com/youmark/pkcs8 v0.0.0-20240726163527-a2c0da244d78
-	golang.org/x/crypto v0.54.0
+	golang.org/x/crypto v0.55.0
 	golang.org/x/oauth2 v0.36.0
 	golang.org/x/term v0.45.0
 )
 
 require (
-	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/golang/snappy v1.0.0 // indirect
 	github.com/nxadm/tail v1.4.11 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
-	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/syndtr/goleveldb v1.0.1-0.20220721030215-126854af5e6d // indirect
 	github.com/ysmood/fetchup v0.3.0 // indirect
 	github.com/ysmood/goob v0.4.0 // indirect
