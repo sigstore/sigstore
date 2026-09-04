@@ -145,7 +145,7 @@ func FuzzPublicKey(f *testing.F) {
 func FuzzUnmarshalOtherNameSAN(f *testing.F) {
 	f.Fuzz(func(t *testing.T, value []byte) {
 		exts := []pkix.Extension{
-			pkix.Extension{
+			{
 				Id:    cryptoutils.SANOID,
 				Value: value,
 			},
