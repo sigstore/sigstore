@@ -136,7 +136,7 @@ func (a *awsClient) setupClient(ctx context.Context, opts ...func(*config.LoadOp
 	if os.Getenv("AWS_TLS_INSECURE_SKIP_VERIFY") == "1" {
 		opts = append(opts, config.WithHTTPClient(&http.Client{
 			Transport: &http.Transport{
-				TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // nolint: gosec
+				TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, //nolint:gosec
 			},
 		}))
 	}

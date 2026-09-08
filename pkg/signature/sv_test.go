@@ -28,7 +28,7 @@ import (
 	"github.com/sigstore/sigstore/pkg/signature/options"
 )
 
-func testingSigner(t *testing.T, s Signer, alg string, hashFunc crypto.Hash, message []byte) { // nolint: unparam
+func testingSigner(t *testing.T, s Signer, alg string, hashFunc crypto.Hash, message []byte) {
 	t.Helper()
 
 	isPreHashed := alg != "ed25519"
@@ -129,7 +129,7 @@ func assertPublicKeyIsx509Marshalable(t *testing.T, pub crypto.PublicKey) {
 	}
 }
 
-func testingVerifier(t *testing.T, v Verifier, alg string, hashFunc crypto.Hash, signature, message []byte) { // nolint: unparam
+func testingVerifier(t *testing.T, v Verifier, alg string, hashFunc crypto.Hash, signature, message []byte) {
 	t.Helper()
 
 	isPreHashed := alg != "ed25519"

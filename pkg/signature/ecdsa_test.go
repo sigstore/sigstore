@@ -23,6 +23,7 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
+	"math/big"
 	"strings"
 	"testing"
 
@@ -122,8 +123,34 @@ func TestECDSALoadVerifierWithoutKey(t *testing.T) {
 	}
 }
 
+func TestECDSALoadVerifierInvalidKey(t *testing.T) {
+	t.Run("unsupported or nil curve", func(t *testing.T) {
+		_, err := LoadECDSAVerifier(&ecdsa.PublicKey{}, crypto.SHA256)
+		if err == nil || !strings.Contains(err.Error(), "invalid ECDSA public key") || !strings.Contains(err.Error(), "curve not supported") {
+			t.Fatalf("expected unsupported curve error, got: %v", err)
+		}
+	})
+
+	t.Run("off-curve point", func(t *testing.T) {
+		//nolint:staticcheck // SA1019: intentionally constructing off-curve key to test LoadECDSAVerifier rejection
+		pub := &ecdsa.PublicKey{
+			Curve: elliptic.P256(),
+			X:     big.NewInt(1),
+			Y:     big.NewInt(1),
+		}
+
+		_, err := LoadECDSAVerifier(pub, crypto.SHA256)
+		if err == nil || !strings.Contains(err.Error(), "invalid ECDSA public key") || !strings.Contains(err.Error(), "point not on curve") {
+			t.Fatalf("expected point not on curve error, got: %v", err)
+		}
+	})
+}
+
 func TestECDSAVerifySignatureFailures(t *testing.T) {
-	key, _ := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		t.Fatalf("unexpected error generating key: %v", err)
+	}
 	verifier, err := LoadECDSAVerifier(&key.PublicKey, crypto.SHA256)
 	if err != nil {
 		t.Fatalf("unexpected error loading verifier: %v", err)
@@ -147,7 +174,7 @@ func TestECDSAVerifySignatureFailures(t *testing.T) {
 		t.Fatalf("expected ASN.1 validation error, got %v", err)
 	}
 
-	// Provide a 64-byte dummy signature that fails ASN.1 parsing and hits ecdsa.Verify (IEEE P1363 fallback)
+	// Provide a 64-byte dummy signature that fails ASN.1 parsing (first byte is 0x00, not ASN.1 SEQUENCE 0x30) and hits ecdsa.Verify (IEEE P1363 fallback)
 	ieeeSig := make([]byte, 64)
 	err = verifier.VerifySignature(bytes.NewReader(ieeeSig), bytes.NewReader(msg))
 	if err == nil || !strings.Contains(err.Error(), "validating IEEE_P1363 encoded signature") {

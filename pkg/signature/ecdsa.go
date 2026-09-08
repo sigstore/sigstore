@@ -140,6 +140,10 @@ func LoadECDSAVerifier(pub *ecdsa.PublicKey, hashFunc crypto.Hash) (*ECDSAVerifi
 		return nil, errors.New("invalid ECDSA public key specified")
 	}
 
+	if _, err := pub.Bytes(); err != nil {
+		return nil, fmt.Errorf("invalid ECDSA public key: %w", err)
+	}
+
 	if !isSupportedAlg(hashFunc, ecdsaSupportedHashFuncs) {
 		return nil, errors.New("invalid hash function specified")
 	}

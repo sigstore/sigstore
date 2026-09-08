@@ -73,7 +73,7 @@ func KeyHandleToSigner(kh *keyset.Handle) (crypto.Signer, error) {
 
 		return ecdsa.ParseRawPrivateKey(curve, privateKey.PrivateKeyValue().Data(insecuresecretdataaccess.Token{}))
 	case *tinked25519.PrivateKey:
-		return ed25519.NewKeyFromSeed(privateKey.PrivateKeyBytes().Data(insecuresecretdataaccess.Token{})), err
+		return ed25519.NewKeyFromSeed(privateKey.PrivateKeyBytes().Data(insecuresecretdataaccess.Token{})), nil
 	default:
 		return nil, fmt.Errorf("unsupported key type: %T", primary.Key())
 	}

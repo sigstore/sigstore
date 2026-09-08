@@ -113,6 +113,18 @@ func (c *non404RespClient) GetKey(_ context.Context, _, _ string, _ *azkeys.GetK
 	return result, err
 }
 
+func ecPublicKeyCoordinates(pub *ecdsa.PublicKey) (x, y []byte, err error) {
+	pubBytes, err := pub.Bytes()
+	if err != nil {
+		return nil, nil, err
+	}
+	size := (pub.Curve.Params().BitSize + 7) / 8
+	if len(pubBytes) != 1+2*size {
+		return nil, nil, fmt.Errorf("unexpected public key byte length: got %d, want %d", len(pubBytes), 1+2*size)
+	}
+	return pubBytes[1 : 1+size], pubBytes[1+size : 1+2*size], nil
+}
+
 func generatePublicKey(azureKeyType string) (azkeys.JSONWebKey, error) {
 	keyOps := []*azkeys.KeyOperation{to.Ptr(azkeys.KeyOperationSign), to.Ptr(azkeys.KeyOperationVerify)}
 	kid := "https://honk-vault.vault.azure.net/keys/honk-key/abc123"
@@ -137,14 +149,10 @@ func generatePublicKey(azureKeyType string) (azkeys.JSONWebKey, error) {
 			return azkeys.JSONWebKey{}, fmt.Errorf("failed to cast public key to esdsa public key")
 		}
 
-		pubBytes, err := ecdsaPub.Bytes()
+		key.X, key.Y, err = ecPublicKeyCoordinates(ecdsaPub)
 		if err != nil {
 			return azkeys.JSONWebKey{}, err
 		}
-
-		curveByteSize := 32 // this assumes P256 as coded above
-		key.X = pubBytes[1 : 1+curveByteSize]
-		key.Y = pubBytes[1+curveByteSize : 1+2*curveByteSize]
 
 		return key, nil
 	case azkeys.KeyTypeRSA, azkeys.KeyTypeRSAHSM:
