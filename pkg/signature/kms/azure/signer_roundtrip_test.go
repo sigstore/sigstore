@@ -81,11 +81,10 @@ func (c *realCryptoKVClient) GetKey(_ context.Context, _, _ string, _ *azkeys.Ge
 	jwk := &azkeys.JSONWebKey{KID: &kid, KeyOps: signVerifyKeyOps()}
 	switch {
 	case c.ec != nil:
-		size := (c.ec.Curve.Params().BitSize + 7) / 8
-		x := make([]byte, size)
-		y := make([]byte, size)
-		c.ec.X.FillBytes(x)
-		c.ec.Y.FillBytes(y)
+		x, y, err := ecPublicKeyCoordinates(&c.ec.PublicKey)
+		if err != nil {
+			return azkeys.GetKeyResponse{}, err
+		}
 		jwk.Kty = to.Ptr(azkeys.KeyTypeEC)
 		jwk.Crv = to.Ptr(azCurveName(c.ec.Curve))
 		jwk.X = x
@@ -209,10 +208,10 @@ type encodingAssertKVClient struct {
 }
 
 func (c *encodingAssertKVClient) GetKey(_ context.Context, _, _ string, _ *azkeys.GetKeyOptions) (azkeys.GetKeyResponse, error) {
-	x := make([]byte, c.coordSize)
-	y := make([]byte, c.coordSize)
-	c.pub.X.FillBytes(x)
-	c.pub.Y.FillBytes(y)
+	x, y, err := ecPublicKeyCoordinates(c.pub)
+	if err != nil {
+		return azkeys.GetKeyResponse{}, err
+	}
 	kid := azkeys.ID("https://honk-vault.vault.azure.net/keys/honk-key/abc123")
 	return azkeys.GetKeyResponse{KeyBundle: azkeys.KeyBundle{Key: &azkeys.JSONWebKey{
 		KID:    &kid,

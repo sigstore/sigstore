@@ -21,6 +21,7 @@ package azure
 import (
 	"bytes"
 	"context"
+	"crypto/ecdsa"
 	"fmt"
 	"os"
 	"strings"

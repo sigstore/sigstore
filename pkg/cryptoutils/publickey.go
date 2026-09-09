@@ -21,7 +21,7 @@ import (
 	"crypto/ed25519"
 	"crypto/elliptic"
 	"crypto/rsa"
-	"crypto/sha1" // nolint:gosec
+	"crypto/sha1" //nolint:gosec
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/asn1"
@@ -92,7 +92,7 @@ func SKID(pub crypto.PublicKey) ([]byte, error) {
 	if _, err := asn1.Unmarshal(derPubBytes, &spki); err != nil {
 		return nil, err
 	}
-	skid := sha1.Sum(spki.SubjectPublicKey.Bytes) // nolint:gosec
+	skid := sha1.Sum(spki.SubjectPublicKey.Bytes) //nolint:gosec
 	return skid[:], nil
 }
 

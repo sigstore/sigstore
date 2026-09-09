@@ -23,7 +23,6 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
-	"fmt"
 	"math/big"
 	"strings"
 	"testing"
@@ -124,30 +123,61 @@ func TestECDSALoadVerifierWithoutKey(t *testing.T) {
 	}
 }
 
-// TestECDSALoadVerifierInvalidCurve tests gracefully handling an invalid curve.
-func TestECDSALoadVerifierInvalidCurve(t *testing.T) {
-	data := []byte{1}
-	x := ecdsa.PrivateKey{}
-	z := new(big.Int)
-	z.SetBytes(data)
-	x.X = z
-	x.Y = z
-	x.D = z
-	x.Curve = elliptic.P256()
+func TestECDSALoadVerifierInvalidKey(t *testing.T) {
+	t.Run("unsupported or nil curve", func(t *testing.T) {
+		_, err := LoadECDSAVerifier(&ecdsa.PublicKey{}, crypto.SHA256)
+		if err == nil || !strings.Contains(err.Error(), "invalid ECDSA public key") || !strings.Contains(err.Error(), "curve not supported") {
+			t.Fatalf("expected unsupported curve error, got: %v", err)
+		}
+	})
 
-	verifier, err := LoadECDSAVerifier(&x.PublicKey, crypto.SHA256)
+	t.Run("off-curve point", func(t *testing.T) {
+		//nolint:staticcheck // SA1019: intentionally constructing off-curve key to test LoadECDSAVerifier rejection
+		pub := &ecdsa.PublicKey{
+			Curve: elliptic.P256(),
+			X:     big.NewInt(1),
+			Y:     big.NewInt(1),
+		}
+
+		_, err := LoadECDSAVerifier(pub, crypto.SHA256)
+		if err == nil || !strings.Contains(err.Error(), "invalid ECDSA public key") || !strings.Contains(err.Error(), "point not on curve") {
+			t.Fatalf("expected point not on curve error, got: %v", err)
+		}
+	})
+}
+
+func TestECDSAVerifySignatureFailures(t *testing.T) {
+	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		t.Fatalf("unexpected error generating key: %v", err)
+	}
+	verifier, err := LoadECDSAVerifier(&key.PublicKey, crypto.SHA256)
 	if err != nil {
 		t.Fatalf("unexpected error loading verifier: %v", err)
 	}
 
 	msg := []byte("hello")
 	digest := sha256.Sum256(msg)
-	sig, err := ecdsa.SignASN1(rand.Reader, &x, digest[:])
+
+	// Generate a valid ASN.1 signature using a different key to ensure asn1.Unmarshal succeeds and hits ecdsa.VerifyASN1
+	otherKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {
-		fmt.Println(err)
+		t.Fatalf("unexpected error generating other key: %v", err)
+	}
+	asn1Sig, err := ecdsa.SignASN1(rand.Reader, otherKey, digest[:])
+	if err != nil {
+		t.Fatalf("unexpected error generating ASN.1 signature: %v", err)
 	}
 
-	if err := verifier.VerifySignature(bytes.NewReader(sig), bytes.NewReader(msg)); err == nil || !strings.Contains(err.Error(), "invalid ECDSA public key") {
-		t.Fatalf("expected error verifying signature with invalid curve, got %v", err)
+	err = verifier.VerifySignature(bytes.NewReader(asn1Sig), bytes.NewReader(msg))
+	if err == nil || !strings.Contains(err.Error(), "validating ASN.1 encoded signature") {
+		t.Fatalf("expected ASN.1 validation error, got %v", err)
+	}
+
+	// Provide a 64-byte dummy signature that fails ASN.1 parsing (first byte is 0x00, not ASN.1 SEQUENCE 0x30) and hits ecdsa.Verify (IEEE P1363 fallback)
+	ieeeSig := make([]byte, 64)
+	err = verifier.VerifySignature(bytes.NewReader(ieeeSig), bytes.NewReader(msg))
+	if err == nil || !strings.Contains(err.Error(), "validating IEEE_P1363 encoded signature") {
+		t.Fatalf("expected IEEE_P1363 validation error, got %v", err)
 	}
 }
