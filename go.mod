@@ -4,14 +4,14 @@ go 1.27.0
 
 require (
 	github.com/coreos/go-oidc/v3 v3.20.0
-	github.com/go-jose/go-jose/v4 v4.1.4
+	github.com/go-jose/go-jose/v4 v4.1.5
 	github.com/go-rod/rod v0.116.2
 	github.com/google/go-cmp v0.7.0
 	github.com/google/go-containerregistry v0.21.9
 	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c
 	github.com/secure-systems-lab/go-securesystemslib v0.11.1
 	github.com/sigstore/protobuf-specs v0.5.2
-	github.com/stretchr/testify v1.12.0
+	github.com/stretchr/testify v1.12.1
 	github.com/theupdateframework/go-tuf v0.7.0
 	github.com/tink-crypto/tink-go/v2 v2.8.0
 	github.com/youmark/pkcs8 v0.0.0-20240726163527-a2c0da244d78
@@ -30,10 +30,10 @@ require (
 	github.com/ysmood/got v0.42.0 // indirect
 	github.com/ysmood/gson v0.7.3 // indirect
 	github.com/ysmood/leakless v0.9.0 // indirect
+	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	golang.org/x/sys v0.47.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20260727163830-6c54dddc4772 // indirect
 	google.golang.org/protobuf v1.36.12 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
 retract v1.10.1 // License issue
