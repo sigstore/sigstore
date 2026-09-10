@@ -19,6 +19,7 @@ import (
 	"crypto/ecdsa"
 	"crypto/ed25519"
 	"crypto/elliptic"
+	"crypto/mldsa"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
@@ -71,6 +72,17 @@ func TestRSAPublicKeyPEMRoundtrip(t *testing.T) {
 	verifyPublicKeyPEMRoundtrip(t, priv.Public())
 }
 
+func TestMLDSAPublicKeyPEMRoundtrip(t *testing.T) {
+	t.Parallel()
+	for _, param := range []mldsa.Parameters{mldsa.MLDSA44(), mldsa.MLDSA65(), mldsa.MLDSA87()} {
+		priv, err := mldsa.GenerateKey(param)
+		if err != nil {
+			t.Fatalf("mldsa.GenerateKey failed: %v", err)
+		}
+		verifyPublicKeyPEMRoundtrip(t, priv.PublicKey())
+	}
+}
+
 func TestSKIDRSA(t *testing.T) {
 	priv, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
@@ -113,6 +125,30 @@ func TestSKIDED25519(t *testing.T) {
 	// Expect SKID is 160 bits (20 bytes)
 	if len(skid) != 20 {
 		t.Fatalf("SKID failed: %v", skid)
+	}
+}
+
+func TestSKIDMLDSA(t *testing.T) {
+	priv, err := mldsa.GenerateKey(mldsa.MLDSA44())
+	if err != nil {
+		t.Fatalf("mldsa.GenerateKey failed: %v", err)
+	}
+	skid, err := SKID(priv.PublicKey())
+	if err != nil {
+		t.Fatalf("SKID failed for valid ML-DSA key: %v", err)
+	}
+	if len(skid) != 20 {
+		t.Fatalf("expected 20-byte SKID, got %d bytes", len(skid))
+	}
+
+	// Nil ML-DSA key
+	if _, err := SKID((*mldsa.PublicKey)(nil)); err == nil || !strings.Contains(err.Error(), "ML-DSA public key must not be nil") {
+		t.Fatalf("expected error for nil mldsa key, got %v", err)
+	}
+
+	// Empty ML-DSA key
+	if _, err := SKID(&mldsa.PublicKey{}); err == nil || !strings.Contains(err.Error(), "invalid ML-DSA public key") {
+		t.Fatalf("expected error for empty mldsa key, got %v", err)
 	}
 }
 
@@ -162,9 +198,61 @@ func TestEqualKeys(t *testing.T) {
 	if err := EqualKeys(pubEd, pubEd2); err == nil || !strings.Contains(err.Error(), "ed25519 public keys are not equal") {
 		t.Fatalf("expected error for different ed25519 keys, got %v", err)
 	}
+	// Test ML-DSA (success and failure)
+	mldsa44First, err := mldsa.GenerateKey(mldsa.MLDSA44())
+	if err != nil {
+		t.Fatalf("mldsa.GenerateKey failed: %v", err)
+	}
+	mldsa44Second, err := mldsa.GenerateKey(mldsa.MLDSA44())
+	if err != nil {
+		t.Fatalf("mldsa.GenerateKey failed: %v", err)
+	}
+	mldsa65Key, err := mldsa.GenerateKey(mldsa.MLDSA65())
+	if err != nil {
+		t.Fatalf("mldsa.GenerateKey failed: %v", err)
+	}
+	// Verify equality with a separately constructed representation of the same key
+	mldsa44Same, err := mldsa.NewPublicKey(mldsa.MLDSA44(), mldsa44First.PublicKey().Bytes())
+	if err != nil {
+		t.Fatalf("mldsa.NewPublicKey failed: %v", err)
+	}
+	if err := EqualKeys(mldsa44First.PublicKey(), mldsa44Same); err != nil {
+		t.Fatalf("unexpected error for mldsa equality with separate representation, got %v", err)
+	}
+	if err := EqualKeys(mldsa44First.PublicKey(), mldsa44Second.PublicKey()); err == nil || !strings.Contains(err.Error(), "mldsa public keys are not equal") {
+		t.Fatalf("expected error for different mldsa keys, got %v", err)
+	}
+	if err := EqualKeys(mldsa44First.PublicKey(), mldsa65Key.PublicKey()); err == nil || !strings.Contains(err.Error(), "mldsa public keys are not equal") {
+		t.Fatalf("expected error for different mldsa parameter keys, got %v", err)
+	}
+	// Broken first argument
+	if err := EqualKeys((*mldsa.PublicKey)(nil), mldsa44First.PublicKey()); err == nil || !strings.Contains(err.Error(), "ML-DSA public key must not be nil") {
+		t.Fatalf("expected error for nil first mldsa key, got %v", err)
+	}
+	if err := EqualKeys(&mldsa.PublicKey{}, mldsa44First.PublicKey()); err == nil || !strings.Contains(err.Error(), "invalid ML-DSA public key") {
+		t.Fatalf("expected error for empty first mldsa key, got %v", err)
+	}
+	// Broken second argument reports inequality without panicking
+	if err := EqualKeys(mldsa44First.PublicKey(), (*mldsa.PublicKey)(nil)); err == nil || !strings.Contains(err.Error(), "mldsa public keys are not equal") {
+		t.Fatalf("expected inequality error for nil second mldsa key, got %v", err)
+	}
+	if err := EqualKeys(mldsa44First.PublicKey(), &mldsa.PublicKey{}); err == nil || !strings.Contains(err.Error(), "mldsa public keys are not equal") {
+		t.Fatalf("expected inequality error for empty second mldsa key, got %v", err)
+	}
 	// Keys of different type are not equal
 	if err := EqualKeys(privRsa.Public(), pubEd); err == nil || !strings.Contains(err.Error(), "are not equal") {
-		t.Fatalf("expected error for different key types, got %v", err)
+		t.Fatalf("expected error for different key types (rsa vs ed25519), got %v", err)
+	}
+	if err := EqualKeys(mldsa44First.PublicKey(), pubEd); err == nil || !strings.Contains(err.Error(), "are not equal") {
+		t.Fatalf("expected error for different key types (mldsa vs ed25519), got %v", err)
+	}
+	// Verify that EqualKeys with a valid non-ML-DSA key and an invalid ML-DSA key exercises
+	// the SKID guard in genErrMsg without panicking.
+	if err := EqualKeys(privRsa.Public(), &mldsa.PublicKey{}); err == nil || !strings.Contains(err.Error(), "rsa public keys are not equal") {
+		t.Fatalf("expected error for rsa vs uninitialized mldsa key, got %v", err)
+	}
+	if err := EqualKeys(privRsa.Public(), (*mldsa.PublicKey)(nil)); err == nil || !strings.Contains(err.Error(), "rsa public keys are not equal") {
+		t.Fatalf("expected error for rsa vs nil mldsa key, got %v", err)
 	}
 	// Fails with unexpected key type
 	type PublicKey struct{}
@@ -233,6 +321,10 @@ func TestValidatePubKey(t *testing.T) {
 	ecdsaP384, _ := ecdsa.GenerateKey(elliptic.P384(), rand.Reader)
 	ecdsaP521, _ := ecdsa.GenerateKey(elliptic.P521(), rand.Reader)
 	ed25519Key, _, _ := ed25519.GenerateKey(rand.Reader)
+	mldsaPriv, err := mldsa.GenerateKey(mldsa.MLDSA44())
+	if err != nil {
+		t.Fatalf("mldsa.GenerateKey failed: %v", err)
+	}
 
 	// Invalid keys
 	rsa1024, _ := rsa.GenerateKey(rand.Reader, 1024)
@@ -273,6 +365,10 @@ func TestValidatePubKey(t *testing.T) {
 			key:  ed25519Key,
 		},
 		{
+			name: "valid mldsa",
+			key:  mldsaPriv.PublicKey(),
+		},
+		{
 			name:    "invalid rsa 1024",
 			key:     &rsa1024.PublicKey,
 			wantErr: true,
@@ -292,6 +388,16 @@ func TestValidatePubKey(t *testing.T) {
 			key:     nil,
 			wantErr: true,
 		},
+		{
+			name:    "invalid mldsa nil",
+			key:     (*mldsa.PublicKey)(nil),
+			wantErr: true,
+		},
+		{
+			name:    "invalid mldsa empty",
+			key:     &mldsa.PublicKey{},
+			wantErr: true,
+		},
 	}
 
 	for _, tc := range testCases {
@@ -301,5 +407,27 @@ func TestValidatePubKey(t *testing.T) {
 				t.Errorf("ValidatePubKey() error = %v, wantErr %v", err, tc.wantErr)
 			}
 		})
+	}
+}
+
+func TestValidateMLDSAPublicKey(t *testing.T) {
+	priv, err := mldsa.GenerateKey(mldsa.MLDSA44())
+	if err != nil {
+		t.Fatalf("mldsa.GenerateKey failed: %v", err)
+	}
+	params, err := ValidateMLDSAPublicKey(priv.PublicKey())
+	if err != nil {
+		t.Errorf("unexpected error for valid ML-DSA public key: %v", err)
+	}
+	if params != mldsa.MLDSA44() {
+		t.Errorf("expected MLDSA44 parameters, got %v", params)
+	}
+
+	if _, err := ValidateMLDSAPublicKey(nil); err == nil || !strings.Contains(err.Error(), "ML-DSA public key must not be nil") {
+		t.Errorf("expected error containing 'ML-DSA public key must not be nil', got %v", err)
+	}
+
+	if _, err := ValidateMLDSAPublicKey(&mldsa.PublicKey{}); err == nil || !strings.Contains(err.Error(), "invalid ML-DSA public key") {
+		t.Errorf("expected error containing 'invalid ML-DSA public key', got %v", err)
 	}
 }

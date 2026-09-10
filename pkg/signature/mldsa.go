@@ -22,6 +22,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
+
+	"github.com/sigstore/sigstore/pkg/cryptoutils"
 )
 
 var mldsaSupportedHashFuncs = []crypto.Hash{
@@ -35,10 +37,29 @@ type MLDSASigner struct {
 	priv *mldsa.PrivateKey
 }
 
+// validateMLDSAPrivateKey checks that the ML-DSA private key is properly initialized.
+// Calling priv.PublicKey() does not panic for an uninitialized &mldsa.PrivateKey{} in current
+// Go versions (the panic occurs when probing the resulting public key), but this recover is
+// retained as defense-in-depth against future runtime changes.
+func validateMLDSAPrivateKey(priv *mldsa.PrivateKey) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("key is invalid: %v", r)
+		}
+	}()
+	if _, valErr := cryptoutils.ValidateMLDSAPublicKey(priv.PublicKey()); valErr != nil {
+		return valErr
+	}
+	return nil
+}
+
 // LoadMLDSASigner calculates signatures using the specified private key.
 func LoadMLDSASigner(priv *mldsa.PrivateKey) (*MLDSASigner, error) {
 	if priv == nil {
 		return nil, errors.New("invalid ML-DSA private key specified")
+	}
+	if err := validateMLDSAPrivateKey(priv); err != nil {
+		return nil, fmt.Errorf("invalid ML-DSA private key specified: %w", err)
 	}
 
 	return &MLDSASigner{
@@ -46,11 +67,18 @@ func LoadMLDSASigner(priv *mldsa.PrivateKey) (*MLDSASigner, error) {
 	}, nil
 }
 
-// SignMessage signs the provided message. Passing the WithDigest option is not
-// supported as ML-DSA handles its own internal message processing.
+// SignMessage signs the provided message using Pure ML-DSA with an empty context.
 //
-// All options are ignored.
-func (m MLDSASigner) SignMessage(message io.Reader, _ ...SignOption) ([]byte, error) {
+// Passing the WithDigest option with a digest is not supported as ML-DSA handles
+// its own internal message processing. Other options are ignored.
+func (m MLDSASigner) SignMessage(message io.Reader, opts ...SignOption) ([]byte, error) {
+	var digest []byte
+	for _, opt := range opts {
+		opt.ApplyDigest(&digest)
+	}
+	if len(digest) > 0 {
+		return nil, errors.New("WithDigest is not supported for ML-DSA")
+	}
 	messageBytes, _, err := ComputeDigestForSigning(message, crypto.Hash(0), mldsaSupportedHashFuncs)
 	if err != nil {
 		return nil, err
@@ -76,11 +104,24 @@ func (m MLDSASigner) PublicKey(_ ...PublicKeyOption) (crypto.PublicKey, error) {
 	return m.Public(), nil
 }
 
-// Sign computes the signature for the specified message; the first and third arguments to this
-// function are ignored as they are not used by the ML-DSA algorithm (using deterministic signing).
-func (m MLDSASigner) Sign(_ io.Reader, message []byte, _ crypto.SignerOpts) ([]byte, error) {
+// Sign computes the signature for the specified message using Pure ML-DSA with an empty context
+// for consistency across software, KMS, and hardware backends. Callers requiring domain separation
+// can enforce it at the payload level.
+//
+// The rand argument is ignored because ML-DSA internally generates randomness.
+// If opts is non-nil, only opts with an empty context and HashFunc() == crypto.Hash(0) are supported;
+// pre-hashed μ (crypto.MLDSAMu) and non-empty context strings are not permitted.
+func (m MLDSASigner) Sign(_ io.Reader, message []byte, opts crypto.SignerOpts) ([]byte, error) {
 	if message == nil {
 		return nil, errors.New("message must not be nil")
+	}
+	if opts != nil {
+		if opts.HashFunc() != crypto.Hash(0) {
+			return nil, fmt.Errorf("unsupported hash function: %v", opts.HashFunc())
+		}
+		if mldsaOpts, ok := opts.(*mldsa.Options); ok && mldsaOpts.Context != "" {
+			return nil, errors.New("non-empty context is not supported; use empty context for consistency across backends")
+		}
 	}
 	return m.SignMessage(bytes.NewReader(message))
 }
@@ -97,6 +138,9 @@ func LoadMLDSAVerifier(pub *mldsa.PublicKey) (*MLDSAVerifier, error) {
 	if pub == nil {
 		return nil, errors.New("invalid ML-DSA public key specified")
 	}
+	if _, err := cryptoutils.ValidateMLDSAPublicKey(pub); err != nil {
+		return nil, fmt.Errorf("invalid ML-DSA public key specified: %w", err)
+	}
 
 	return &MLDSAVerifier{
 		publicKey: pub,
@@ -110,19 +154,26 @@ func (m *MLDSAVerifier) PublicKey(_ ...PublicKeyOption) (crypto.PublicKey, error
 	return m.publicKey, nil
 }
 
-// VerifySignature verifies the signature for the given message.
+// VerifySignature verifies the signature for the given message using Pure ML-DSA with an empty context.
 //
 // This function returns nil if the verification succeeded, and an error message otherwise.
 //
-// All options are ignored if specified.
-func (m *MLDSAVerifier) VerifySignature(signature, message io.Reader, _ ...VerifyOption) error {
+// Passing the WithDigest option with a digest is explicitly rejected as ML-DSA does not support
+// pre-hashed message digests. Other options are ignored.
+func (m *MLDSAVerifier) VerifySignature(signature, message io.Reader, opts ...VerifyOption) error {
+	if signature == nil {
+		return errors.New("nil signature passed to VerifySignature")
+	}
+	var digest []byte
+	for _, opt := range opts {
+		opt.ApplyDigest(&digest)
+	}
+	if len(digest) > 0 {
+		return errors.New("WithDigest is not supported for ML-DSA")
+	}
 	messageBytes, _, err := ComputeDigestForVerifying(message, crypto.Hash(0), mldsaSupportedHashFuncs)
 	if err != nil {
 		return err
-	}
-
-	if signature == nil {
-		return errors.New("nil signature passed to VerifySignature")
 	}
 
 	sigBytes, err := io.ReadAll(signature)
@@ -146,11 +197,7 @@ func LoadMLDSASignerVerifier(priv *mldsa.PrivateKey) (*MLDSASignerVerifier, erro
 	if err != nil {
 		return nil, fmt.Errorf("initializing signer: %w", err)
 	}
-	pub, ok := priv.Public().(*mldsa.PublicKey)
-	if !ok {
-		return nil, fmt.Errorf("given key is not *mldsa.PublicKey")
-	}
-	verifier, err := LoadMLDSAVerifier(pub)
+	verifier, err := LoadMLDSAVerifier(priv.PublicKey())
 	if err != nil {
 		return nil, fmt.Errorf("initializing verifier: %w", err)
 	}

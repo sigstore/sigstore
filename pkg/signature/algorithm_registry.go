@@ -26,6 +26,7 @@ import (
 	"fmt"
 
 	v1 "github.com/sigstore/protobuf-specs/gen/pb-go/common/v1"
+	"github.com/sigstore/sigstore/pkg/cryptoutils"
 )
 
 // PublicKeyType represents the public key algorithm for a given signature algorithm.
@@ -161,11 +162,18 @@ func (a AlgorithmDetails) checkKey(pubKey crypto.PublicKey) (bool, error) {
 		if !ok {
 			return false, nil
 		}
+		// Validate the ML-DSA key. If the key is a typed nil or uninitialized,
+		// return an error so the caller receives a meaningful diagnostic rather
+		// than a generic "unsupported algorithm" failure.
+		keyParams, err := cryptoutils.ValidateMLDSAPublicKey(mldsaKey)
+		if err != nil {
+			return false, err
+		}
 		params, err := a.GetMLDSAParameters()
 		if err != nil {
 			return false, err
 		}
-		return mldsaKey.Parameters() == params, nil
+		return keyParams == params, nil
 	}
 	return false, fmt.Errorf("unrecognized key type: %T", a.keyType)
 }
@@ -326,7 +334,11 @@ func GetDefaultPublicKeyDetails(publicKey crypto.PublicKey, opts ...LoadOption) 
 		}
 		return v1.PublicKeyDetails_PKIX_ED25519, nil
 	case *mldsa.PublicKey:
-		switch pk.Parameters() {
+		params, err := cryptoutils.ValidateMLDSAPublicKey(pk)
+		if err != nil {
+			return v1.PublicKeyDetails_PUBLIC_KEY_DETAILS_UNSPECIFIED, err
+		}
+		switch params {
 		case mldsa.MLDSA44():
 			return v1.PublicKeyDetails_ML_DSA_44, nil
 		case mldsa.MLDSA65():
