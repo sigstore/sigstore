@@ -213,7 +213,7 @@ func TestInitializeWithHTTPClientPreservesMirrorAliases(t *testing.T) {
 		defaultRemoteGCSBucket:    DefaultRemoteRoot,
 		defaultRemoteRootNoCDN:    DefaultRemoteRoot,
 		defaultRemoteRootNoCDNAlt: DefaultRemoteRoot,
-		"another-tuf-bucket":     "https://another-tuf-bucket.storage.googleapis.com",
+		"another-tuf-bucket":      "https://another-tuf-bucket.storage.googleapis.com",
 	} {
 		t.Run(mirror, func(t *testing.T) {
 			directory, root, _ := newHTTPClientTestRepository(t)
