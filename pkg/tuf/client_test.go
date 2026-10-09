@@ -868,14 +868,14 @@ func TestTargetsSubfolder(t *testing.T) {
 func Test_remoteFromMirror(t *testing.T) {
 	// test GCS mirror
 	mirror := "test-bucket"
-	_, err := remoteFromMirror(mirror)
+	_, err := remoteFromMirror(mirror, nil)
 	if err != nil {
 		t.Fatalf("unexpected error with GCS mirror: %v", err)
 	}
 
 	// test HTTP mirror
 	mirror = "https://tuf-repo-cdn.sigstage.dev"
-	_, err = remoteFromMirror(mirror)
+	_, err = remoteFromMirror(mirror, nil)
 	if err != nil {
 		t.Fatalf("unexpected error with GCS mirror: %v", err)
 	}
@@ -884,7 +884,7 @@ func Test_remoteFromMirror(t *testing.T) {
 	tufRoot := t.TempDir()
 	os.Mkdir(fmt.Sprintf("%s/targets", tufRoot), 0o0750)
 	mirror = fmt.Sprintf("file://%s", tufRoot)
-	_, err = remoteFromMirror(mirror)
+	_, err = remoteFromMirror(mirror, nil)
 	if err != nil {
 		t.Fatalf("unexpected error with GCS mirror: %v", err)
 	}

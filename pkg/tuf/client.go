@@ -25,6 +25,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"net/http"
 	"net/url"
 	"os"
 	"path"
@@ -59,6 +60,10 @@ const (
 )
 
 var (
+	// ErrHTTPClientMismatch means that the TUF singleton was already initialized
+	// with a different HTTP client, including the default client.
+	ErrHTTPClientMismatch = errors.New("TUF singleton already initialized with a different HTTP client")
+
 	// singletonTUF holds a single instance of TUF that will get reused on
 	// subsequent invocations of initializeTUF
 	singletonTUF     *TUF
@@ -75,12 +80,13 @@ var getRemoteRoot = func() string { return DefaultRemoteRoot }
 // Deprecated: Use https://pkg.go.dev/github.com/sigstore/sigstore-go/pkg/tuf
 type TUF struct {
 	sync.Mutex
-	client   *client.Client
-	targets  targetImpl
-	local    client.LocalStore
-	remote   client.RemoteStore
-	embedded fs.FS
-	mirror   string // location of mirror
+	client     *client.Client
+	targets    targetImpl
+	local      client.LocalStore
+	remote     client.RemoteStore
+	embedded   fs.FS
+	mirror     string       // location of mirror
+	httpClient *http.Client // explicitly configured client, or nil for the default
 }
 
 // Mirror returns the mirror configured; note if the object was configured with a legacy reference
@@ -263,7 +269,9 @@ func GetRootStatus(ctx context.Context) (*RootStatus, error) {
 // targets in a targets/ subfolder.
 // * forceUpdate: indicates checking the remote for an update, even when the local
 // timestamp.json is up to date.
-func initializeTUF(mirror string, root []byte, embedded fs.FS, forceUpdate bool) (*TUF, error) {
+// * httpClient: provides the HTTP client for the first initialization, or nil to
+// use the default. Subsequent explicit calls must provide the same client.
+func initializeTUF(mirror string, root []byte, embedded fs.FS, forceUpdate bool, httpClient *http.Client) (*TUF, error) {
 	initMu.Lock()
 	defer initMu.Unlock()
 
@@ -271,8 +279,9 @@ func initializeTUF(mirror string, root []byte, embedded fs.FS, forceUpdate bool)
 	// never retry
 	singletonTUFOnce.Do(func() {
 		t := &TUF{
-			mirror:   mirror,
-			embedded: embedded,
+			mirror:     mirror,
+			embedded:   embedded,
+			httpClient: httpClient,
 		}
 
 		t.targets = newFileImpl()
@@ -281,7 +290,7 @@ func initializeTUF(mirror string, root []byte, embedded fs.FS, forceUpdate bool)
 			return
 		}
 
-		t.remote, singletonTUFErr = remoteFromMirror(t.Mirror())
+		t.remote, singletonTUFErr = remoteFromMirror(t.Mirror(), httpClient)
 		if singletonTUFErr != nil {
 			return
 		}
@@ -313,6 +322,12 @@ func initializeTUF(mirror string, root []byte, embedded fs.FS, forceUpdate bool)
 	})
 	if singletonTUFErr != nil {
 		return nil, singletonTUFErr
+	}
+	// Legacy callers do not request a client change. Explicit callers must use
+	// the same client so a previously initialized singleton cannot silently
+	// bypass the HTTP behavior they requested.
+	if httpClient != nil && singletonTUF.httpClient != httpClient {
+		return nil, ErrHTTPClientMismatch
 	}
 
 	trustedMeta, err := singletonTUF.local.GetMeta()
@@ -348,12 +363,36 @@ func NewFromEnv(_ context.Context) (*TUF, error) {
 	}
 
 	// Initializes a new TUF object from the local cache or defaults.
-	return initializeTUF(mirror, nil, getEmbedded(), false)
+	return initializeTUF(mirror, nil, getEmbedded(), false, nil)
 }
 
 func Initialize(_ context.Context, mirror string, root []byte) error {
+	return initializeWithHTTPClient(mirror, root, nil)
+}
+
+// InitializeWithHTTPClient initializes the shared TUF client using httpClient
+// for HTTP metadata and target downloads, including redirects. The client must
+// be non-nil and configured before the first call to Initialize or NewFromEnv.
+// Its timeout, transport, and redirect policy remain in use for later refreshes,
+// including refreshes requested through the legacy entry points. File mirrors
+// continue to read the local filesystem without using httpClient.
+//
+// The caller must reuse the same client pointer for subsequent calls and must
+// not modify it while it is in use. A different client returns
+// ErrHTTPClientMismatch before refreshing the existing singleton. The first
+// initialization selects the mirror and trusted root. As with Initialize, the
+// context is unused; configure timeouts on httpClient instead. It is not bound
+// to subsequent requests or refreshes.
+func InitializeWithHTTPClient(_ context.Context, mirror string, root []byte, httpClient *http.Client) error {
+	if httpClient == nil {
+		return errors.New("TUF HTTP client must not be nil")
+	}
+	return initializeWithHTTPClient(mirror, root, httpClient)
+}
+
+func initializeWithHTTPClient(mirror string, root []byte, httpClient *http.Client) error {
 	// Initialize the client. Force an update with remote.
-	tuf, err := initializeTUF(mirror, root, getEmbedded(), true)
+	tuf, err := initializeTUF(mirror, root, getEmbedded(), true, httpClient)
 	if err != nil {
 		return err
 	}
@@ -707,14 +746,14 @@ func noCache() bool {
 	return b
 }
 
-func remoteFromMirror(mirror string) (client.RemoteStore, error) {
+func remoteFromMirror(mirror string, httpClient *http.Client) (client.RemoteStore, error) {
 	// This is for compatibility with specifying a GCS bucket remote.
 	u, parseErr := url.ParseRequestURI(mirror)
 	if parseErr != nil {
-		return client.HTTPRemoteStore(fmt.Sprintf("https://%s.storage.googleapis.com", mirror), nil, nil)
+		return client.HTTPRemoteStore(fmt.Sprintf("https://%s.storage.googleapis.com", mirror), nil, httpClient)
 	}
 	if u.Scheme != "file" {
-		return client.HTTPRemoteStore(mirror, nil, nil)
+		return client.HTTPRemoteStore(mirror, nil, httpClient)
 	}
 	// Use local filesystem for remote.
 	return client.NewFileRemoteStore(os.DirFS(u.Path), "")
