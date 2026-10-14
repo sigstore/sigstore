@@ -1,6 +1,6 @@
 module sigstore-kms-localkms
 
-go 1.27.0
+go 1.27
 
 replace github.com/sigstore/sigstore => ../../..
 
