@@ -18,6 +18,7 @@ package signature
 import (
 	"crypto"
 	"crypto/ed25519"
+	cryptorand "crypto/rand"
 	"encoding/base64"
 	"testing"
 
@@ -95,5 +96,26 @@ func TestED25519phVerifierRejectsWrongKeySize(t *testing.T) {
 	}
 	if _, err := LoadED25519phVerifier(ed25519.PublicKey(make([]byte, ed25519.PublicKeySize))); err != nil {
 		t.Errorf("unexpected error loading verifier with valid key size: %v", err)
+	}
+}
+
+func TestED25519phSignerRejectsWrongKeySize(t *testing.T) {
+	for _, size := range []int{0, 16, 31, 32, 33, 63, 65} {
+		if _, err := LoadED25519phSigner(ed25519.PrivateKey(make([]byte, size))); err == nil {
+			t.Errorf("expected error loading signer with %d-byte key, got nil", size)
+		}
+		if _, err := LoadED25519phSignerVerifier(ed25519.PrivateKey(make([]byte, size))); err == nil {
+			t.Errorf("expected error loading signer verifier with %d-byte key, got nil", size)
+		}
+	}
+	_, priv, err := ed25519.GenerateKey(cryptorand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := LoadED25519phSigner(priv); err != nil {
+		t.Errorf("unexpected error loading signer with valid key size: %v", err)
+	}
+	if _, err := LoadED25519phSignerVerifier(priv); err != nil {
+		t.Errorf("unexpected error loading signer verifier with valid key size: %v", err)
 	}
 }
