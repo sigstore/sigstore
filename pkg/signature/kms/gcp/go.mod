@@ -5,7 +5,7 @@ replace github.com/sigstore/sigstore => ../../../../
 go 1.27
 
 require (
-	cloud.google.com/go/kms v1.33.0
+	cloud.google.com/go/kms v1.35.0
 	github.com/jellydator/ttlcache/v3 v3.4.1
 	github.com/sigstore/sigstore v1.11.0
 	golang.org/x/oauth2 v0.37.0
