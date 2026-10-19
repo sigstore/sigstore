@@ -13,7 +13,7 @@ require (
 	github.com/sigstore/protobuf-specs v0.5.2
 	github.com/stretchr/testify v1.12.1
 	github.com/theupdateframework/go-tuf v0.7.0
-	github.com/tink-crypto/tink-go/v2 v2.8.0
+	github.com/tink-crypto/tink-go/v2 v2.9.0
 	github.com/youmark/pkcs8 v0.0.0-20240726163527-a2c0da244d78
 	golang.org/x/crypto v0.55.0
 	golang.org/x/oauth2 v0.37.0
