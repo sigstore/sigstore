@@ -1,6 +1,6 @@
 module github.com/sigstore/sigstore/hack/tools
 
-go 1.22.0
+go 1.24
 
 require (
 	github.com/AdaLogics/go-fuzz-headers v0.0.0-20211123104302-8fea106b46e2
@@ -11,7 +11,7 @@ require (
 	github.com/containerd/stargz-snapshotter/estargz v0.10.0 // indirect
 	github.com/cyphar/filepath-securejoin v0.2.4 // indirect
 	github.com/google/go-containerregistry v0.7.0 // indirect
-	github.com/klauspost/compress v1.13.6 // indirect
+	github.com/klauspost/compress v1.18.7 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.0.2 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
