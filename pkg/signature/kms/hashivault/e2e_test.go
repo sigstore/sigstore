@@ -22,8 +22,11 @@ import (
 	"context"
 	"crypto"
 	"crypto/ecdsa"
+	"crypto/mldsa"
 	"crypto/rand"
+	"errors"
 	"fmt"
+	"net/http"
 	"os"
 	"testing"
 
@@ -434,6 +437,50 @@ func (suite *VaultSuite) TestED25519() {
 	sig, err := provider.SignMessage(bytes.NewReader(data))
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), sig)
+
+	err = provider.VerifySignature(bytes.NewReader(sig), bytes.NewReader(data))
+	assert.Nil(suite.T(), err)
+}
+
+// mldsaUnsupported reports whether err shows the server rejecting both ML-DSA
+// create forms (OpenBao's mldsa-65, then Vault Enterprise's ml-dsa with a
+// parameter_set) as invalid requests. HashiCorp Vault Community Edition does
+// so, because ML-DSA transit keys are Enterprise-only there; OpenBao supports them.
+func mldsaUnsupported(err error) bool {
+	var multi interface{ Unwrap() []error }
+	if !errors.As(err, &multi) || len(multi.Unwrap()) == 0 {
+		return false
+	}
+	for _, e := range multi.Unwrap() {
+		var respErr *vault.ResponseError
+		if !errors.As(e, &respErr) || respErr.StatusCode != http.StatusBadRequest {
+			return false
+		}
+	}
+	return true
+}
+
+func (suite *VaultSuite) TestMLDSA() {
+	provider := suite.GetProvider("testmldsa")
+
+	key, err := provider.CreateKey(context.Background(), AlgorithmMLDSA65)
+	if mldsaUnsupported(err) {
+		suite.T().Skipf("server does not support ML-DSA transit keys: %v", err)
+	}
+	require.NoError(suite.T(), err)
+	require.NotNil(suite.T(), key)
+
+	data := []byte("mydata")
+	// Loaded with SHA-256: ML-DSA signs and verifies the raw message regardless.
+	sig, err := provider.SignMessage(bytes.NewReader(data))
+	assert.Nil(suite.T(), err)
+	assert.NotNil(suite.T(), sig)
+
+	if mldsaPub, ok := key.(*mldsa.PublicKey); assert.True(suite.T(), ok) {
+		verifier, err := signature.LoadMLDSAVerifier(mldsaPub)
+		assert.Nil(suite.T(), err)
+		assert.Nil(suite.T(), verifier.VerifySignature(bytes.NewReader(sig), bytes.NewReader(data)))
+	}
 
 	err = provider.VerifySignature(bytes.NewReader(sig), bytes.NewReader(data))
 	assert.Nil(suite.T(), err)
