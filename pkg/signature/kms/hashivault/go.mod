@@ -7,7 +7,7 @@ go 1.27
 require (
 	github.com/hashicorp/vault/api v1.23.0
 	github.com/jellydator/ttlcache/v3 v3.4.1
-	github.com/sigstore/sigstore v1.6.4
+	github.com/sigstore/sigstore v1.11.1
 	github.com/stretchr/testify v1.12.1
 )
 
