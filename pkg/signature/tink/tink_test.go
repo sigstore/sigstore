@@ -17,6 +17,7 @@ package tink
 import (
 	"crypto/ecdsa"
 	"crypto/ed25519"
+	"crypto/mldsa"
 	"crypto/rand"
 	"crypto/sha256"
 	"crypto/sha512"
@@ -26,6 +27,7 @@ import (
 	"github.com/tink-crypto/tink-go/v2/keyset"
 	tinkpb "github.com/tink-crypto/tink-go/v2/proto/tink_go_proto"
 	"github.com/tink-crypto/tink-go/v2/signature"
+	tinkmldsa "github.com/tink-crypto/tink-go/v2/signature/mldsa"
 )
 
 func TestKeyHandleToSignerECDSA(t *testing.T) {
@@ -140,9 +142,6 @@ func TestKeyHandleToSignerED25519(t *testing.T) {
 		t.Fatalf("error asserting ed25519 private key")
 	}
 	sig = ed25519.Sign(privKey, msg)
-	if err != nil {
-		t.Fatalf("error signing with crypto signer: %v", err)
-	}
 	pubkh, err := kh.Public()
 	if err != nil {
 		t.Fatalf("error fetching public key handle: %v", err)
@@ -153,6 +152,90 @@ func TestKeyHandleToSignerED25519(t *testing.T) {
 	}
 	if err := v.Verify(sig, msg); err != nil {
 		t.Fatalf("error verifying with tink verifier: %v", err)
+	}
+}
+
+func TestKeyHandleToSignerMLDSA(t *testing.T) {
+	for _, tc := range []struct {
+		name     string
+		instance tinkmldsa.Instance
+	}{
+		{
+			name:     "ML-DSA-44",
+			instance: tinkmldsa.MLDSA44,
+		},
+		{
+			name:     "ML-DSA-65",
+			instance: tinkmldsa.MLDSA65,
+		},
+		{
+			name:     "ML-DSA-87",
+			instance: tinkmldsa.MLDSA87,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			params, err := tinkmldsa.NewParameters(tc.instance, tinkmldsa.VariantNoPrefix)
+			if err != nil {
+				t.Fatalf("error creating ML-DSA parameters: %v", err)
+			}
+			manager := keyset.NewManager()
+			keyID, err := manager.AddNewKeyFromParameters(params)
+			if err != nil {
+				t.Fatalf("error adding ML-DSA key: %v", err)
+			}
+			if err := manager.SetPrimary(keyID); err != nil {
+				t.Fatalf("error setting primary ML-DSA key: %v", err)
+			}
+			kh, err := manager.Handle()
+			if err != nil {
+				t.Fatalf("error creating ML-DSA key handle: %v", err)
+			}
+
+			// convert to crypto.Signer interface
+			signer, err := KeyHandleToSigner(kh)
+			if err != nil {
+				t.Fatalf("error converting ML-DSA key handle to signer: %v", err)
+			}
+			msg := []byte("hello there")
+
+			// sign with key handle, verify with signer public key
+			tinkSigner, err := signature.NewSigner(kh)
+			if err != nil {
+				t.Fatalf("error creating tink signer: %v", err)
+			}
+			sig, err := tinkSigner.Sign(msg)
+			if err != nil {
+				t.Fatalf("error signing with tink signer: %v", err)
+			}
+			publicKey, ok := signer.Public().(*mldsa.PublicKey)
+			if !ok {
+				t.Fatalf("error asserting mldsa public key")
+			}
+			if err := mldsa.Verify(publicKey, msg, sig, nil); err != nil {
+				t.Fatalf("signature from tink signer did not verify: %v", err)
+			}
+
+			// sign with signer, verify with key handle
+			privKey, ok := signer.(*mldsa.PrivateKey)
+			if !ok {
+				t.Fatalf("error asserting mldsa private key")
+			}
+			sig, err = privKey.Sign(rand.Reader, msg, nil)
+			if err != nil {
+				t.Fatalf("error signing with crypto signer: %v", err)
+			}
+			pubkh, err := kh.Public()
+			if err != nil {
+				t.Fatalf("error fetching public key handle: %v", err)
+			}
+			v, err := signature.NewVerifier(pubkh)
+			if err != nil {
+				t.Fatalf("error creating tink verifier: %v", err)
+			}
+			if err := v.Verify(sig, msg); err != nil {
+				t.Fatalf("error verifying with tink verifier: %v", err)
+			}
+		})
 	}
 }
 
