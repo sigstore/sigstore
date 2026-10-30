@@ -19,12 +19,14 @@ import (
 	"crypto/ecdsa"
 	"crypto/ed25519"
 	"crypto/elliptic"
+	"crypto/mldsa"
 	"fmt"
 
 	"github.com/tink-crypto/tink-go/v2/insecuresecretdataaccess"
 	"github.com/tink-crypto/tink-go/v2/keyset"
 	tinkecdsa "github.com/tink-crypto/tink-go/v2/signature/ecdsa"
 	tinked25519 "github.com/tink-crypto/tink-go/v2/signature/ed25519"
+	tinkmldsa "github.com/tink-crypto/tink-go/v2/signature/mldsa"
 )
 
 func curveFromTinkECDSACurveType(curveType tinkecdsa.CurveType) (elliptic.Curve, error) {
@@ -41,6 +43,20 @@ func curveFromTinkECDSACurveType(curveType tinkecdsa.CurveType) (elliptic.Curve,
 	}
 }
 
+func paramsFromTinkMLDSAInstance(instance tinkmldsa.Instance) (mldsa.Parameters, error) {
+	switch instance {
+	case tinkmldsa.MLDSA44:
+		return mldsa.MLDSA44(), nil
+	case tinkmldsa.MLDSA65:
+		return mldsa.MLDSA65(), nil
+	case tinkmldsa.MLDSA87:
+		return mldsa.MLDSA87(), nil
+	default:
+		// Should never happen.
+		return mldsa.Parameters{}, fmt.Errorf("unsupported instance: %v", instance)
+	}
+}
+
 // KeyHandleToSigner constructs a [crypto.Signer] from a Tink [keyset.Handle]'s
 // primary key.
 //
@@ -53,16 +69,7 @@ func KeyHandleToSigner(kh *keyset.Handle) (crypto.Signer, error) {
 
 	switch privateKey := primary.Key().(type) {
 	case *tinkecdsa.PrivateKey:
-		publicKey, err := privateKey.PublicKey()
-		if err != nil {
-			return nil, err
-		}
-		ecdsaPublicKey, ok := publicKey.(*tinkecdsa.PublicKey)
-		if !ok {
-			return nil, fmt.Errorf("error asserting ecdsa public key")
-		}
-
-		curveParams, ok := ecdsaPublicKey.Parameters().(*tinkecdsa.Parameters)
+		curveParams, ok := privateKey.Parameters().(*tinkecdsa.Parameters)
 		if !ok {
 			return nil, fmt.Errorf("error asserting ecdsa parameters")
 		}
@@ -74,6 +81,17 @@ func KeyHandleToSigner(kh *keyset.Handle) (crypto.Signer, error) {
 		return ecdsa.ParseRawPrivateKey(curve, privateKey.PrivateKeyValue().Data(insecuresecretdataaccess.Token{}))
 	case *tinked25519.PrivateKey:
 		return ed25519.NewKeyFromSeed(privateKey.PrivateKeyBytes().Data(insecuresecretdataaccess.Token{})), nil
+	case *tinkmldsa.PrivateKey:
+		mldsaParams, ok := privateKey.Parameters().(*tinkmldsa.Parameters)
+		if !ok {
+			return nil, fmt.Errorf("error asserting mldsa parameters")
+		}
+		params, err := paramsFromTinkMLDSAInstance(mldsaParams.Instance())
+		if err != nil {
+			return nil, err
+		}
+
+		return mldsa.NewPrivateKey(params, privateKey.PrivateKeyBytes().Data(insecuresecretdataaccess.Token{}))
 	default:
 		return nil, fmt.Errorf("unsupported key type: %T", primary.Key())
 	}
