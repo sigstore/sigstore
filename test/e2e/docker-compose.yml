@@ -23,6 +23,16 @@ services:
     ports:
       - 8200:8200
     privileged: true
+  openbao:
+    build:
+      dockerfile: openbao.Dockerfile
+      context: '.'
+    environment:
+      BAO_DEV_ROOT_TOKEN_ID: ${VAULT_TOKEN}
+    ports:
+      # Avoid conflict with vault's port.
+      - 8210:8200
+    privileged: true
   localstack:
     build:
       dockerfile: localstack.Dockerfile

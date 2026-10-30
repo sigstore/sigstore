@@ -65,6 +65,12 @@ jobs:
       - name: Integration test
         run: make test-e2e
 
+      # Runs the HashiVault E2E tests against OpenBao.
+      - name: OpenBao integration test
+        # Runs even if the e2e test fail. OpenBao exercises some enterprise-only Vault features. (Currently, ML-DSA)
+        if: ${{ !cancelled() }}
+        run: make test-e2e-openbao
+
   signer_program_test:
     name: signer program test
     strategy:

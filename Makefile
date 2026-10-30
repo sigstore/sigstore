@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-.PHONY: all pkg test test-e2e test-signer-program clean lint fuzz help
+.PHONY: all pkg test test-e2e test-e2e-openbao test-signer-program clean lint fuzz help
 
 all: pkg fuzz
 
@@ -66,6 +66,9 @@ tidy: ## Run go mod tidy all Go modules.
 
 test-e2e: ## Run E2E Tests
 	cd $(INTEGRATION_TEST_DIR); ./e2e-test.sh
+
+test-e2e-openbao: ## Run E2E Tests against OpenBao
+	cd $(INTEGRATION_TEST_DIR); ./openbao-e2e-test.sh
 
 fuzz: $(GO-FUZZ-BUILD) ## Run Fuzz tests
 	cd $(FUZZ_DIR);$(GO-FUZZ-BUILD) -o pem-fuzz.zip ./pem
