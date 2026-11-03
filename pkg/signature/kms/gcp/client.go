@@ -389,8 +389,13 @@ func (g *gcpClient) sign(ctx context.Context, digest []byte, alg crypto.Hash, cr
 	// Optional, but recommended: perform integrity verification on result.
 	// For more details on ensuring E2E in-transit integrity to and from Cloud KMS visit:
 	// https://cloud.google.com/kms/docs/data-integrity-guidelines
-	if crc != 0 && !resp.VerifiedDigestCrc32C {
-		return nil, fmt.Errorf("AsymmetricSign: request corrupted in-transit")
+	if crc != 0 {
+		if alg == crypto.Hash(0) && !resp.VerifiedDataCrc32C {
+			return nil, fmt.Errorf("AsymmetricSign: request corrupted in-transit")
+		}
+		if alg != crypto.Hash(0) && !resp.VerifiedDigestCrc32C {
+			return nil, fmt.Errorf("AsymmetricSign: request corrupted in-transit")
+		}
 	}
 	if int64(crc32.Checksum(resp.Signature, crc32.MakeTable(crc32.Castagnoli))) != resp.SignatureCrc32C.Value {
 		return nil, fmt.Errorf("AsymmetricSign: response corrupted in-transit")
