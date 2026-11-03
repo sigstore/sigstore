@@ -7,7 +7,7 @@ go 1.27
 require (
 	github.com/aws/aws-sdk-go-v2 v1.47.5
 	github.com/aws/aws-sdk-go-v2/config v1.33.12
-	github.com/aws/aws-sdk-go-v2/service/kms v1.61.4
+	github.com/aws/aws-sdk-go-v2/service/kms v1.62.2
 	github.com/jellydator/ttlcache/v3 v3.4.1
 	github.com/sigstore/sigstore v1.6.4
 	github.com/stretchr/testify v1.12.1
