@@ -191,7 +191,7 @@ var allowedSignatureAlgorithms = []jose.SignatureAlgorithm{
 
 // GetIDToken extracts an OIDCIDToken from the raw token *without verification*
 func (stg *StaticTokenGetter) GetIDToken(_ *oidc.Provider, _ oauth2.Config) (*OIDCIDToken, error) {
-	unsafeTok, err := jose.ParseSigned(stg.RawToken, allowedSignatureAlgorithms)
+	unsafeTok, err := jose.ParseSignedCompact(stg.RawToken, allowedSignatureAlgorithms)
 	if err != nil {
 		return nil, err
 	}
