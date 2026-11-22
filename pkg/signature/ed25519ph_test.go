@@ -151,7 +151,11 @@ func TestED25519phVerifierRejectsSmallOrderKeysAndR(t *testing.T) {
 	if err != nil {
 		t.Fatalf("PublicKey() error: %v", err)
 	}
-	copy(gotPub.(ed25519.PublicKey), neutralKey)
+	gotPubKey, ok := gotPub.(ed25519.PublicKey)
+	if !ok {
+		t.Fatalf("expected ed25519.PublicKey, got %T", gotPub)
+	}
+	copy(gotPubKey, neutralKey)
 	if err := v.VerifySignature(bytes.NewReader(validSig), bytes.NewReader(msg)); err != nil {
 		t.Errorf("mutating external public key slices corrupted verifier: %v", err)
 	}

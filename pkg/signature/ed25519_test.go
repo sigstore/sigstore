@@ -120,7 +120,10 @@ func forgeNeutralRSig(t *testing.T, priv ed25519.PrivateKey, msg []byte, prehash
 	}
 	rBytes := make([]byte, 32)
 	rBytes[0] = 1 // neutral point
-	pub := priv.Public().(ed25519.PublicKey)
+	pub, ok := priv.Public().(ed25519.PublicKey)
+	if !ok {
+		t.Fatalf("expected ed25519.PublicKey, got %T", priv.Public())
+	}
 
 	kh := sha512.New()
 	if prehash {
@@ -186,7 +189,11 @@ func TestED25519VerifierRejectsSmallOrderKeysAndR(t *testing.T) {
 	if err != nil {
 		t.Fatalf("PublicKey() error: %v", err)
 	}
-	copy(gotPub.(ed25519.PublicKey), neutralKey)
+	gotPubKey, ok := gotPub.(ed25519.PublicKey)
+	if !ok {
+		t.Fatalf("expected ed25519.PublicKey, got %T", gotPub)
+	}
+	copy(gotPubKey, neutralKey)
 	if err := v.VerifySignature(bytes.NewReader(validSig), bytes.NewReader(msg)); err != nil {
 		t.Errorf("mutating external public key slices corrupted verifier: %v", err)
 	}
