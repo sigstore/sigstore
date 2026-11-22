@@ -16,8 +16,10 @@
 package ssh
 
 import (
+	"crypto/ed25519"
 	"io"
 
+	"github.com/sigstore/sigstore/pkg/cryptoutils"
 	"github.com/sigstore/sigstore/pkg/signature"
 	"golang.org/x/crypto/ssh"
 )
@@ -27,6 +29,21 @@ func Verify(message io.Reader, armoredSignature []byte, pubKey ssh.PublicKey) er
 	decodedSignature, err := Decode(armoredSignature)
 	if err != nil {
 		return err
+	}
+
+	key := pubKey
+	if cert, ok := key.(*ssh.Certificate); ok && cert != nil {
+		key = cert.Key
+	}
+	if cpk, ok := key.(ssh.CryptoPublicKey); ok {
+		if edPub, ok := cpk.CryptoPublicKey().(ed25519.PublicKey); ok {
+			if err := cryptoutils.ValidateEd25519PublicKey(edPub); err != nil {
+				return err
+			}
+			if err := cryptoutils.ValidateEd25519SignatureR(decodedSignature.signature.Blob); err != nil {
+				return err
+			}
+		}
 	}
 
 	// Hash the message so we can verify it against the signature.

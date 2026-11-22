@@ -701,3 +701,24 @@ func TestCreateKeyFallback(t *testing.T) {
 		})
 	}
 }
+
+func TestEd25519RejectsSmallOrderKeyAndR(t *testing.T) {
+	// 1. Small-order Ed25519 public key returned by Vault must be rejected.
+	badPriv := make(ed25519.PrivateKey, ed25519.PrivateKeySize)
+	badPriv[32] = 1 // neutral public key
+	svBad, _ := loadFakeStyle(t, badPriv, crypto.Hash(0), mldsaOpenBao65)
+	_, err := svBad.PublicKey()
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "small-order")
+
+	// 2. Small-order R in VerifySignature must be rejected locally before calling Vault.
+	_, validPriv, err := ed25519.GenerateKey(rand.Reader)
+	require.NoError(t, err)
+	sv, fake := loadFakeStyle(t, validPriv, crypto.Hash(0), mldsaOpenBao65)
+	smallOrderSig := make([]byte, ed25519.SignatureSize)
+	smallOrderSig[0] = 1 // R = neutral
+	err = sv.VerifySignature(bytes.NewReader(smallOrderSig), bytes.NewReader([]byte("message")))
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "small-order R")
+	assert.Empty(t, fake.requests)
+}

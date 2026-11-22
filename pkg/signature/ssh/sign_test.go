@@ -17,12 +17,16 @@ package ssh
 
 import (
 	"bytes"
+	"crypto/ed25519"
+	"crypto/rand"
+	"crypto/sha512"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
 
+	"filippo.io/edwards25519"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -349,5 +353,85 @@ func runErr(t *testing.T, stdin []byte, args ...string) {
 	t.Logf("cmd %v: %s", cmd, string(out))
 	if err == nil {
 		t.Fatal("expected error")
+	}
+}
+
+func TestVerifyRejectsEd25519SmallOrderKeyAndR(t *testing.T) {
+	msg := []byte("hello ssh")
+	hm := sha512.Sum512(msg)
+	toVerify := messageWrapper{
+		Namespace:     "file",
+		HashAlgorithm: defaultHashAlgorithm,
+		Hash:          string(hm[:]),
+	}
+	signedMessage := append([]byte(magicHeader), ssh.Marshal(toVerify)...)
+
+	// 1. Small-order public key (neutral point) with R = neutral, S = 0.
+	neutralKey := make(ed25519.PublicKey, ed25519.PublicKeySize)
+	neutralKey[0] = 1
+	sshNeutralPub, err := ssh.NewPublicKey(neutralKey)
+	if err != nil {
+		t.Fatalf("ssh.NewPublicKey(neutralKey): %v", err)
+	}
+	forgedBlob := make([]byte, ed25519.SignatureSize)
+	forgedBlob[0] = 1 // R = neutral, S = 0
+	forgedSig := &ssh.Signature{
+		Format: ssh.KeyAlgoED25519,
+		Blob:   forgedBlob,
+	}
+	// Confirm golang.org/x/crypto/ssh itself accepts this forgery.
+	if err := sshNeutralPub.Verify(signedMessage, forgedSig); err != nil {
+		t.Fatalf("expected x/crypto/ssh to accept neutral-key forgery, got: %v", err)
+	}
+	armored := Armor(forgedSig, sshNeutralPub)
+	if err := Verify(bytes.NewReader(msg), armored, sshNeutralPub); err == nil || !strings.Contains(err.Error(), "small-order") {
+		t.Errorf("expected Verify to reject small-order ssh-ed25519 key, got: %v", err)
+	}
+
+	// 2. *ssh.Certificate wrapping a small-order Ed25519 key.
+	cert := &ssh.Certificate{Key: sshNeutralPub}
+	if err := Verify(bytes.NewReader(msg), armored, cert); err == nil || !strings.Contains(err.Error(), "small-order") {
+		t.Errorf("expected Verify to reject *ssh.Certificate wrapping small-order key, got: %v", err)
+	}
+
+	// 3. Valid Ed25519 key with a forged small-order-R signature accepted by x/crypto/ssh.
+	pub, priv, err := ed25519.GenerateKey(rand.Reader)
+	if err != nil {
+		t.Fatalf("ed25519.GenerateKey: %v", err)
+	}
+	sshPub, err := ssh.NewPublicKey(pub)
+	if err != nil {
+		t.Fatalf("ssh.NewPublicKey: %v", err)
+	}
+	h := sha512.Sum512(priv.Seed())
+	s, err := edwards25519.NewScalar().SetBytesWithClamping(h[:32])
+	if err != nil {
+		t.Fatalf("SetBytesWithClamping: %v", err)
+	}
+	rBytes := make([]byte, 32)
+	rBytes[0] = 1
+	kh := sha512.New()
+	kh.Write(rBytes)
+	kh.Write(pub)
+	kh.Write(signedMessage)
+	k, err := edwards25519.NewScalar().SetUniformBytes(kh.Sum(nil))
+	if err != nil {
+		t.Fatalf("SetUniformBytes: %v", err)
+	}
+	sVal := edwards25519.NewScalar().Multiply(k, s)
+	smallOrderRSigBlob := make([]byte, ed25519.SignatureSize)
+	copy(smallOrderRSigBlob[:32], rBytes)
+	copy(smallOrderRSigBlob[32:], sVal.Bytes())
+
+	smallOrderRSig := &ssh.Signature{
+		Format: ssh.KeyAlgoED25519,
+		Blob:   smallOrderRSigBlob,
+	}
+	if err := sshPub.Verify(signedMessage, smallOrderRSig); err != nil {
+		t.Fatalf("expected x/crypto/ssh to accept small-order-R signature, got: %v", err)
+	}
+	armoredSmallOrderR := Armor(smallOrderRSig, sshPub)
+	if err := Verify(bytes.NewReader(msg), armoredSmallOrderR, sshPub); err == nil || !strings.Contains(err.Error(), "small-order R") {
+		t.Errorf("expected Verify to reject small-order R signature, got: %v", err)
 	}
 }

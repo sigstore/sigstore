@@ -16,11 +16,17 @@
 package signature
 
 import (
+	"bytes"
 	"crypto"
 	"crypto/ed25519"
+	"crypto/rand"
+	"crypto/sha512"
 	"encoding/base64"
+	"encoding/hex"
+	"strings"
 	"testing"
 
+	"filippo.io/edwards25519"
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
 )
 
@@ -93,7 +99,102 @@ func TestED25519VerifierRejectsWrongKeySize(t *testing.T) {
 			t.Errorf("expected error loading verifier with %d-byte key, got nil", size)
 		}
 	}
-	if _, err := LoadED25519Verifier(ed25519.PublicKey(make([]byte, ed25519.PublicKeySize))); err != nil {
+	pub, _, err := ed25519.GenerateKey(rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := LoadED25519Verifier(pub); err != nil {
 		t.Errorf("unexpected error loading verifier with valid key size: %v", err)
+	}
+}
+
+// forgeNeutralRSig constructs an Ed25519 (or Ed25519ph when prehash is true)
+// signature with R = neutral point (small-order) and S = k*s mod L, which
+// satisfies Go stdlib's verification equation [S]B == R + [k]A.
+func forgeNeutralRSig(t *testing.T, priv ed25519.PrivateKey, msg []byte, prehash bool) []byte {
+	t.Helper()
+	h := sha512.Sum512(priv.Seed())
+	s, err := edwards25519.NewScalar().SetBytesWithClamping(h[:32])
+	if err != nil {
+		t.Fatalf("SetBytesWithClamping: %v", err)
+	}
+	rBytes := make([]byte, 32)
+	rBytes[0] = 1 // neutral point
+	pub, ok := priv.Public().(ed25519.PublicKey)
+	if !ok {
+		t.Fatalf("expected ed25519.PublicKey, got %T", priv.Public())
+	}
+
+	kh := sha512.New()
+	if prehash {
+		kh.Write([]byte("SigEd25519 no Ed25519 collisions\x01\x00"))
+	}
+	kh.Write(rBytes)
+	kh.Write(pub)
+	if prehash {
+		digest := sha512.Sum512(msg)
+		kh.Write(digest[:])
+	} else {
+		kh.Write(msg)
+	}
+	k, err := edwards25519.NewScalar().SetUniformBytes(kh.Sum(nil))
+	if err != nil {
+		t.Fatalf("SetUniformBytes: %v", err)
+	}
+	sVal := edwards25519.NewScalar().Multiply(k, s)
+
+	sig := make([]byte, ed25519.SignatureSize)
+	copy(sig[:32], rBytes)
+	copy(sig[32:], sVal.Bytes())
+	return sig
+}
+
+func TestED25519VerifierRejectsSmallOrderKeysAndR(t *testing.T) {
+	neutralKey, _ := hex.DecodeString("0100000000000000000000000000000000000000000000000000000000000000")
+	order2Key, _ := hex.DecodeString("ecffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7f")
+	nonCanonicalNeutral, _ := hex.DecodeString("0100000000000000000000000000000000000000000000000000000000000080")
+
+	for _, key := range []ed25519.PublicKey{neutralKey, order2Key, nonCanonicalNeutral} {
+		if _, err := LoadED25519Verifier(key); err == nil {
+			t.Errorf("expected LoadED25519Verifier to reject invalid key %x", key)
+		}
+		badPriv := make(ed25519.PrivateKey, ed25519.PrivateKeySize)
+		copy(badPriv[32:], key)
+		if _, err := LoadED25519Signer(badPriv); err == nil {
+			t.Errorf("expected LoadED25519Signer to reject private key with invalid public suffix %x", key)
+		}
+	}
+
+	pub, priv, err := ed25519.GenerateKey(rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	v, err := LoadED25519Verifier(pub)
+	if err != nil {
+		t.Fatalf("unexpected error loading valid verifier: %v", err)
+	}
+	msg := []byte("test")
+	smallOrderSig := forgeNeutralRSig(t, priv, msg, false)
+	if !ed25519.Verify(pub, msg, smallOrderSig) {
+		t.Fatalf("expected stdlib ed25519.Verify to accept forged small-order-R signature")
+	}
+	if err := v.VerifySignature(bytes.NewReader(smallOrderSig), bytes.NewReader(msg)); err == nil || !strings.Contains(err.Error(), "small-order R") {
+		t.Errorf("expected VerifySignature to reject small-order R, got: %v", err)
+	}
+
+	// Mutating the caller's slice or the slice returned by PublicKey() must not affect the verifier.
+	validSig := ed25519.Sign(priv, msg)
+	copy(pub, neutralKey)
+	gotPub, err := v.PublicKey()
+	if err != nil {
+		t.Fatalf("PublicKey() error: %v", err)
+	}
+	gotPubKey, ok := gotPub.(ed25519.PublicKey)
+	if !ok {
+		t.Fatalf("expected ed25519.PublicKey, got %T", gotPub)
+	}
+	copy(gotPubKey, neutralKey)
+	if err := v.VerifySignature(bytes.NewReader(validSig), bytes.NewReader(msg)); err != nil {
+		t.Errorf("mutating external public key slices corrupted verifier: %v", err)
 	}
 }
