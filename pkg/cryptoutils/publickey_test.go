@@ -23,6 +23,7 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
+	"encoding/hex"
 	"encoding/pem"
 	"strings"
 	"testing"
@@ -429,5 +430,85 @@ func TestValidateMLDSAPublicKey(t *testing.T) {
 
 	if _, err := ValidateMLDSAPublicKey(&mldsa.PublicKey{}); err == nil || !strings.Contains(err.Error(), "invalid ML-DSA public key") {
 		t.Errorf("expected error containing 'invalid ML-DSA public key', got %v", err)
+	}
+}
+
+func TestValidateEd25519PublicKey(t *testing.T) {
+	validPub, _, err := ed25519.GenerateKey(rand.Reader)
+	if err != nil {
+		t.Fatalf("ed25519.GenerateKey failed: %v", err)
+	}
+	if err := ValidateEd25519PublicKey(validPub); err != nil {
+		t.Errorf("unexpected error for valid Ed25519 key: %v", err)
+	}
+	if err := ValidatePubKey(validPub); err != nil {
+		t.Errorf("unexpected ValidatePubKey error for valid Ed25519 key: %v", err)
+	}
+
+	mustHex := func(s string) ed25519.PublicKey {
+		t.Helper()
+		b, err := hex.DecodeString(s)
+		if err != nil {
+			t.Fatalf("hex.DecodeString(%q): %v", s, err)
+		}
+		return ed25519.PublicKey(b)
+	}
+
+	invalidCases := []struct {
+		name    string
+		key     ed25519.PublicKey
+		wantErr string
+	}{
+		{name: "nil", key: nil, wantErr: "invalid size"},
+		{name: "short", key: make(ed25519.PublicKey, 31), wantErr: "invalid size"},
+		{name: "long", key: make(ed25519.PublicKey, 33), wantErr: "invalid size"},
+		// All 8 canonical small-order points
+		{name: "order 1 (neutral)", key: mustHex("0100000000000000000000000000000000000000000000000000000000000000"), wantErr: "small-order"},
+		{name: "order 2", key: mustHex("ecffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7f"), wantErr: "small-order"},
+		{name: "order 4 (a)", key: mustHex("0000000000000000000000000000000000000000000000000000000000000000"), wantErr: "small-order"},
+		{name: "order 4 (b)", key: mustHex("0000000000000000000000000000000000000000000000000000000000000080"), wantErr: "small-order"},
+		{name: "order 8 (a)", key: mustHex("c7176a703d4dd84fba3c0b760d10670f2a2053fa2c39ccc64ec7fd7792ac037a"), wantErr: "small-order"},
+		{name: "order 8 (b)", key: mustHex("c7176a703d4dd84fba3c0b760d10670f2a2053fa2c39ccc64ec7fd7792ac03fa"), wantErr: "small-order"},
+		{name: "order 8 (c)", key: mustHex("26e8958fc2b227b045c3f489f2ef98f0d5dfac05d3c63339b13802886d53fc05"), wantErr: "small-order"},
+		{name: "order 8 (d)", key: mustHex("26e8958fc2b227b045c3f489f2ef98f0d5dfac05d3c63339b13802886d53fc85"), wantErr: "small-order"},
+		// Non-canonical encodings
+		{name: "non-canonical neutral (sign bit)", key: mustHex("0100000000000000000000000000000000000000000000000000000000000080"), wantErr: "non-canonical"},
+		{name: "non-canonical y=p", key: mustHex("edffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7f"), wantErr: "non-canonical"},
+		{name: "non-canonical y=p+1", key: mustHex("eeffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7f"), wantErr: "non-canonical"},
+		// Non-canonical encoding of a non-small-order curve point (y = p + 4, where canonical y = 4 is a valid non-torsion point)
+		{name: "non-canonical non-small-order (y=p+4)", key: mustHex("f1ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7f"), wantErr: "non-canonical"},
+		// Off-curve point
+		{name: "off-curve", key: mustHex("0200000000000000000000000000000000000000000000000000000000000000"), wantErr: "not a point on the curve"},
+	}
+
+	for _, tc := range invalidCases {
+		t.Run(tc.name, func(t *testing.T) {
+			err := ValidateEd25519PublicKey(tc.key)
+			if err == nil {
+				t.Fatalf("ValidateEd25519PublicKey(%s) = nil, want error containing %q", tc.name, tc.wantErr)
+			}
+			if !strings.Contains(err.Error(), tc.wantErr) {
+				t.Errorf("ValidateEd25519PublicKey(%s) error = %v, want substring %q", tc.name, err, tc.wantErr)
+			}
+			if err := ValidatePubKey(tc.key); err == nil {
+				t.Errorf("ValidatePubKey(%s) = nil, want error", tc.name)
+			}
+		})
+	}
+
+	// Verify canonical y=4 is a valid non-small-order point (so y=p+4 above tests non-canonical independently of small-order).
+	canonicalY4 := mustHex("0400000000000000000000000000000000000000000000000000000000000000")
+	if err := ValidateEd25519PublicKey(canonicalY4); err != nil {
+		t.Errorf("expected canonical y=4 to be a valid non-small-order point, got: %v", err)
+	}
+
+	// Verify UnmarshalPEMToPublicKey rejects small-order Ed25519 keys.
+	neutralKey := mustHex("0100000000000000000000000000000000000000000000000000000000000000")
+	neutralPEM, err := MarshalPublicKeyToPEM(neutralKey)
+	if err != nil {
+		t.Fatalf("MarshalPublicKeyToPEM(neutralKey): %v", err)
+	}
+	if _, err := UnmarshalPEMToPublicKey(neutralPEM); err == nil || !strings.Contains(err.Error(), "small-order") {
+		t.Errorf("UnmarshalPEMToPublicKey(neutralKey) = %v, want small-order error", err)
 	}
 }

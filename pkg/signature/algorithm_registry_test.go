@@ -128,6 +128,16 @@ func TestAlgorithmRegistryConfig(t *testing.T) {
 		t.Errorf("unexpected error permitting ed25519")
 	}
 
+	neutralEd25519Key := make(ed25519.PublicKey, ed25519.PublicKeySize)
+	neutralEd25519Key[0] = 1
+	isPermitted, err = config.IsAlgorithmPermitted(neutralEd25519Key, crypto.Hash(0))
+	if err == nil || isPermitted {
+		t.Errorf("expected error and !isPermitted for small-order ed25519 key, got permitted=%v err=%v", isPermitted, err)
+	}
+	if _, err := GetDefaultPublicKeyDetails(neutralEd25519Key); err == nil {
+		t.Errorf("expected GetDefaultPublicKeyDetails to reject small-order ed25519 key")
+	}
+
 	rsaKey, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
 		t.Errorf("unexpected error creating rsa key: %v", err)

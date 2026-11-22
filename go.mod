@@ -3,6 +3,7 @@ module github.com/sigstore/sigstore
 go 1.27
 
 require (
+	filippo.io/edwards25519 v1.2.0
 	github.com/coreos/go-oidc/v3 v3.21.0
 	github.com/go-jose/go-jose/v4 v4.1.9
 	github.com/go-rod/rod v0.116.2
