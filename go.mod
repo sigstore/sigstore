@@ -17,7 +17,7 @@ require (
 	github.com/tink-crypto/tink-go/v2 v2.9.0
 	github.com/youmark/pkcs8 v0.0.0-20240726163527-a2c0da244d78
 	golang.org/x/crypto v0.59.0
-	golang.org/x/oauth2 v0.37.0
+	golang.org/x/oauth2 v0.38.0
 	golang.org/x/term v0.48.0
 )
 
